@@ -1,0 +1,25 @@
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.6.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+
+  - repo: local
+    hooks:
+      - id: cargo-fmt
+        name: cargo fmt (wasm-engine)
+        description: Check Rust formatting for WASM engine.
+        entry: bash -c 'cd wasm-engine && cargo fmt -- --check'
+        language: system
+        files: ^wasm-engine/.*\.rs$
+        pass_filenames: false
+
+      - id: cargo-clippy
+        name: cargo clippy (wasm-engine)
+        description: Lint Rust code for WASM engine.
+        entry: bash -c 'cd wasm-engine && cargo clippy -- -D warnings'
+        language: system
+        files: ^wasm-engine/.*\.rs$
+        pass_filenames: false
