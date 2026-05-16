@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vectomancy WASM Interactive Playground</title>
+    <style>
+        body { font-family: system-ui, sans-serif; background: #1a1a1a; color: white; padding: 20px; display: flex; flex-direction: column; align-items: center; gap: 15px; margin: 0;}
+        .container { display: flex; gap: 20px; width: 100%; max-width: 1400px; }
+        .sidebar { background: #2a2a2a; padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); width: 300px; display: flex; flex-direction: column; gap: 15px; flex-shrink: 0; height: fit-content; }
+        .main-view { flex-grow: 1; display: flex; flex-direction: column; gap: 10px; align-items: center;}
+
+        .control-group { display: flex; flex-direction: column; gap: 5px; }
+        .control-group label { font-size: 0.9em; color: #ccc; display: flex; justify-content: space-between; }
+
+        select, input[type="file"], input[type="number"] { padding: 8px; border-radius: 4px; border: 1px solid #444; background: #333; color: white; width: 100%; box-sizing: border-box;}
+        input[type="range"] { width: 100%; accent-color: #8E2DE2;}
+        input[type="checkbox"] { width: auto; }
+
+        .checkbox-group { display: flex; align-items: center; gap: 10px; flex-direction: row; }
+
+        canvas { background: white; max-width: 100%; max-height: 85vh; object-fit: contain; border-radius: 4px; box-shadow: 0 0 20px rgba(0,0,0,0.5); }
+        #status { color: #8E2DE2; font-weight: bold; margin-top: 10px;}
+        #stats { font-size: 0.8em; color: #888; }
+
+        .mode-fourier-only { display: none; }
+        .mode-chaikin-only { display: none; }
+    </style>
+</head>
+<body>
+    <h2>Vectomancy Web Engine</h2>
+    <div class="container">
+        <div class="sidebar">
+            <div class="control-group">
+                <label>Input Image</label>
+                <input type="file" id="fileInput" accept="image/*,.svg">
+            </div>
+
+            <div class="control-group">
+                <label>Mode</label>
+                <select id="modeSelect">
+                    <option value="spline">Spline (Bezier Curves)</option>
+                    <option value="fourier">Fourier (Epicycles)</option>
+                    <option value="chaikin">Chaikin (Polylines)</option>
+                </select>
+            </div>
+
+            <div class="control-group checkbox-group">
+                <input type="checkbox" id="colorCheck">
+                <label for="colorCheck" style="margin:0;">Extract Colors</label>
+            </div>
+
+            <div class="control-group">
+                <label>Detail Level <span id="detailVal">50</span></label>
+                <input type="range" id="detailRange" min="1" max="100" value="50">
+            </div>
+
+            <div class="control-group">
+                <label>Min Path Length <span id="minPathVal">5</span></label>
+                <input type="range" id="minPathRange" min="2" max="50" value="5">
+            </div>
+
+            <div class="control-group mode-fourier-only">
+                <label>Fourier Terms <span id="termsVal">1000</span></label>
+                <input type="range" id="termsRange" min="10" max="5000" step="10" value="1000">
+            </div>
+
+            <div class="control-group mode-chaikin-only">
+                <label>Chaikin Iterations <span id="chaikinVal">0</span></label>
+                <input type="range" id="chaikinRange" min="0" max="5" value="0">
+            </div>
+
+            <div id="status">Waiting for WASM...</div>
+            <div id="stats"></div>
+        </div>
+
+        <div class="main-view">
+            <canvas id="canvas"></canvas>
+        </div>
+    </div>
+
+    <script type="module">
+        import init, { process_image } from './wasm/wasm_engine.js';
+
+        // UI Elements
+        const fileInput = document.getElementById('fileInput');
+        const modeSelect = document.getElementById('modeSelect');
+        const colorCheck = document.getElementById('colorCheck');
+        const detailRange = document.getElementById('detailRange');
+        const minPathRange = document.getElementById('minPathRange');
+        const termsRange = document.getElementById('termsRange');
+        const chaikinRange = document.getElementById('chaikinRange');
+
+        const detailVal = document.getElementById('detailVal');
+        const minPathVal = document.getElementById('minPathVal');
+        const termsVal = document.getElementById('termsVal');
+        const chaikinVal = document.getElementById('chaikinVal');
+
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const status = document.getElementById('status');
+        const stats = document.getElementById('stats');
+
+        let isWasmLoaded = false;
+        let currentImageBytes = null;
+        let currentFormat = 'png';
+
+        // Update labels and visibility
+        function updateUI() {
+            detailVal.innerText = detailRange.value;
+            minPathVal.innerText = minPathRange.value;
+            termsVal.innerText = termsRange.value;
+            chaikinVal.innerText = chaikinRange.value;
+
+            const mode = modeSelect.value;
+            document.querySelectorAll('.mode-fourier-only').forEach(el => el.style.display = mode === 'fourier' ? 'flex' : 'none');
+            document.querySelectorAll('.mode-chaikin-only').forEach(el => el.style.display = mode === 'chaikin' ? 'flex' : 'none');
+        }
+
+        // Event Listeners for UI
+        [detailRange, minPathRange, termsRange, chaikinRange, modeSelect, colorCheck].forEach(el => {
+            el.addEventListener('input', () => {
+                updateUI();
+                processCurrentBuffer(); // Real-time feedback
+            });
+        });
+
+        fileInput.addEventListener('change', async () => {
+            if (!fileInput.files[0]) return;
+            const file = fileInput.files[0];
+            const buffer = await file.arrayBuffer();
+            currentImageBytes = new Uint8Array(buffer);
+
+            const ext = file.name.split('.').pop().toLowerCase();
+            currentFormat = (ext === 'jpg' || ext === 'jpeg') ? 'jpg' : (ext === 'png' ? 'png' : (ext === 'svg' ? 'svg' : 'png'));
+
+            processCurrentBuffer();
+        });
+
+        async function loadWasm() {
+            try {
+                await init();
+                isWasmLoaded = true;
+                status.innerText = "WASM Ready!";
+                stats.innerText = "Please select an image to begin.";
+                updateUI();
+            } catch (e) {
+                status.innerText = "Failed to load WASM.";
+                console.error(e);
+            }
+        }
+
+        function processCurrentBuffer() {
+            if (!isWasmLoaded || !currentImageBytes) return;
+
+            status.innerText = "Processing...";
+
+            // Map UI to Rust Options exactly matching CLI defaults
+            const options = {
+                format: currentFormat,
+                color: colorCheck.checked,          // Default: false
+                mode: modeSelect.value,             // Default: spline
+                chaikin_iters: parseInt(chaikinRange.value), // Default: 0
+                terms: parseInt(termsRange.value),  // Default: 1000
+                detail: parseInt(detailRange.value),// Default: 50
+                min_path_len: parseInt(minPathRange.value) // Default: 5
+            };
+
+            try {
+                const startTime = performance.now();
+                const result = process_image(currentImageBytes, options);
+                const timeTaken = Math.round(performance.now() - startTime);
+
+                const jsonSizeKB = (JSON.stringify(result).length / 1024).toFixed(1);
+                status.innerText = `Calculated in ${timeTaken}ms!`;
+                stats.innerText = `AST Size: ${jsonSizeKB} KB | Original Size: ${result.width}x${result.height}`;
+
+                renderAST(result);
+            } catch (e) {
+                status.innerText = "Error!";
+                stats.innerText = e.toString();
+                console.error(e);
+            }
+        }
+
+        function renderAST(result) {
+            // High DPI Canvas rendering
+            const ratio = window.devicePixelRatio || 1;
+            canvas.width = result.width * ratio;
+            canvas.height = result.height * ratio;
+            canvas.style.width = result.width + "px";
+            // Do not force height in css so it maintains aspect ratio
+
+            ctx.scale(ratio, ratio);
+
+            ctx.clearRect(0, 0, result.width, result.height);
+            ctx.lineJoin = 'round';
+            ctx.lineCap = 'round';
+            ctx.lineWidth = 1.5;
+
+            if (result.ast.type === 'Spline' || result.ast.type === 'spline') {
+                const paths = result.ast.equations;
+                for (const path of paths) {
+                    if (path.color_rgb && colorCheck.checked) {
+                        ctx.strokeStyle = `rgb(${path.color_rgb[0]}, ${path.color_rgb[1]}, ${path.color_rgb[2]})`;
+                    } else {
+                        ctx.strokeStyle = "black";
+                    }
+
+                    for (const eq of path.data) {
+                        ctx.beginPath();
+                        let first = true;
+                        for (let t = 0; t <= 1.0; t += 0.05) {
+                            let x = eq.x_poly[0] + eq.x_poly[1]*t + eq.x_poly[2]*t*t + eq.x_poly[3]*t*t*t;
+                            let y = eq.y_poly[0] + eq.y_poly[1]*t + eq.y_poly[2]*t*t + eq.y_poly[3]*t*t*t;
+                            if (first) {
+                                ctx.moveTo(x, y);
+                                first = false;
+                            } else {
+                                ctx.lineTo(x, y);
+                            }
+                        }
+                        ctx.stroke();
+                    }
+                }
+            } else if (result.ast.type === 'Fourier' || result.ast.type === 'fourier') {
+                const strokes = result.ast.strokes;
+                for (const stroke of strokes) {
+                    if (stroke.color_rgb && colorCheck.checked) {
+                        ctx.strokeStyle = `rgb(${stroke.color_rgb[0]}, ${stroke.color_rgb[1]}, ${stroke.color_rgb[2]})`;
+                    } else {
+                        ctx.strokeStyle = "black";
+                    }
+
+                    ctx.beginPath();
+                    let first = true;
+                    // Dynamic steps based on number of terms to keep it smooth but performant
+                    const steps = Math.min(Math.max(stroke.data.length * 2, 200), 2000);
+                    for (let i = 0; i <= steps; i++) {
+                        let t = (i / steps) * Math.PI * 2;
+                        let x = 0;
+                        let y = 0;
+                        for (const term of stroke.data) {
+                            x += term.amplitude * Math.cos(term.frequency * t + term.phase);
+                            y += term.amplitude * Math.sin(term.frequency * t + term.phase);
+                        }
+                        if (first) {
+                            ctx.moveTo(x, y);
+                            first = false;
+                        } else {
+                            ctx.lineTo(x, y);
+                        }
+                    }
+                    ctx.stroke();
+                }
+            } else if (result.ast.type === 'Polyline' || result.ast.type === 'polyline') {
+                 const paths = result.ast.paths;
+                 for (const path of paths) {
+                    if (path.color_rgb && colorCheck.checked) {
+                        ctx.strokeStyle = `rgb(${path.color_rgb[0]}, ${path.color_rgb[1]}, ${path.color_rgb[2]})`;
+                    } else {
+                        ctx.strokeStyle = "black";
+                    }
+
+                    ctx.beginPath();
+                    let first = true;
+                    for (const pt of path.data) {
+                        if (first) {
+                            ctx.moveTo(pt.x, pt.y);
+                            first = false;
+                        } else {
+                            ctx.lineTo(pt.x, pt.y);
+                        }
+                    }
+                    ctx.stroke();
+                 }
+            }
+        }
+
+        loadWasm();
+    </script>
+</body>
+</html>
