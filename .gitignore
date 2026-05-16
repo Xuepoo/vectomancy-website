@@ -1,0 +1,10 @@
+target/
+.env
+node_modules/
+dist/
+coverage/
+*.log
+.ruff-cache/
+__pycache__/
+*.pyc
+*.pyo
