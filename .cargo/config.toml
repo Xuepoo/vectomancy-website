@@ -1,0 +1,6 @@
+[build]
+rustflags = ["-C", "target-cpu=generic"]
+
+[target.wasm32-unknown-unknown]
+linker = "rust-lld"
+rustflags = ["-C", "target-cpu=generic"]
