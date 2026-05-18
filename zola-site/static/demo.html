@@ -3,281 +3,615 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Vectomancy WASM Interactive Playground</title>
+    <title>Vectomancy Pro - Retro Lab</title>
+    <link href="https://fonts.googleapis.com/css?family=Press+Start+2P" rel="stylesheet">
+    <link href="https://unpkg.com/nes.css@2.3.0/css/nes.min.css" rel="stylesheet" />
     <style>
-        body { font-family: system-ui, sans-serif; background: #1a1a1a; color: white; padding: 20px; display: flex; flex-direction: column; align-items: center; gap: 15px; margin: 0;}
-        .container { display: flex; gap: 20px; width: 100%; max-width: 1400px; }
-        .sidebar { background: #2a2a2a; padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); width: 300px; display: flex; flex-direction: column; gap: 15px; flex-shrink: 0; height: fit-content; }
-        .main-view { flex-grow: 1; display: flex; flex-direction: column; gap: 10px; align-items: center;}
+        :root {
+            --bg-color: #f7f7f7;
+            --text-color: #212529;
+            --grid-color: #ddd;
+            --container-bg: #fff;
+            --accent-color: #209cee;
+        }
 
-        .control-group { display: flex; flex-direction: column; gap: 5px; }
-        .control-group label { font-size: 0.9em; color: #ccc; display: flex; justify-content: space-between; }
+        body.dark-theme {
+            --bg-color: #1a1a1a;
+            --text-color: #d3d3d3;
+            --grid-color: #333;
+            --container-bg: #212529;
+            --accent-color: #92cc41;
+        }
 
-        select, input[type="file"], input[type="number"] { padding: 8px; border-radius: 4px; border: 1px solid #444; background: #333; color: white; width: 100%; box-sizing: border-box;}
-        input[type="range"] { width: 100%; accent-color: #8E2DE2;}
-        input[type="checkbox"] { width: auto; }
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Press Start 2P', cursive;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            height: 100vh;
+            display: flex;
+            overflow: hidden;
+            font-size: 10px;
+        }
 
-        .checkbox-group { display: flex; align-items: center; gap: 10px; flex-direction: row; }
+        /* Dark Theme Overrides for NES.css */
+        body.dark-theme .nes-container {
+            background-color: var(--container-bg);
+            color: var(--text-color);
+            border-image-slice: 2;
+            border-image-width: 2;
+            border-image-repeat: stretch;
+            border-image-source: url('data:image/svg+xml;utf8,<?xml version="1.0" encoding="UTF-8" ?><svg version="1.1" width="5" height="5" xmlns="http://www.w3.org/2000/svg"><path d="M2 1 h1 v1 h-1 z M1 2 h1 v1 h-1 z M3 2 h1 v1 h-1 z M2 3 h1 v1 h-1 z" fill="rgb(211,211,211)" /></svg>');
+            border-image-outset: 2;
+        }
+        body.dark-theme .nes-container.with-title > .title {
+            background-color: var(--container-bg);
+            color: var(--text-color);
+        }
+        body.dark-theme .nes-input, body.dark-theme .nes-select select, body.dark-theme .nes-textarea {
+            background-color: #111;
+            color: #fff;
+        }
+        body.dark-theme .nes-text.is-primary { color: #92cc41; }
 
-        canvas { background: white; max-width: 100%; max-height: 85vh; object-fit: contain; border-radius: 4px; box-shadow: 0 0 20px rgba(0,0,0,0.5); }
-        #status { color: #8E2DE2; font-weight: bold; margin-top: 10px;}
-        #stats { font-size: 0.8em; color: #888; }
+        /* Layout */
+        .sidebar {
+            width: 380px;
+            display: flex;
+            flex-direction: column;
+            padding: 10px;
+            box-sizing: border-box;
+            border-right: 4px solid var(--text-color);
+            background-color: var(--container-bg);
+            overflow-y: auto;
+            z-index: 10;
+        }
 
-        .mode-fourier-only { display: none; }
-        .mode-chaikin-only { display: none; }
+        .viewport-wrapper {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+
+        .top-bar {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            z-index: 100;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .canvas-area {
+            flex-grow: 1;
+            overflow: hidden;
+            position: relative;
+            background-color: var(--bg-color);
+            background-image: linear-gradient(var(--grid-color) 1px, transparent 1px),
+            linear-gradient(90deg, var(--grid-color) 1px, transparent 1px);
+            background-size: 50px 50px;
+            cursor: grab;
+        }
+        .canvas-area:active { cursor: grabbing; }
+
+        #mainCanvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            transform-origin: 0 0;
+        }
+
+        .gallery-container {
+            height: 180px;
+            background-color: var(--container-bg);
+            border-top: 4px solid var(--text-color);
+            padding: 10px;
+            display: flex;
+            gap: 15px;
+            overflow-x: auto;
+            align-items: center;
+            z-index: 10;
+        }
+
+        .gallery-item {
+            width: 120px;
+            height: 120px;
+            flex-shrink: 0;
+            border: 4px solid transparent;
+            cursor: pointer;
+            position: relative;
+            background: #fff;
+            image-rendering: pixelated;
+        }
+        body.dark-theme .gallery-item { background: #333; }
+        .gallery-item:hover { border-color: #888; }
+        .gallery-item.active { border-color: var(--accent-color); }
+        .gallery-item img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+        .gallery-label {
+            position: absolute;
+            bottom: -20px;
+            left: 0;
+            width: 100%;
+            text-align: center;
+            font-size: 8px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .control-group { margin-bottom: 20px; }
+        .control-group label { margin-bottom: 5px; display: block; font-size: 9px; }
+
+        input[type=range] { width: 100%; }
+
+        .hidden { display: none !important; }
+
+        #status-text { margin-top: 10px; font-size: 8px; color: var(--accent-color); }
+
+        /* Floating Stats */
+        .overlay-stats {
+            position: absolute;
+            bottom: 10px;
+            right: 10px;
+            background: rgba(0, 0, 0, 0.7);
+            color: #fff;
+            padding: 10px;
+            border: 2px solid #fff;
+            pointer-events: none;
+            line-height: 1.5;
+        }
     </style>
 </head>
 <body>
-    <h2>Vectomancy Web Engine</h2>
-    <div class="container">
-        <div class="sidebar">
-            <div class="control-group">
-                <label>Input Image</label>
-                <input type="file" id="fileInput" accept="image/*,.svg">
-            </div>
 
-            <div class="control-group">
-                <label>Mode</label>
-                <select id="modeSelect">
-                    <option value="spline">Spline (Bezier Curves)</option>
-                    <option value="fourier">Fourier (Epicycles)</option>
-                    <option value="chaikin">Chaikin (Polylines)</option>
+    <!-- SIDEBAR CONTROLS -->
+    <div class="sidebar">
+        <div class="nes-container with-title is-centered" style="margin-bottom: 20px;">
+            <p class="title">VECTOMANCY</p>
+            <p style="font-size: 8px;">Pixel Math Engine</p>
+        </div>
+
+        <div class="nes-container with-title is-dark control-group" style="margin-bottom: 20px;">
+            <p class="title">I/O</p>
+            <label class="nes-btn">
+                <span>Select Image</span>
+                <input type="file" id="fileInput" accept="image/*,.svg" style="display:none;">
+            </label>
+            <p id="filename-display" style="margin-top:10px; font-size: 8px; word-break: break-all;"></p>
+        </div>
+
+        <div class="nes-container with-title control-group">
+            <p class="title">Settings</p>
+
+            <label for="modeSelect">Mode</label>
+            <div class="nes-select" style="margin-bottom: 15px;">
+                <select required id="modeSelect">
+                    <option value="spline" selected>Spline (Bezier)</option>
+                    <option value="fourier">Fourier (Epicycle)</option>
+                    <option value="chaikin">Chaikin (Polyline)</option>
                 </select>
             </div>
 
-            <div class="control-group checkbox-group">
-                <input type="checkbox" id="colorCheck">
-                <label for="colorCheck" style="margin:0;">Extract Colors</label>
-            </div>
+            <label>
+                <input type="checkbox" class="nes-checkbox" id="colorCheck" checked />
+                <span>Extract Colors</span>
+            </label>
+            <br><br>
 
-            <div class="control-group">
-                <label>Detail Level <span id="detailVal">50</span></label>
-                <input type="range" id="detailRange" min="1" max="100" value="50">
-            </div>
+            <label>Detail: <span id="detailVal">50</span></label>
+            <input type="range" id="detailRange" min="1" max="100" value="50">
 
-            <div class="control-group">
-                <label>Min Path Length <span id="minPathVal">5</span></label>
-                <input type="range" id="minPathRange" min="2" max="50" value="5">
-            </div>
+            <label style="margin-top: 10px;">Min Path Len: <span id="minPathVal">10</span></label>
+            <input type="range" id="minPathRange" min="2" max="50" value="10">
 
-            <div class="control-group mode-fourier-only">
-                <label>Fourier Terms <span id="termsVal">1000</span></label>
+            <div id="fourier-controls" class="hidden" style="margin-top: 10px;">
+                <label>Fourier Terms: <span id="termsVal">1000</span></label>
                 <input type="range" id="termsRange" min="10" max="5000" step="10" value="1000">
             </div>
 
-            <div class="control-group mode-chaikin-only">
-                <label>Chaikin Iterations <span id="chaikinVal">0</span></label>
-                <input type="range" id="chaikinRange" min="0" max="5" value="0">
+            <div id="chaikin-controls" class="hidden" style="margin-top: 10px;">
+                <label>Chaikin Iters: <span id="chaikinVal">1</span></label>
+                <input type="range" id="chaikinRange" min="0" max="5" value="1">
             </div>
 
-            <div id="status">Waiting for WASM...</div>
-            <div id="stats"></div>
+            <button type="button" class="nes-btn is-primary" id="generateBtn" style="width: 100%; margin-top: 20px;">GENERATE</button>
+
+            <div id="status-text">INIT WASM...</div>
+        </div>
+    </div>
+
+    <!-- MAIN VIEWPORT & GALLERY -->
+    <div class="viewport-wrapper">
+        <div class="top-bar">
+            <button type="button" class="nes-btn" id="themeToggleBtn">Theme</button>
+            <button type="button" class="nes-btn" id="resetViewBtn">Reset View</button>
         </div>
 
-        <div class="main-view">
-            <canvas id="canvas"></canvas>
+        <div class="canvas-area" id="canvasArea">
+            <canvas id="mainCanvas"></canvas>
+
+            <div class="overlay-stats nes-container is-rounded" id="overlayStats">
+                Waiting for input...
+            </div>
+        </div>
+
+        <div class="gallery-container" id="gallery">
+            <!-- Snapshots / Original go here -->
         </div>
     </div>
 
     <script type="module">
         import init, { process_image } from './wasm/wasm_engine.js';
 
-        // UI Elements
-        const fileInput = document.getElementById('fileInput');
-        const modeSelect = document.getElementById('modeSelect');
-        const colorCheck = document.getElementById('colorCheck');
-        const detailRange = document.getElementById('detailRange');
-        const minPathRange = document.getElementById('minPathRange');
-        const termsRange = document.getElementById('termsRange');
-        const chaikinRange = document.getElementById('chaikinRange');
-
-        const detailVal = document.getElementById('detailVal');
-        const minPathVal = document.getElementById('minPathVal');
-        const termsVal = document.getElementById('termsVal');
-        const chaikinVal = document.getElementById('chaikinVal');
-
-        const canvas = document.getElementById('canvas');
-        const ctx = canvas.getContext('2d');
-        const status = document.getElementById('status');
-        const stats = document.getElementById('stats');
-
+        // --- State ---
         let isWasmLoaded = false;
         let currentImageBytes = null;
-        let currentFormat = 'png';
+        let currentFilename = "";
+        let originalImageObj = null;
+        let snapshotCount = 0;
 
-        // Update labels and visibility
-        function updateUI() {
-            detailVal.innerText = detailRange.value;
-            minPathVal.innerText = minPathRange.value;
-            termsVal.innerText = termsRange.value;
-            chaikinVal.innerText = chaikinRange.value;
+        const previewDataStore = new Map();
+        let activePreviewId = null;
 
-            const mode = modeSelect.value;
-            document.querySelectorAll('.mode-fourier-only').forEach(el => el.style.display = mode === 'fourier' ? 'flex' : 'none');
-            document.querySelectorAll('.mode-chaikin-only').forEach(el => el.style.display = mode === 'chaikin' ? 'flex' : 'none');
-        }
+        // --- Pan/Zoom State ---
+        let scale = 1;
+        let offsetX = 0;
+        let offsetY = 0;
+        let isDragging = false;
+        let dragStart = { x: 0, y: 0 };
+        let renderRequested = false;
 
-        // Event Listeners for UI
-        [detailRange, minPathRange, termsRange, chaikinRange, modeSelect, colorCheck].forEach(el => {
-            el.addEventListener('input', () => {
-                updateUI();
-                processCurrentBuffer(); // Real-time feedback
-            });
-        });
+        // --- DOM Elements ---
+        const els = {
+            fileInput: document.getElementById('fileInput'),
+            filenameDisplay: document.getElementById('filename-display'),
+            modeSelect: document.getElementById('modeSelect'),
+            colorCheck: document.getElementById('colorCheck'),
+            detailRange: document.getElementById('detailRange'),
+            minPathRange: document.getElementById('minPathRange'),
+            termsRange: document.getElementById('termsRange'),
+            chaikinRange: document.getElementById('chaikinRange'),
+            fourierControls: document.getElementById('fourier-controls'),
+            chaikinControls: document.getElementById('chaikin-controls'),
+            generateBtn: document.getElementById('generateBtn'),
+            statusText: document.getElementById('status-text'),
+            themeToggleBtn: document.getElementById('themeToggleBtn'),
+            resetViewBtn: document.getElementById('resetViewBtn'),
+            canvasArea: document.getElementById('canvasArea'),
+            mainCanvas: document.getElementById('mainCanvas'),
+            gallery: document.getElementById('gallery'),
+            overlayStats: document.getElementById('overlayStats')
+        };
 
-        fileInput.addEventListener('change', async () => {
-            if (!fileInput.files[0]) return;
-            const file = fileInput.files[0];
-            const buffer = await file.arrayBuffer();
-            currentImageBytes = new Uint8Array(buffer);
+        const ctx = els.mainCanvas.getContext('2d');
 
-            const ext = file.name.split('.').pop().toLowerCase();
-            currentFormat = (ext === 'jpg' || ext === 'jpeg') ? 'jpg' : (ext === 'png' ? 'png' : (ext === 'svg' ? 'svg' : 'png'));
-
-            processCurrentBuffer();
-        });
-
-        async function loadWasm() {
+        // --- Initialization ---
+        async function run() {
             try {
                 await init();
                 isWasmLoaded = true;
-                status.innerText = "WASM Ready!";
-                stats.innerText = "Please select an image to begin.";
-                updateUI();
+                els.statusText.innerText = "READY. INSERT COIN (IMAGE)";
             } catch (e) {
-                status.innerText = "Failed to load WASM.";
-                console.error(e);
+                els.statusText.innerText = "ERR: WASM CRASH";
+            }
+
+            // Theme setup
+            if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+                document.body.classList.add('dark-theme');
             }
         }
 
-        function processCurrentBuffer() {
-            if (!isWasmLoaded || !currentImageBytes) return;
+        // --- UI Updates ---
+        function updateLabels() {
+            document.getElementById('detailVal').innerText = els.detailRange.value;
+            document.getElementById('minPathVal').innerText = els.minPathRange.value;
+            document.getElementById('termsVal').innerText = els.termsRange.value;
+            document.getElementById('chaikinVal').innerText = els.chaikinRange.value;
 
-            status.innerText = "Processing...";
+            const mode = els.modeSelect.value;
+            els.fourierControls.classList.toggle('hidden', mode !== 'fourier');
+            els.chaikinControls.classList.toggle('hidden', mode !== 'chaikin');
+        }
 
-            // Map UI to Rust Options exactly matching CLI defaults
+        [els.detailRange, els.minPathRange, els.termsRange, els.chaikinRange, els.modeSelect].forEach(el => {
+            el.addEventListener('input', updateLabels);
+        });
+
+        els.themeToggleBtn.addEventListener('click', () => {
+            document.body.classList.toggle('dark-theme');
+            requestRender();
+        });
+
+        els.resetViewBtn.addEventListener('click', () => {
+            resetViewport();
+            requestRender();
+        });
+
+        // --- File Handling ---
+        els.fileInput.addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            els.filenameDisplay.innerText = file.name;
+            currentFilename = file.name;
+
+            // Read bytes for WASM
+            const buffer = await file.arrayBuffer();
+            currentImageBytes = new Uint8Array(buffer);
+
+            // Read as DataURL for original image display
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                originalImageObj = new Image();
+                originalImageObj.onload = () => {
+                    // Create Original Thumbnail
+                    addGalleryItem('original', originalImageObj.src, 'ORIGINAL');
+                    activePreviewId = 'original';
+                    resetViewport();
+                    requestRender();
+                };
+                originalImageObj.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        });
+
+        // --- Generation Logic ---
+        els.generateBtn.addEventListener('click', () => {
+            if (!isWasmLoaded || !currentImageBytes) {
+                alert("Please select an image first!");
+                return;
+            }
+
+            els.statusText.innerText = "CALCULATING...";
+            const mode = els.modeSelect.value;
+            const ext = currentFilename.split('.').pop().toLowerCase();
+            const format = (ext === 'png' || ext === 'svg') ? ext : 'jpg';
+
             const options = {
-                format: currentFormat,
-                color: colorCheck.checked,          // Default: false
-                mode: modeSelect.value,             // Default: spline
-                chaikin_iters: parseInt(chaikinRange.value), // Default: 0
-                terms: parseInt(termsRange.value),  // Default: 1000
-                detail: parseInt(detailRange.value),// Default: 50
-                min_path_len: parseInt(minPathRange.value) // Default: 5
+                format: format,
+                color: true,
+                mode: mode,
+                chaikin_iters: parseInt(els.chaikinRange.value),
+                terms: parseInt(els.termsRange.value),
+                detail: parseInt(els.detailRange.value),
+                min_path_len: parseInt(els.minPathRange.value)
             };
 
-            try {
-                const startTime = performance.now();
-                const result = process_image(currentImageBytes, options);
-                const timeTaken = Math.round(performance.now() - startTime);
+            setTimeout(() => {
+                try {
+                    const start = performance.now();
+                    const result = process_image(currentImageBytes, options);
+                    const ms = Math.round(performance.now() - start);
 
-                const jsonSizeKB = (JSON.stringify(result).length / 1024).toFixed(1);
-                status.innerText = `Calculated in ${timeTaken}ms!`;
-                stats.innerText = `AST Size: ${jsonSizeKB} KB | Original Size: ${result.width}x${result.height}`;
+                    snapshotCount++;
+                    const id = `snap-${snapshotCount}`;
+                    const label = `${mode.substring(0,3).toUpperCase()} D${options.detail}`;
 
-                renderAST(result);
-            } catch (e) {
-                status.innerText = "Error!";
-                stats.innerText = e.toString();
-                console.error(e);
+                    createSnapshot(id, result, label, ms);
+
+                    els.statusText.innerText = `DONE: ${ms}ms`;
+                } catch (err) {
+                    els.statusText.innerText = "ERR: COMPUTATION FAILED";
+                    console.error(err);
+                }
+            }, 50);
+        });
+
+        // --- Rendering & Multi-Preview ---
+        function createSnapshot(id, result, label, computeTime) {
+            const size = 256;
+            const offscreen = document.createElement('canvas');
+            offscreen.width = size;
+            offscreen.height = size;
+            const oCtx = offscreen.getContext('2d');
+
+            oCtx.fillStyle = 'white';
+            oCtx.fillRect(0,0,size,size);
+
+            const scale = Math.min(size / result.width, size / result.height) * 0.9;
+            oCtx.translate((size - result.width * scale) / 2, (size - result.height * scale) / 2);
+            oCtx.scale(scale, scale);
+
+            drawAST(oCtx, result.ast, true);
+
+            const dataUrl = offscreen.toDataURL('image/webp', 0.8);
+
+            result.computeTime = computeTime;
+            previewDataStore.set(id, result);
+
+            addGalleryItem(id, dataUrl, label);
+
+            activePreviewId = id;
+            resetViewport();
+            requestRender();
+        }
+
+        function addGalleryItem(id, src, labelText) {
+            const item = document.createElement('div');
+            item.className = 'gallery-item';
+            item.id = `gallery-${id}`;
+            item.innerHTML = `
+                <img src="${src}">
+                <div class="gallery-label">${labelText}</div>
+            `;
+            item.onclick = () => {
+                activePreviewId = id;
+                resetViewport();
+                requestRender();
+            };
+            els.gallery.appendChild(item);
+        }
+
+        // --- Viewport Panning & Zooming ---
+        function resetViewport() {
+            scale = 1;
+            const targetWidth = activePreviewId === 'original' ? originalImageObj.width : previewDataStore.get(activePreviewId).width;
+            const targetHeight = activePreviewId === 'original' ? originalImageObj.height : previewDataStore.get(activePreviewId).height;
+
+            const areaRect = els.canvasArea.getBoundingClientRect();
+            const scaleX = (areaRect.width * 0.8) / targetWidth;
+            const scaleY = (areaRect.height * 0.8) / targetHeight;
+            scale = Math.min(scaleX, scaleY);
+            if(scale > 2) scale = 2;
+
+            offsetX = (areaRect.width - targetWidth * scale) / 2;
+            offsetY = (areaRect.height - targetHeight * scale) / 2;
+        }
+
+        els.canvasArea.addEventListener('mousedown', (e) => {
+            isDragging = true;
+            dragStart = { x: e.clientX - offsetX, y: e.clientY - offsetY };
+        });
+        window.addEventListener('mousemove', (e) => {
+            if (!isDragging) return;
+            offsetX = e.clientX - dragStart.x;
+            offsetY = e.clientY - dragStart.y;
+            requestRender();
+        });
+        window.addEventListener('mouseup', () => { isDragging = false; });
+        els.canvasArea.addEventListener('wheel', (e) => {
+            e.preventDefault();
+            const zoomIntensity = 0.1;
+            const wheel = e.deltaY < 0 ? 1 : -1;
+            const zoomFactor = Math.exp(wheel * zoomIntensity);
+
+            const rect = els.canvasArea.getBoundingClientRect();
+            const mouseX = e.clientX - rect.left;
+            const mouseY = e.clientY - rect.top;
+
+            offsetX = mouseX - (mouseX - offsetX) * zoomFactor;
+            offsetY = mouseY - (mouseY - offsetY) * zoomFactor;
+            scale *= zoomFactor;
+
+            requestRender();
+        });
+
+        // --- Core Drawing ---
+        function requestRender() {
+            if (!renderRequested) {
+                renderRequested = true;
+                requestAnimationFrame(renderViewport);
             }
         }
 
-        function renderAST(result) {
-            // High DPI Canvas rendering
-            const ratio = window.devicePixelRatio || 1;
-            canvas.width = result.width * ratio;
-            canvas.height = result.height * ratio;
-            canvas.style.width = result.width + "px";
-            // Do not force height in css so it maintains aspect ratio
+        function renderViewport() {
+            renderRequested = false;
 
-            ctx.scale(ratio, ratio);
+            const rect = els.canvasArea.getBoundingClientRect();
+            els.mainCanvas.width = rect.width;
+            els.mainCanvas.height = rect.height;
 
-            ctx.clearRect(0, 0, result.width, result.height);
+            ctx.clearRect(0, 0, els.mainCanvas.width, els.mainCanvas.height);
+
+            document.querySelectorAll('.gallery-item').forEach(el => el.classList.remove('active'));
+            const activeGalleryItem = document.getElementById(`gallery-${activePreviewId}`);
+            if (activeGalleryItem) activeGalleryItem.classList.add('active');
+
+            if (!activePreviewId) return;
+
+            ctx.save();
+            ctx.translate(offsetX, offsetY);
+            ctx.scale(scale, scale);
+
+            const isDark = document.body.classList.contains('dark-theme');
+
+            if (activePreviewId === 'original') {
+                if (originalImageObj) {
+                    ctx.drawImage(originalImageObj, 0, 0);
+                    updateOverlayStats(`ORIGINAL IMAGE\nSIZE: ${originalImageObj.width}x${originalImageObj.height}`);
+                }
+            } else {
+                const result = previewDataStore.get(activePreviewId);
+                if (result) {
+                    drawAST(ctx, result.ast, false, isDark);
+
+                    let memoryMB = (JSON.stringify(result).length / (1024*1024)).toFixed(2);
+                    let statsText = `WASM AST RENDER\nSIZE: ${result.width}x${result.height}\nCOMPUTE: ${result.computeTime}ms\nAST MEM: ${memoryMB} MB`;
+                    if (result.ast.type === 'Spline' || result.ast.type === 'spline') {
+                        statsText += `\nPATHS: ${result.ast.equations.length}`;
+                    } else if (result.ast.type === 'Fourier' || result.ast.type === 'fourier') {
+                        statsText += `\nSTROKES: ${result.ast.strokes.length}`;
+                    }
+                    updateOverlayStats(statsText);
+                }
+            }
+
+            ctx.restore();
+        }
+
+        function updateOverlayStats(text) {
+            els.overlayStats.innerText = text;
+        }
+
+        function drawAST(ctx, ast, isThumbnail, isDarkTheme = false) {
             ctx.lineJoin = 'round';
             ctx.lineCap = 'round';
-            ctx.lineWidth = 1.5;
+            let currentStrokeW = isThumbnail ? 2.5 : (1.5 / Math.max(scale, 0.1));
+            ctx.lineWidth = currentStrokeW;
 
-            if (result.ast.type === 'Spline' || result.ast.type === 'spline') {
-                const paths = result.ast.equations;
-                for (const path of paths) {
-                    if (path.color_rgb && colorCheck.checked) {
-                        ctx.strokeStyle = `rgb(${path.color_rgb[0]}, ${path.color_rgb[1]}, ${path.color_rgb[2]})`;
-                    } else {
-                        ctx.strokeStyle = "black";
-                    }
+            const defaultColor = isDarkTheme ? '#ffffff' : '#000000';
+            const extractColor = els.colorCheck.checked || isThumbnail;
+
+            if (ast.type === 'Spline' || ast.type === 'spline') {
+                for (const path of ast.equations) {
+                    ctx.strokeStyle = (path.color_rgb && extractColor) ?
+                        `rgb(${path.color_rgb[0]},${path.color_rgb[1]},${path.color_rgb[2]})` : defaultColor;
 
                     for (const eq of path.data) {
                         ctx.beginPath();
                         let first = true;
-                        for (let t = 0; t <= 1.0; t += 0.05) {
+                        let step = isThumbnail ? 0.1 : 0.05;
+                        for (let t = 0; t <= 1.0; t += step) {
                             let x = eq.x_poly[0] + eq.x_poly[1]*t + eq.x_poly[2]*t*t + eq.x_poly[3]*t*t*t;
                             let y = eq.y_poly[0] + eq.y_poly[1]*t + eq.y_poly[2]*t*t + eq.y_poly[3]*t*t*t;
-                            if (first) {
-                                ctx.moveTo(x, y);
-                                first = false;
-                            } else {
-                                ctx.lineTo(x, y);
-                            }
+                            if (first) { ctx.moveTo(x, y); first = false; } else { ctx.lineTo(x, y); }
                         }
                         ctx.stroke();
                     }
                 }
-            } else if (result.ast.type === 'Fourier' || result.ast.type === 'fourier') {
-                const strokes = result.ast.strokes;
-                for (const stroke of strokes) {
-                    if (stroke.color_rgb && colorCheck.checked) {
-                        ctx.strokeStyle = `rgb(${stroke.color_rgb[0]}, ${stroke.color_rgb[1]}, ${stroke.color_rgb[2]})`;
-                    } else {
-                        ctx.strokeStyle = "black";
-                    }
+            } else if (ast.type === 'Fourier' || ast.type === 'fourier') {
+                for (const stroke of ast.strokes) {
+                    ctx.strokeStyle = (stroke.color_rgb && extractColor) ?
+                        `rgb(${stroke.color_rgb[0]},${stroke.color_rgb[1]},${stroke.color_rgb[2]})` : defaultColor;
 
                     ctx.beginPath();
                     let first = true;
-                    // Dynamic steps based on number of terms to keep it smooth but performant
-                    const steps = Math.min(Math.max(stroke.data.length * 2, 200), 2000);
+                    const steps = Math.min(stroke.data.length * 4, isThumbnail ? 200 : 2000);
                     for (let i = 0; i <= steps; i++) {
                         let t = (i / steps) * Math.PI * 2;
-                        let x = 0;
-                        let y = 0;
+                        let x = 0, y = 0;
                         for (const term of stroke.data) {
                             x += term.amplitude * Math.cos(term.frequency * t + term.phase);
                             y += term.amplitude * Math.sin(term.frequency * t + term.phase);
                         }
-                        if (first) {
-                            ctx.moveTo(x, y);
-                            first = false;
-                        } else {
-                            ctx.lineTo(x, y);
-                        }
+                        if (first) { ctx.moveTo(x, y); first = false; } else { ctx.lineTo(x, y); }
                     }
                     ctx.stroke();
                 }
-            } else if (result.ast.type === 'Polyline' || result.ast.type === 'polyline') {
-                 const paths = result.ast.paths;
-                 for (const path of paths) {
-                    if (path.color_rgb && colorCheck.checked) {
-                        ctx.strokeStyle = `rgb(${path.color_rgb[0]}, ${path.color_rgb[1]}, ${path.color_rgb[2]})`;
-                    } else {
-                        ctx.strokeStyle = "black";
-                    }
+            } else if (ast.type === 'Polyline' || ast.type === 'polyline') {
+                 for (const path of ast.paths) {
+                    ctx.strokeStyle = (path.color_rgb && extractColor) ?
+                        `rgb(${path.color_rgb[0]},${path.color_rgb[1]},${path.color_rgb[2]})` : defaultColor;
 
                     ctx.beginPath();
                     let first = true;
                     for (const pt of path.data) {
-                        if (first) {
-                            ctx.moveTo(pt.x, pt.y);
-                            first = false;
-                        } else {
-                            ctx.lineTo(pt.x, pt.y);
-                        }
+                        if (first) { ctx.moveTo(pt.x, pt.y); first = false; } else { ctx.lineTo(pt.x, pt.y); }
                     }
                     ctx.stroke();
                  }
             }
         }
 
-        loadWasm();
+        // --- Init ---
+        run();
     </script>
 </body>
 </html>
