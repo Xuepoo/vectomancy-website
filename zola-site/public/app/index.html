@@ -319,7 +319,7 @@
             </div>
         </div>
 
-        <div class="nes-container with-title control-group" style="padding: 15px; flex-grow: 1; overflow-y: auto;">
+        <div class="nes-container with-title control-group" style="padding: 15px; flex-grow: 1;">
             <p class="title" style="font-size: 10px;">Settings</p>
 
             <label for="modeSelect">Mode</label>
@@ -450,6 +450,17 @@
         </form>
     </dialog>
 
+    <!-- Custom Error Dialog -->
+    <dialog class="nes-dialog" id="error-dialog">
+        <form method="dialog">
+            <p class="title" style="margin-bottom: 15px; font-size: 12px; color: #e76e55;">ERROR</p>
+            <p id="error-message" style="font-size: 9px; margin-bottom: 25px; line-height: 1.5; word-break: break-word;"></p>
+            <menu class="dialog-menu" style="display: flex; justify-content: flex-end; padding: 0; margin: 0;">
+                <button class="nes-btn is-primary">OK</button>
+            </menu>
+        </form>
+    </dialog>
+
     <script type="module">
         import init, { process_image } from '/wasm/wasm_engine.js';
 
@@ -464,8 +475,10 @@
         const previewDataStore = new Map();
         let activePreviewId = null;
 
-        // --- Pan/Zoom State ---
-        let scale = 1;
+        // Cache for the active generated AST to prevent lag during pan/zoom
+        let cachedViewportCanvas = null;
+
+        // --- Pan/Zoom State ---        let scale = 1;
         let offsetX = 0;
         let offsetY = 0;
         let isDragging = false;
@@ -510,10 +523,22 @@
             progressContainer: document.getElementById('progressContainer'),
             progressBar: document.getElementById('progressBar'),
             deleteDialog: document.getElementById('delete-dialog'),
-            confirmDeleteBtn: document.getElementById('confirmDeleteBtn')
+            confirmDeleteBtn: document.getElementById('confirmDeleteBtn'),
+            errorDialog: document.getElementById('error-dialog'),
+            errorMessage: document.getElementById('error-message')
         };
 
         const ctx = els.mainCanvas.getContext('2d');
+        const SUPPORTED_FORMATS = ['png', 'jpg', 'jpeg', 'svg', 'webp'];
+
+        function showError(msg) {
+            els.errorMessage.innerText = msg;
+            if (typeof els.errorDialog.showModal === "function") {
+                els.errorDialog.showModal();
+            } else {
+                els.errorDialog.setAttribute("open", "true");
+            }
+        }
 
         function truncateMiddle(str, maxLength) {
             if (str.length <= maxLength) return str;
@@ -538,6 +563,7 @@
                 document.body.classList.add('dark-theme');
                 els.deleteDialog.classList.add('is-dark');
                 els.helpDialog.classList.add('is-dark');
+                els.errorDialog.classList.add('is-dark');
             }
         }
 
@@ -561,6 +587,7 @@
             document.body.classList.toggle('dark-theme');
             els.deleteDialog.classList.toggle('is-dark');
             els.helpDialog.classList.toggle('is-dark');
+            els.errorDialog.classList.toggle('is-dark');
             requestRender();
         });
 
@@ -603,7 +630,7 @@
 
         els.downloadBtn.addEventListener('click', () => {
             if (!activePreviewId || activePreviewId === 'original') {
-                alert("Please select a GENERATED snapshot from the gallery below to download.");
+                showError("Please select a GENERATED snapshot from the gallery below to download.");
                 return;
             }
 
@@ -652,6 +679,12 @@
         }
 
         async function handleImageBytes(buffer, filename) {
+            const ext = filename.split('.').pop().toLowerCase();
+            if (!SUPPORTED_FORMATS.includes(ext) && ext !== filename.toLowerCase()) {
+                showError(`Unsupported file format: .${ext}\nPlease use PNG, JPG, SVG, or WEBP.`);
+                return;
+            }
+
             currentImageBytes = new Uint8Array(buffer);
             currentFilename = filename;
             els.filenameDisplay.innerText = truncateMiddle(filename, 30);
@@ -679,6 +712,7 @@
             if (!file) return;
             const buffer = await file.arrayBuffer();
             handleImageBytes(buffer, file.name);
+            els.fileInput.value = ''; // Reset input to allow uploading the same file again
         });
 
         els.fetchUrlBtn.addEventListener('click', async () => {
@@ -687,19 +721,17 @@
             els.loaderText.innerText = "Fetching URL...";
             els.loaderOverlay.classList.remove('hidden');
             try {
-                // Warning: public URLs might face CORS issues without a proxy
                 const response = await fetch(url);
-                if (!response.ok) throw new Error("Fetch failed");
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
                 const buffer = await response.arrayBuffer();
-                const filename = url.split('/').pop().split('?')[0] || "downloaded_image";
+                const filename = url.split('/').pop().split('?')[0] || "downloaded_image.png";
                 handleImageBytes(buffer, filename);
             } catch (err) {
-                alert("Failed to fetch image. It might be blocked by CORS.");
+                showError("Failed to fetch image from URL.\n\nThis is usually caused by CORS (Cross-Origin Resource Sharing) restrictions on the target server preventing direct browser access.");
             } finally {
                 els.loaderOverlay.classList.add('hidden');
             }
         });
-
         // --- Preset Examples Handling ---
         document.querySelectorAll('.preset-example').forEach(img => {
             img.addEventListener('click', async (e) => {
@@ -722,7 +754,7 @@
         // --- Generation Logic ---
         els.generateBtn.addEventListener('click', () => {
             if (!isWasmLoaded || !currentImageBytes) {
-                alert("Please select an image first!");
+                showError("Please select an image first!");
                 return;
             }
 
@@ -806,26 +838,22 @@
 
             addGalleryItem(id, dataUrl, label);
 
-            activePreviewId = id;
-            resetViewport();
-            requestRender();
-        }
+            setActivePreview(id);
+            }
 
-        // Custom Dialog Handlers
-        els.deleteDialog.addEventListener('close', () => {
+            // Custom Dialog Handlers
+            els.deleteDialog.addEventListener('close', () => {
             if (els.deleteDialog.returnValue === 'confirm' && pendingDeleteId) {
                 previewDataStore.delete(pendingDeleteId);
                 document.getElementById(`gallery-${pendingDeleteId}`).remove();
                 if (activePreviewId === pendingDeleteId) {
-                    activePreviewId = 'original';
-                    resetViewport();
-                    requestRender();
+                    setActivePreview('original');
                 }
             }
             pendingDeleteId = null;
-        });
+            });
 
-        function addGalleryItem(id, src, labelText) {
+            function addGalleryItem(id, src, labelText) {
             const item = document.createElement('div');
             item.className = 'gallery-item';
             item.id = `gallery-${id}`;
@@ -847,14 +875,39 @@
                     }
                     return;
                 }
-                document.querySelectorAll('.gallery-item').forEach(c => c.classList.remove('active'));
-                item.classList.add('active');
-                activePreviewId = id;
-                resetViewport();
-                requestRender();
+                setActivePreview(id);
             };
             els.gallery.prepend(item);
             if(id === 'original') item.click();
+            }
+        function setActivePreview(id) {
+            activePreviewId = id;
+            document.querySelectorAll('.gallery-item').forEach(c => c.classList.remove('active'));
+            const activeGalleryItem = document.getElementById(`gallery-${id}`);
+            if (activeGalleryItem) activeGalleryItem.classList.add('active');
+
+            if (id !== 'original') {
+                const result = previewDataStore.get(id);
+                if (result) {
+                    const isDark = document.body.classList.contains('dark-theme');
+                    cachedViewportCanvas = document.createElement('canvas');
+                    cachedViewportCanvas.width = result.width;
+                    cachedViewportCanvas.height = result.height;
+                    const cCtx = cachedViewportCanvas.getContext('2d');
+
+                    // Fill background for cache to prevent transparent overlap issues during pan
+                    cCtx.fillStyle = isDark ? '#1a1a1a' : '#f7f7f7';
+                    cCtx.fillRect(0, 0, result.width, result.height);
+
+                    // Draw full resolution AST to cache
+                    drawAST(cCtx, result.ast, false, isDark, true); // true = export mode (1.5px constant width)
+                }
+            } else {
+                cachedViewportCanvas = null;
+            }
+
+            resetViewport();
+            requestRender();
         }
 
         // --- Viewport Panning & Zooming ---
@@ -937,8 +990,9 @@
                 }
             } else {
                 const result = previewDataStore.get(activePreviewId);
-                if (result) {
-                    drawAST(ctx, result.ast, false, isDark);
+                if (result && cachedViewportCanvas) {
+                    // Draw from offscreen cache for ultra-fast panning/zooming!
+                    ctx.drawImage(cachedViewportCanvas, 0, 0);
 
                     let memoryMB = (JSON.stringify(result).length / (1024*1024)).toFixed(2);
                     let statsText = `WASM RENDER\nSIZE: ${result.width}x${result.height}\nTIME: ${result.computeTime}ms\nMEM: ${memoryMB} MB`;
@@ -950,7 +1004,6 @@
                     updateOverlayStats(statsText);
                 }
             }
-
             ctx.restore();
         }
 
