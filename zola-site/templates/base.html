@@ -24,13 +24,24 @@
     <meta property="twitter:image" content="{{ config.base_url }}/examples/fuji.png">
 
     <!-- Fonts & CSS -->
+    <link rel="icon" type="image/svg+xml" href="/img/logo.svg">
     <link href="https://fonts.googleapis.com/css?family=Press+Start+2P" rel="stylesheet">
     <link href="https://unpkg.com/nes.css@2.3.0/css/nes.min.css" rel="stylesheet" />
     <style>
+        :root {
+            --bg-color: #f7f7f7;
+            --text-color: #212529;
+            --container-bg: #fff;
+        }
+        body.dark-theme {
+            --bg-color: #1a1a1a;
+            --text-color: #d3d3d3;
+            --container-bg: #212529;
+        }
         body {
             font-family: 'Press Start 2P', cursive;
-            background-color: #f7f7f7;
-            color: #212529;
+            background-color: var(--bg-color);
+            color: var(--text-color);
             margin: 0;
             padding: 0;
         }
