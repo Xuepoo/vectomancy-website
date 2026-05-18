@@ -23,10 +23,13 @@
             --accent-color: #92cc41;
         }
 
+        body, input, select, textarea, button, option {
+            font-family: 'Press Start 2P', cursive !important;
+        }
+
         body {
             margin: 0;
             padding: 0;
-            font-family: 'Press Start 2P', cursive;
             background-color: var(--bg-color);
             color: var(--text-color);
             height: 100vh;
@@ -225,6 +228,29 @@
 
             <div id="status-text">INIT WASM...</div>
         </div>
+
+        <!-- EXPORT SECTION -->
+        <div class="nes-container with-title control-group">
+            <p class="title">Export</p>
+
+            <label for="exportFormat">Format</label>
+            <div class="nes-select" style="margin-bottom: 15px;">
+                <select required id="exportFormat">
+                    <option value="png" selected>PNG Image</option>
+                    <option value="jpg">JPG Image</option>
+                    <option value="json">JSON Data</option>
+                </select>
+            </div>
+
+            <div id="bgTransparentContainer" style="margin-bottom: 15px;">
+                <label>
+                    <input type="checkbox" class="nes-checkbox" id="bgTransparentCheck" />
+                    <span>Transparent BG</span>
+                </label>
+            </div>
+
+            <button type="button" class="nes-btn is-success" id="downloadBtn" style="width: 100%;">DOWNLOAD</button>
+        </div>
     </div>
 
     <!-- MAIN VIEWPORT & GALLERY -->
@@ -287,7 +313,13 @@
             canvasArea: document.getElementById('canvasArea'),
             mainCanvas: document.getElementById('mainCanvas'),
             gallery: document.getElementById('gallery'),
-            overlayStats: document.getElementById('overlayStats')
+            overlayStats: document.getElementById('overlayStats'),
+
+            // Export Els
+            exportFormat: document.getElementById('exportFormat'),
+            bgTransparentCheck: document.getElementById('bgTransparentCheck'),
+            bgTransparentContainer: document.getElementById('bgTransparentContainer'),
+            downloadBtn: document.getElementById('downloadBtn')
         };
 
         const ctx = els.mainCanvas.getContext('2d');
@@ -333,6 +365,70 @@
             resetViewport();
             requestRender();
         });
+
+        // --- Export Logic ---
+        els.exportFormat.addEventListener('change', () => {
+            if (els.exportFormat.value === 'png') {
+                els.bgTransparentCheck.disabled = false;
+                els.bgTransparentContainer.style.opacity = '1';
+            } else {
+                els.bgTransparentCheck.disabled = true;
+                els.bgTransparentCheck.checked = false;
+                els.bgTransparentContainer.style.opacity = '0.5';
+            }
+        });
+
+        els.downloadBtn.addEventListener('click', () => {
+            if (!activePreviewId || activePreviewId === 'original') {
+                alert("Please select a GENERATED snapshot from the gallery below to download, not the original image.");
+                return;
+            }
+
+            const result = previewDataStore.get(activePreviewId);
+            if (!result) return;
+
+            const format = els.exportFormat.value;
+            const isTransparent = els.bgTransparentCheck.checked;
+            const isDark = document.body.classList.contains('dark-theme');
+
+            const baseName = currentFilename.split('.')[0] || "image";
+            const detailInfo = els.modeSelect.value === 'fourier' ? `T${els.termsRange.value}` : `D${els.detailRange.value}`;
+            const filename = `vectomancy_${baseName}_${result.ast.type.toLowerCase()}_${detailInfo}`;
+
+            if (format === 'json') {
+                const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(result.ast, null, 2));
+                triggerDownload(dataStr, `${filename}.json`);
+                return;
+            }
+
+            // Export to Image (PNG/JPG)
+            const exportCanvas = document.createElement('canvas');
+            exportCanvas.width = result.width;
+            exportCanvas.height = result.height;
+            const eCtx = exportCanvas.getContext('2d');
+
+            if (!isTransparent || format === 'jpg') {
+                eCtx.fillStyle = isDark ? '#1a1a1a' : '#ffffff';
+                eCtx.fillRect(0, 0, result.width, result.height);
+            }
+
+            // Draw AST at 1:1 scale for export
+            drawAST(eCtx, result.ast, false, isDark, true);
+
+            const mimeType = format === 'jpg' ? 'image/jpeg' : 'image/png';
+            const quality = format === 'jpg' ? 0.9 : undefined;
+            const dataUrl = exportCanvas.toDataURL(mimeType, quality);
+            triggerDownload(dataUrl, `${filename}.${format}`);
+        });
+
+        function triggerDownload(dataUrl, filename) {
+            const a = document.createElement('a');
+            a.href = dataUrl;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        }
 
         // --- File Handling ---
         els.fileInput.addEventListener('change', async (e) => {
@@ -412,14 +508,14 @@
             offscreen.height = size;
             const oCtx = offscreen.getContext('2d');
 
-            oCtx.fillStyle = 'white';
+            oCtx.fillStyle = document.body.classList.contains('dark-theme') ? '#1a1a1a' : '#ffffff';
             oCtx.fillRect(0,0,size,size);
 
             const scale = Math.min(size / result.width, size / result.height) * 0.9;
             oCtx.translate((size - result.width * scale) / 2, (size - result.height * scale) / 2);
             oCtx.scale(scale, scale);
 
-            drawAST(oCtx, result.ast, true);
+            drawAST(oCtx, result.ast, true, document.body.classList.contains('dark-theme'));
 
             const dataUrl = offscreen.toDataURL('image/webp', 0.8);
 
@@ -550,10 +646,10 @@
             els.overlayStats.innerText = text;
         }
 
-        function drawAST(ctx, ast, isThumbnail, isDarkTheme = false) {
+        function drawAST(ctx, ast, isThumbnail, isDarkTheme = false, isExport = false) {
             ctx.lineJoin = 'round';
             ctx.lineCap = 'round';
-            let currentStrokeW = isThumbnail ? 2.5 : (1.5 / Math.max(scale, 0.1));
+            let currentStrokeW = isThumbnail ? 2.5 : (isExport ? 1.5 : (1.5 / Math.max(scale, 0.1)));
             ctx.lineWidth = currentStrokeW;
 
             const defaultColor = isDarkTheme ? '#ffffff' : '#000000';
