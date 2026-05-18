@@ -629,19 +629,46 @@
         });
 
         els.downloadBtn.addEventListener('click', () => {
-            if (!activePreviewId || activePreviewId === 'original') {
-                showError("Please select a GENERATED snapshot from the gallery below to download.");
+            if (!activePreviewId) {
+                showError("Please select an image to download.");
+                return;
+            }
+
+            const format = els.exportFormat.value;
+            const isTransparent = els.bgTransparentCheck.checked;
+            const isDark = document.body.classList.contains('dark-theme');
+            const baseName = currentFilename.split('.')[0] || "image";
+
+            if (activePreviewId === 'original') {
+                if (!originalImageObj) return;
+
+                if (format === 'json') {
+                    showError("Cannot export original image as JSON AST. Please GENERATE a math preview first.");
+                    return;
+                }
+
+                const exportCanvas = document.createElement('canvas');
+                exportCanvas.width = originalImageObj.width;
+                exportCanvas.height = originalImageObj.height;
+                const eCtx = exportCanvas.getContext('2d');
+
+                if (!isTransparent || format === 'jpg') {
+                    eCtx.fillStyle = isDark ? '#1a1a1a' : '#ffffff';
+                    eCtx.fillRect(0, 0, originalImageObj.width, originalImageObj.height);
+                }
+
+                eCtx.drawImage(originalImageObj, 0, 0);
+
+                const mimeType = format === 'jpg' ? 'image/jpeg' : 'image/png';
+                const quality = format === 'jpg' ? 0.9 : undefined;
+                const dataUrl = exportCanvas.toDataURL(mimeType, quality);
+                triggerDownload(dataUrl, `${baseName}_original.${format}`);
                 return;
             }
 
             const result = previewDataStore.get(activePreviewId);
             if (!result) return;
 
-            const format = els.exportFormat.value;
-            const isTransparent = els.bgTransparentCheck.checked;
-            const isDark = document.body.classList.contains('dark-theme');
-
-            const baseName = currentFilename.split('.')[0] || "image";
             const detailInfo = els.modeSelect.value === 'fourier' ? `T${els.termsRange.value}` : `D${els.detailRange.value}`;
             const filename = `vectomancy_${baseName}_${result.ast.type.toLowerCase()}_${detailInfo}`;
 
@@ -668,7 +695,6 @@
             const dataUrl = exportCanvas.toDataURL(mimeType, quality);
             triggerDownload(dataUrl, `${filename}.${format}`);
         });
-
         function triggerDownload(dataUrl, filename) {
             const a = document.createElement('a');
             a.href = dataUrl;
@@ -721,13 +747,15 @@
             els.loaderText.innerText = "Fetching URL...";
             els.loaderOverlay.classList.remove('hidden');
             try {
-                const response = await fetch(url);
+                // Use our Cloudflare Pages proxy function to bypass CORS
+                const proxyUrl = '/proxy?url=' + encodeURIComponent(url);
+                const response = await fetch(proxyUrl);
                 if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
                 const buffer = await response.arrayBuffer();
                 const filename = url.split('/').pop().split('?')[0] || "downloaded_image.png";
                 handleImageBytes(buffer, filename);
             } catch (err) {
-                showError("Failed to fetch image from URL.\n\nThis is usually caused by CORS (Cross-Origin Resource Sharing) restrictions on the target server preventing direct browser access.");
+                showError("Failed to fetch image from URL.\n\nThe image server might be blocking proxy requests or the URL is invalid.");
             } finally {
                 els.loaderOverlay.classList.add('hidden');
             }
