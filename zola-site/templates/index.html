@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <header>
+        <img src="/img/logo.svg" alt="Vectomancy Logo" class="logo-img">
+        <h1 style="margin-bottom: 20px;">VECTOMANCY</h1>
+        <p style="line-height: 1.8;">A blazing fast Rust and WebAssembly tool to convert raster images into mathematical parametric equations, Fourier series vectors, and Zhang-Suen thinned SVGs.</p>
+
+        <div style="margin-top: 40px; display: flex; justify-content: center; gap: 20px;">
+            <a href="/app" class="nes-btn is-primary">Launch Playground</a>
+            <a href="https://github.com/Xuepoo/vectomancy" target="_blank" class="nes-btn"><i class="nes-icon github"></i> GitHub</a>
+        </div>
+    </header>
+
+    <div class="nes-container with-title is-dark" style="margin-top: 50px;">
+        <p class="title">Features</p>
+        <div class="lists">
+            <ul class="nes-list is-circle">
+                <li>100% Client-Side (No backend required)</li>
+                <li>Powered by WebAssembly for near-native performance</li>
+                <li>Multiple vectorization modes: Splines, Fourier Epicycles, Chaikin Polylines</li>
+                <li>Export directly to PNG, JPG, and JSON AST</li>
+            </ul>
+        </div>
+    </div>
+
+    <footer>
+        <p>&copy; 2026 Vectomancy Project. Open-sourced under the MIT License.</p>
+    </footer>
+</div>
+{% endblock content %}

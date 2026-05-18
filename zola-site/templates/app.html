@@ -3,7 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Vectomancy Pro - Retro Lab</title>
+    <title>Vectomancy Pro - Image to Parametric Equation Converter</title>
+    <meta name="description" content="Convert raster images into mathematical vectors using Fourier series and Zhang-Suen thinning.">
+    <meta name="keywords" content="Image to parametric equation converter online, Fourier series vector animation generator, Online Zhang-Suen thinning tool, Raster to SVG math art, Vectomancy">
+    <meta property="og:title" content="Vectomancy - Image to Parametric Equation Converter">
+    <meta property="og:description" content="Convert raster images into mathematical vectors using Fourier series and Zhang-Suen thinning.">
+    <meta property="og:image" content="https://vectomancy.xuepoo.xyz/assets/preview.png">
+    <meta name="twitter:card" content="summary_large_image">
     <link href="https://fonts.googleapis.com/css?family=Press+Start+2P" rel="stylesheet">
     <link href="https://unpkg.com/nes.css@2.3.0/css/nes.min.css" rel="stylesheet" />
     <style>
@@ -195,7 +201,7 @@
     <div class="sidebar">
         <div class="nes-container with-title is-centered" style="margin-bottom: 20px;">
             <p class="title" style="display: flex; align-items: center; justify-content: center; gap: 10px;">
-                <img src="img/logo.svg" alt="logo" style="width: 24px; height: 24px;">
+                <img src="/img/logo.svg" alt="logo" style="width: 24px; height: 24px;">
                 VECTOMANCY
             </p>
             <p style="font-size: 8px;">Pixel Math Engine</p>
@@ -208,6 +214,17 @@
                 <input type="file" id="fileInput" accept="image/*,.svg" style="display:none;">
             </label>
             <p id="filename-display" style="margin-top:10px; font-size: 8px; word-break: break-all;"></p>
+        </div>
+
+        <div class="nes-container with-title control-group" style="margin-bottom: 20px;">
+            <p class="title">Examples</p>
+            <div style="display: flex; gap: 8px; overflow-x: auto; padding-bottom: 5px;">
+                <img src="https://dns.xuepoo.xyz/examples/01.jpg" class="preset-example" data-filename="01.jpg" alt="Example 1" style="width: 48px; height: 48px; cursor: pointer; border: 2px solid var(--text-color); object-fit: cover;">
+                <img src="https://dns.xuepoo.xyz/examples/fuji.png" class="preset-example" data-filename="fuji.png" alt="Fuji" style="width: 48px; height: 48px; cursor: pointer; border: 2px solid var(--text-color); object-fit: cover;">
+                <img src="https://dns.xuepoo.xyz/examples/hatsune_miku.jpg" class="preset-example" data-filename="miku.jpg" alt="Miku" style="width: 48px; height: 48px; cursor: pointer; border: 2px solid var(--text-color); object-fit: cover;">
+                <img src="https://dns.xuepoo.xyz/examples/十角馆事件.jpg" class="preset-example" data-filename="book.jpg" alt="Book" style="width: 48px; height: 48px; cursor: pointer; border: 2px solid var(--text-color); object-fit: cover;">
+            </div>
+            <p style="font-size: 8px; margin-top: 5px; color: #888;">Click to load R2 preset</p>
         </div>
 
         <div class="nes-container with-title control-group">
@@ -271,6 +288,12 @@
 
             <button type="button" class="nes-btn is-success" id="downloadBtn" style="width: 100%;">DOWNLOAD</button>
         </div>
+
+        <div class="nes-container with-title is-dark control-group" style="margin-top: auto; flex-shrink: 0;">
+            <p class="title">About</p>
+            <a href="https://github.com/Xuepoo/vectomancy" target="_blank" class="nes-btn is-warning" style="width: 100%; font-size: 8px; margin-bottom: 10px;">GitHub Repo</a>
+            <p style="font-size: 7px; color: #888; text-align: center;">Tech: Rust, WASM, Zola, NES.css</p>
+        </div>
     </div>
 
     <!-- MAIN VIEWPORT & GALLERY -->
@@ -294,7 +317,7 @@
     </div>
 
     <script type="module">
-        import init, { process_image } from './wasm/wasm_engine.js';
+        import init, { process_image } from '/wasm/wasm_engine.js';
 
         // --- State ---
         let isWasmLoaded = false;
@@ -449,6 +472,47 @@
             a.click();
             document.body.removeChild(a);
         }
+
+        // --- Preset Examples Handling ---
+        document.querySelectorAll('.preset-example').forEach(img => {
+            img.addEventListener('click', async (e) => {
+                const url = e.target.src;
+                const filename = e.target.getAttribute('data-filename');
+                els.statusText.innerText = "LOADING R2 PRESET...";
+
+                try {
+                    const response = await fetch(url);
+                    if (!response.ok) throw new Error("Network response was not ok");
+
+                    const buffer = await response.arrayBuffer();
+                    currentImageBytes = new Uint8Array(buffer);
+                    currentFilename = filename;
+                    els.filenameDisplay.innerText = filename;
+
+                    // Set as Original Image
+                    const blob = new Blob([buffer]);
+                    const blobUrl = URL.createObjectURL(blob);
+
+                    originalImageObj = new Image();
+                    originalImageObj.onload = () => {
+                        // Remove old original if exists to prevent duplicates (optional logic)
+                        const oldOrig = document.getElementById('gallery-original');
+                        if (oldOrig) oldOrig.remove();
+
+                        addGalleryItem('original', originalImageObj.src, 'ORIGINAL');
+                        activePreviewId = 'original';
+                        resetViewport();
+                        requestRender();
+                        els.statusText.innerText = "PRESET LOADED";
+                    };
+                    originalImageObj.src = blobUrl;
+
+                } catch (error) {
+                    console.error("Error loading preset:", error);
+                    els.statusText.innerText = "ERR: LOAD FAILED";
+                }
+            });
+        });
 
         // --- File Handling ---
         els.fileInput.addEventListener('change', async (e) => {

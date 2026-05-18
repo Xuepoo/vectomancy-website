@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vectomancy - Image to Parametric Equation Converter</title>
+
+    <!-- SEO Meta Tags -->
+    <meta name="description" content="A blazing fast Rust and WebAssembly tool to convert raster images into mathematical parametric equations, Fourier series vectors, and Zhang-Suen thinned SVGs.">
+    <meta name="keywords" content="Image to parametric equation converter online, Fourier series vector animation generator, Online Zhang-Suen thinning tool, Raster to SVG math art, Vectomancy, WebAssembly, Rust">
+
+    <!-- Open Graph / Social -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https:&#x2F;&#x2F;vectomancy.xuepoo.xyz/">
+    <meta property="og:title" content="Vectomancy - Math Art Generator">
+    <meta property="og:description" content="Convert raster images into mathematical vectors using Fourier series and Zhang-Suen thinning. Fully open-source and powered by Rust.">
+    <meta property="og:image" content="https:&#x2F;&#x2F;vectomancy.xuepoo.xyz/examples/fuji.png">
+
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image">
+    <meta property="twitter:url" content="https:&#x2F;&#x2F;vectomancy.xuepoo.xyz/">
+    <meta property="twitter:title" content="Vectomancy - Math Art Generator">
+    <meta property="twitter:description" content="Convert raster images into mathematical vectors using Fourier series and Zhang-Suen thinning.">
+    <meta property="twitter:image" content="https:&#x2F;&#x2F;vectomancy.xuepoo.xyz/examples/fuji.png">
+
+    <!-- Fonts & CSS -->
+    <link href="https://fonts.googleapis.com/css?family=Press+Start+2P" rel="stylesheet">
+    <link href="https://unpkg.com/nes.css@2.3.0/css/nes.min.css" rel="stylesheet" />
+    <style>
+        body {
+            font-family: 'Press Start 2P', cursive;
+            background-color: #f7f7f7;
+            color: #212529;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            max-width: 980px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        header {
+            margin-top: 50px;
+            margin-bottom: 50px;
+            text-align: center;
+        }
+        .logo-img {
+            width: 64px;
+            height: 64px;
+            image-rendering: pixelated;
+            margin-bottom: 20px;
+        }
+        footer {
+            margin-top: 80px;
+            text-align: center;
+            font-size: 10px;
+            color: #888;
+        }
+        a {
+            color: #209cee;
+            text-decoration: none;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+    </style>
+
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <img src="/img/logo.svg" alt="Vectomancy Logo" class="logo-img">
+        <h1 style="margin-bottom: 20px;">VECTOMANCY</h1>
+        <p style="line-height: 1.8;">A blazing fast Rust and WebAssembly tool to convert raster images into mathematical parametric equations, Fourier series vectors, and Zhang-Suen thinned SVGs.</p>
+
+        <div style="margin-top: 40px; display: flex; justify-content: center; gap: 20px;">
+            <a href="/app" class="nes-btn is-primary">Launch Playground</a>
+            <a href="https://github.com/Xuepoo/vectomancy" target="_blank" class="nes-btn"><i class="nes-icon github"></i> GitHub</a>
+        </div>
+    </header>
+
+    <div class="nes-container with-title is-dark" style="margin-top: 50px;">
+        <p class="title">Features</p>
+        <div class="lists">
+            <ul class="nes-list is-circle">
+                <li>100% Client-Side (No backend required)</li>
+                <li>Powered by WebAssembly for near-native performance</li>
+                <li>Multiple vectorization modes: Splines, Fourier Epicycles, Chaikin Polylines</li>
+                <li>Export directly to PNG, JPG, and JSON AST</li>
+            </ul>
+        </div>
+    </div>
+
+    <footer>
+        <p>&copy; 2026 Vectomancy Project. Open-sourced under the MIT License.</p>
+    </footer>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Vectomancy - Image to Parametric Equation Converter{% endblock title %}</title>
+
+    <!-- SEO Meta Tags -->
+    <meta name="description" content="A blazing fast Rust and WebAssembly tool to convert raster images into mathematical parametric equations, Fourier series vectors, and Zhang-Suen thinned SVGs.">
+    <meta name="keywords" content="Image to parametric equation converter online, Fourier series vector animation generator, Online Zhang-Suen thinning tool, Raster to SVG math art, Vectomancy, WebAssembly, Rust">
+
+    <!-- Open Graph / Social -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="{{ config.base_url }}/">
+    <meta property="og:title" content="Vectomancy - Math Art Generator">
+    <meta property="og:description" content="Convert raster images into mathematical vectors using Fourier series and Zhang-Suen thinning. Fully open-source and powered by Rust.">
+    <meta property="og:image" content="{{ config.base_url }}/examples/fuji.png">
+
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image">
+    <meta property="twitter:url" content="{{ config.base_url }}/">
+    <meta property="twitter:title" content="Vectomancy - Math Art Generator">
+    <meta property="twitter:description" content="Convert raster images into mathematical vectors using Fourier series and Zhang-Suen thinning.">
+    <meta property="twitter:image" content="{{ config.base_url }}/examples/fuji.png">
+
+    <!-- Fonts & CSS -->
+    <link href="https://fonts.googleapis.com/css?family=Press+Start+2P" rel="stylesheet">
+    <link href="https://unpkg.com/nes.css@2.3.0/css/nes.min.css" rel="stylesheet" />
+    <style>
+        body {
+            font-family: 'Press Start 2P', cursive;
+            background-color: #f7f7f7;
+            color: #212529;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            max-width: 980px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        header {
+            margin-top: 50px;
+            margin-bottom: 50px;
+            text-align: center;
+        }
+        .logo-img {
+            width: 64px;
+            height: 64px;
+            image-rendering: pixelated;
+            margin-bottom: 20px;
+        }
+        footer {
+            margin-top: 80px;
+            text-align: center;
+            font-size: 10px;
+            color: #888;
+        }
+        a {
+            color: #209cee;
+            text-decoration: none;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+    </style>
+    {% block extra_head %}{% endblock extra_head %}
+</head>
+<body>
+    {% block content %}
+    {% endblock content %}
+</body>
+</html>
