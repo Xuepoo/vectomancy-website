@@ -117,18 +117,20 @@
         }
 
         .gallery-container {
-            height: 140px;
+            height: 130px;
             background-color: var(--container-bg);
             border-top: 4px solid var(--text-color);
             padding: 10px 15px;
             display: flex;
-            gap: 20px;
+            gap: 15px;
             overflow-x: auto;
+            overflow-y: hidden;
             align-items: center;
             z-index: 10;
         }
 
         .gallery-item {
+            min-width: 90px;
             width: 90px;
             height: 90px;
             flex-shrink: 0;
@@ -385,6 +387,7 @@
     <div class="viewport-wrapper">
         <div class="top-bar">
             <button type="button" class="nes-btn is-warning" id="helpBtn" style="font-size: 10px;">?</button>
+            <button type="button" class="nes-btn is-error" id="clearAllBtn" style="font-size: 10px;">Clear All</button>
             <button type="button" class="nes-btn" id="themeToggleBtn" style="font-size: 10px;">Theme</button>
             <button type="button" class="nes-btn" id="resetViewBtn" style="font-size: 10px;">Reset View</button>
         </div>
@@ -446,6 +449,17 @@
             <menu class="dialog-menu" style="display: flex; gap: 15px; justify-content: flex-end; padding: 0; margin: 0;">
                 <button class="nes-btn" value="cancel">Cancel</button>
                 <button class="nes-btn is-error" id="confirmDeleteBtn" value="confirm">Delete</button>
+            </menu>
+        </form>
+    </dialog>
+
+    <dialog class="nes-dialog" id="clear-dialog">
+        <form method="dialog">
+            <p class="title" style="margin-bottom: 15px; font-size: 12px; color: #e76e55;">Clear ALL</p>
+            <p style="font-size: 10px; margin-bottom: 25px;">Erase ALL generated snapshots?</p>
+            <menu class="dialog-menu" style="display: flex; gap: 15px; justify-content: flex-end; padding: 0; margin: 0;">
+                <button class="nes-btn" value="cancel">Cancel</button>
+                <button class="nes-btn is-error" value="confirm">Clear All</button>
             </menu>
         </form>
     </dialog>
@@ -524,6 +538,8 @@
             progressBar: document.getElementById('progressBar'),
             deleteDialog: document.getElementById('delete-dialog'),
             confirmDeleteBtn: document.getElementById('confirmDeleteBtn'),
+            clearAllBtn: document.getElementById('clearAllBtn'),
+            clearDialog: document.getElementById('clear-dialog'),
             errorDialog: document.getElementById('error-dialog'),
             errorMessage: document.getElementById('error-message')
         };
@@ -562,6 +578,7 @@
             if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
                 document.body.classList.add('dark-theme');
                 els.deleteDialog.classList.add('is-dark');
+                els.clearDialog.classList.add('is-dark');
                 els.helpDialog.classList.add('is-dark');
                 els.errorDialog.classList.add('is-dark');
             }
@@ -586,6 +603,7 @@
         els.themeToggleBtn.addEventListener('click', () => {
             document.body.classList.toggle('dark-theme');
             els.deleteDialog.classList.toggle('is-dark');
+            els.clearDialog.classList.toggle('is-dark');
             els.helpDialog.classList.toggle('is-dark');
             els.errorDialog.classList.toggle('is-dark');
             requestRender();
@@ -594,6 +612,27 @@
         els.resetViewBtn.addEventListener('click', () => {
             resetViewport();
             requestRender();
+        });
+
+        els.clearAllBtn.addEventListener('click', () => {
+            if (previewDataStore.size === 0) return;
+            if (typeof els.clearDialog.showModal === "function") {
+                els.clearDialog.showModal();
+            } else {
+                els.clearDialog.setAttribute("open", "true");
+            }
+        });
+
+        els.clearDialog.addEventListener('close', () => {
+            if (els.clearDialog.returnValue === 'confirm') {
+                // Clear all generated snapshots
+                for (let key of previewDataStore.keys()) {
+                    const item = document.getElementById(`gallery-${key}`);
+                    if (item) item.remove();
+                }
+                previewDataStore.clear();
+                setActivePreview('original');
+            }
         });
 
         els.helpBtn.addEventListener('click', () => {
@@ -793,13 +832,13 @@
             let p = 0;
             els.progressBar.value = 0;
             const pInt = setInterval(() => {
-                p += 15;
+                p += 20;
                 if(p >= 90) {
                     p = 90;
                     clearInterval(pInt);
                 }
                 els.progressBar.value = p;
-            }, 10);
+            }, 8);
 
             const mode = els.modeSelect.value;
             const ext = currentFilename.split('.').pop().toLowerCase();
@@ -912,7 +951,10 @@
             activePreviewId = id;
             document.querySelectorAll('.gallery-item').forEach(c => c.classList.remove('active'));
             const activeGalleryItem = document.getElementById(`gallery-${id}`);
-            if (activeGalleryItem) activeGalleryItem.classList.add('active');
+            if (activeGalleryItem) {
+                activeGalleryItem.classList.add('active');
+                activeGalleryItem.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+            }
 
             if (id !== 'original') {
                 const result = previewDataStore.get(id);
@@ -940,6 +982,13 @@
 
         // --- Viewport Panning & Zooming ---
         function resetViewport() {
+            if (activePreviewId === 'original' && !originalImageObj) {
+                scale = 1;
+                offsetX = 0;
+                offsetY = 0;
+                return;
+            }
+
             scale = 1;
             const targetWidth = activePreviewId === 'original' ? originalImageObj.width : previewDataStore.get(activePreviewId).width;
             const targetHeight = activePreviewId === 'original' ? originalImageObj.height : previewDataStore.get(activePreviewId).height;
