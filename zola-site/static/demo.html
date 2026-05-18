@@ -137,6 +137,23 @@
             height: 100%;
             object-fit: contain;
         }
+        .gallery-delete {
+            position: absolute;
+            top: 2px;
+            right: 2px;
+            background: #e76e55;
+            color: #fff;
+            border: 2px solid #000;
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            cursor: pointer;
+            z-index: 10;
+        }
+        .gallery-delete:hover { background: #ce372b; }
         .gallery-label {
             position: absolute;
             bottom: -20px;
@@ -533,11 +550,27 @@
             const item = document.createElement('div');
             item.className = 'gallery-item';
             item.id = `gallery-${id}`;
-            item.innerHTML = `
-                <img src="${src}">
-                <div class="gallery-label">${labelText}</div>
-            `;
-            item.onclick = () => {
+
+            let innerHTML = `<img src="${src}"><div class="gallery-label">${labelText}</div>`;
+            if (id !== 'original') {
+                innerHTML += `<div class="gallery-delete" title="Delete Snapshot">X</div>`;
+            }
+            item.innerHTML = innerHTML;
+
+            item.onclick = (e) => {
+                if (e.target.classList.contains('gallery-delete')) {
+                    e.stopPropagation();
+                    if (window.confirm("Are you sure you want to delete this snapshot?")) {
+                        previewDataStore.delete(id);
+                        item.remove();
+                        if (activePreviewId === id) {
+                            activePreviewId = 'original';
+                            resetViewport();
+                            requestRender();
+                        }
+                    }
+                    return;
+                }
                 activePreviewId = id;
                 resetViewport();
                 requestRender();
