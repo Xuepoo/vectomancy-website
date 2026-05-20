@@ -5,96 +5,91 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Vectomancy Pro - Retro Lab</title>
 
-    <!-- Meta tags for SEO & OG -->
-    <meta name="description" content="Convert raster images into mathematical vectors using Fourier series and Zhang-Suen thinning.">
-    <meta name="keywords" content="Image to parametric equation converter online, Fourier series vector animation generator, Online Zhang-Suen thinning tool, Raster to SVG math art, Vectomancy">
-    <meta property="og:title" content="Vectomancy - Image to Parametric Equation Converter">
-    <meta property="og:description" content="Convert raster images into mathematical vectors using Fourier series and Zhang-Suen thinning.">
-    <meta property="og:image" content="https://vectomancy.xuepoo.xyz/examples/fuji.png">
-    <meta name="twitter:card" content="summary_large_image">
+    <!-- Performance Optimization: Preload -->
+    <link rel="preload" href="/fonts/pressstart2p.woff2" as="font" type="font/woff2" crossorigin>
+    <link rel="preload" href="/css/nes.min.css" as="style">
+    <link rel="preload" href="/wasm/wasm_engine_bg.wasm" as="fetch" crossorigin>
+    <link rel="preload" href="/img/logo.svg" as="image">
 
-    <link href="https://fonts.googleapis.com/css?family=Press+Start+2P" rel="stylesheet">
-    <link href="https://unpkg.com/nes.css@2.3.0/css/nes.min.css" rel="stylesheet" />
-    <link rel="icon" type="image/svg+xml" href="/img/logo.svg">
+    <link rel="apple-touch-icon" sizes="180x180" href="/favicons/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicons/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicons/favicon-16x16.png">
+    <link rel="shortcut icon" href="/favicons/favicon.ico">
+    <link href="/css/nes.min.css" rel="stylesheet">
     <style>
+        @font-face {
+            font-family: 'Press Start 2P';
+            font-style: normal;
+            font-weight: 400;
+            font-display: swap;
+            src: url(/fonts/pressstart2p.woff2) format('woff2');
+            unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+        }
+
         :root {
-            --bg-color: #f7f7f7;
+            --bg-color: #e0e0e0;
+            --container-bg: #ffffff;
             --text-color: #212529;
-            --grid-color: #ddd;
-            --container-bg: #fff;
             --accent-color: #209cee;
+            --grid-color: rgba(0,0,0,0.05);
         }
 
         body.dark-theme {
-            --bg-color: #1a1a1a;
-            --text-color: #d3d3d3;
-            --grid-color: #333;
-            --container-bg: #212529;
-            --accent-color: #92cc41;
-        }
-
-        body, input, select, textarea, button, option {
-            font-family: 'Press Start 2P', cursive !important;
+            --bg-color: #212529;
+            --container-bg: #2d3436;
+            --text-color: #ffffff;
+            --accent-color: #f7d51d;
+            --grid-color: rgba(255,255,255,0.05);
         }
 
         body {
             margin: 0;
             padding: 0;
+            font-family: 'Press Start 2P', cursive;
             background-color: var(--bg-color);
             color: var(--text-color);
-            height: 100vh;
             display: flex;
+            height: 100vh;
             overflow: hidden;
-            font-size: 10px; /* Restored size for better readability */
+            transition: background-color 0.3s;
         }
 
-        /* Dark Theme Overrides for NES.css */
-        body.dark-theme .nes-container {
-            background-color: var(--container-bg);
-            color: var(--text-color);
-            border-image-slice: 2;
-            border-image-width: 2;
-            border-image-repeat: stretch;
-            border-image-source: url('data:image/svg+xml;utf8,<?xml version="1.0" encoding="UTF-8" ?><svg version="1.1" width="5" height="5" xmlns="http://www.w3.org/2000/svg"><path d="M2 1 h1 v1 h-1 z M1 2 h1 v1 h-1 z M3 2 h1 v1 h-1 z M2 3 h1 v1 h-1 z" fill="rgb(211,211,211)" /></svg>');
-            border-image-outset: 2;
-        }
-        body.dark-theme .nes-container.with-title > .title {
-            background-color: var(--container-bg);
-            color: var(--text-color);
-        }
-        body.dark-theme .nes-input, body.dark-theme .nes-select select, body.dark-theme .nes-textarea {
-            background-color: #111;
-            color: #fff;
-        }
-        body.dark-theme .nes-text.is-primary { color: #92cc41; }
-
-        /* Layout */
+        /* --- SIDEBAR --- */
         .sidebar {
-            width: 360px;
+            width: 320px;
+            background-color: var(--container-bg);
+            border-right: 4px solid var(--text-color);
+            padding: 20px;
             display: flex;
             flex-direction: column;
-            padding: 20px 15px;
-            box-sizing: border-box;
-            border-right: 4px solid var(--text-color);
-            background-color: var(--container-bg);
-            z-index: 10;
+            gap: 15px;
+            z-index: 100;
+            overflow-y: auto;
         }
 
+        .control-group { margin-bottom: 5px; }
+        .control-group label { display: block; font-size: 8px; margin-bottom: 8px; }
+        .hidden { display: none !important; }
+
+        /* --- VIEWPORT --- */
         .viewport-wrapper {
             flex-grow: 1;
             display: flex;
             flex-direction: column;
             position: relative;
+            min-width: 0;
         }
 
         .top-bar {
-            position: absolute;
-            top: 15px;
-            right: 15px;
-            z-index: 100;
+            height: 50px;
+            padding: 0 20px;
+            background: var(--container-bg);
+            border-bottom: 4px solid var(--text-color);
             display: flex;
-            gap: 15px;
             align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            z-index: 50;
         }
 
         .canvas-area {
@@ -102,10 +97,12 @@
             overflow: hidden;
             position: relative;
             background-color: var(--bg-color);
+            cursor: grab;
+        }
+        .canvas-area.show-grid {
             background-image: linear-gradient(var(--grid-color) 1px, transparent 1px),
             linear-gradient(90deg, var(--grid-color) 1px, transparent 1px);
             background-size: 50px 50px;
-            cursor: grab;
         }
         .canvas-area:active { cursor: grabbing; }
 
@@ -113,9 +110,9 @@
             position: absolute;
             top: 0;
             left: 0;
-            transform-origin: 0 0;
         }
 
+        /* --- GALLERY (SCROLLABLE) --- */
         .gallery-container {
             height: 130px;
             background-color: var(--container-bg);
@@ -143,391 +140,320 @@
             transition: transform 0.1s, box-shadow 0.1s;
         }
         body.dark-theme .gallery-item { background: #333; }
-        .gallery-item:hover { border-color: #888; transform: translateY(-2px); box-shadow: 0 6px 0 rgba(0,0,0,0.2); }
+        .gallery-item:hover { border-color: #888; transform: translateY(-2px); }
         .gallery-item.active { border-color: var(--accent-color); transform: translateY(2px); box-shadow: 0 2px 0 var(--accent-color); }
-        .gallery-item img {
-            width: 100%;
-            height: 100%;
-            object-fit: contain;
-        }
-
-        /* Custom Delete Button matching NES style */
-        .gallery-delete {
-            position: absolute;
-            top: -8px;
-            right: -8px;
-            background: #e76e55;
-            color: #fff;
-            border: 2px solid #000;
-            width: 20px;
-            height: 20px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 8px;
-            cursor: pointer;
-            z-index: 10;
-        }
-        body.dark-theme .gallery-delete { border-color: #fff; }
-        .gallery-delete:hover { background: #ce372b; }
+        .gallery-item img { width: 100%; height: 100%; object-fit: contain; }
 
         .gallery-label {
             position: absolute;
-            bottom: -20px;
-            left: 0;
-            width: 100%;
+            bottom: 0; left: 0; right: 0;
+            background: rgba(0,0,0,0.7);
+            color: white;
+            font-size: 6px;
+            padding: 2px;
             text-align: center;
-            font-size: 8px;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
+            pointer-events: none;
+        }
+        .gallery-delete {
+            position: absolute;
+            top: -8px; right: -8px;
+            background: #e76e55;
+            color: #fff;
+            border: 2px solid #000;
+            width: 18px; height: 18px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 8px; z-index: 5;
         }
 
-        .control-group { margin-bottom: 20px; }
-        .control-group label { margin-bottom: 5px; display: block; font-size: 9px; }
-
-        input[type=range] { width: 100%; }
-
-        .hidden { display: none !important; }
-
-        #status-text { margin-top: 10px; font-size: 8px; color: var(--accent-color); text-align: center; }
-
-        /* Floating Stats */
+        /* Overlay & Spinner */
         .overlay-stats {
             position: absolute;
-            bottom: 15px;
-            right: 15px;
-            background: rgba(0, 0, 0, 0.8);
-            color: #fff;
-            padding: 15px;
-            border: 4px solid var(--text-color);
+            top: 15px; left: 15px;
+            padding: 10px;
+            font-size: 8px;
+            line-height: 1.5;
             pointer-events: none;
-            line-height: 1.6;
-            font-size: 9px;
-            box-shadow: 4px 4px 0 rgba(0,0,0,0.2);
+            background: rgba(0,0,0,0.5) !important;
+            color: white !important;
+            border: 2px solid white;
+            z-index: 20;
         }
 
-        /* Progress Bar Overlay */
         .progress-overlay {
             position: absolute;
-            bottom: 20px;
-            left: 50%;
-            transform: translateX(-50%);
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            width: 300px;
             background: var(--container-bg);
+            padding: 20px;
             border: 4px solid var(--text-color);
-            padding: 15px;
-            width: 400px;
-            z-index: 50;
-            box-shadow: 4px 4px 0 rgba(0,0,0,0.2);
+            z-index: 150;
         }
 
-        /* Loading Spinner Overlay */
         .loader-overlay {
             position: absolute;
             top: 0; left: 0; right: 0; bottom: 0;
             background: rgba(0,0,0,0.6);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            z-index: 200;
-            color: white;
-            backdrop-filter: blur(3px);
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            z-index: 200; color: white; backdrop-filter: blur(3px);
         }
         .pixel-spinner {
-            width: 48px;
-            height: 48px;
-            border: 6px solid #fff;
-            border-top: 6px solid var(--accent-color);
+            width: 48px; height: 48px;
+            border: 6px solid #fff; border-top: 6px solid var(--accent-color);
             animation: spin 1s steps(8) infinite;
         }
         @keyframes spin { 100% { transform: rotate(360deg); } }
 
-        /* Dialog specific styling */
-        dialog {
-            font-family: 'Press Start 2P', cursive;
-            border: 4px solid var(--text-color);
-            background: var(--container-bg);
-            color: var(--text-color);
-            box-shadow: 8px 8px 0 rgba(0,0,0,0.3);
-            padding: 20px;
+        /* Canvas Controls */
+        .canvas-controls {
+            position: absolute;
+            bottom: 15px;
+            right: 15px;
+            display: flex;
+            gap: 10px;
+            z-index: 60;
         }
-        dialog::backdrop { background: rgba(0,0,0,0.6); backdrop-filter: blur(2px); }
+        .canvas-controls .nes-btn {
+            padding: 4px 10px;
+            font-size: 10px;
+            min-width: 36px;
+        }
 
-        /* Helps with long names */
-        .truncate-text {
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            max-width: 100%;
-            display: inline-block;
+        /* Focus Mode */
+        body.focus-mode .sidebar,
+        body.focus-mode .top-bar,
+        body.focus-mode .gallery-container,
+        body.focus-mode .overlay-stats {
+            display: none !important;
+        }
+        body.focus-mode .viewport-wrapper {
+            width: 100vw;
+            height: 100vh;
+        }
+
+        dialog { font-family: 'Press Start 2P', cursive; border: 4px solid var(--text-color); background: var(--container-bg); color: var(--text-color); }
+        .truncate-text { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; display: inline-block; }
+
+        /* --- MOBILE RESPONSIVENESS --- */
+        @media (max-width: 768px) {
+            body { flex-direction: column; }
+            .sidebar { width: 100%; height: auto; border-right: none; border-bottom: 4px solid var(--text-color); padding: 10px; }
+            .viewport-wrapper { height: 60vh; }
+            .gallery-container { height: 110px; }
+            .gallery-item { min-width: 70px; width: 70px; height: 70px; }
+            .top-bar { height: 40px; padding: 0 10px; }
+            .top-bar .nes-btn { font-size: 6px !important; padding: 4px 6px; }
+            .canvas-controls { bottom: 5px; right: 5px; gap: 5px; }
+            .canvas-controls .nes-btn { font-size: 8px; min-width: 24px; padding: 2px 6px; }
         }
     </style>
 </head>
 <body>
 
-    <!-- SIDEBAR CONTROLS -->
     <div class="sidebar">
         <div class="nes-container with-title is-centered control-group" style="padding: 15px 10px;">
-            <p class="title" style="display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 12px; background: var(--container-bg);">
-                <img src="/img/logo.svg" alt="logo" style="width: 24px; height: 24px;">
-                VECTOMANCY
-            </p>
+            <a href="/" style="text-decoration: none; color: inherit;">
+                <p class="title" style="font-size: 12px; background: var(--container-bg);">VECTOMANCY</p>
+            </a>
             <p style="font-size: 8px; margin:0; color: #888;">Pixel Math Engine</p>
         </div>
 
         <div class="nes-container with-title is-dark control-group" style="padding: 15px;">
             <p class="title" style="font-size: 10px;">I/O</p>
-            <div style="display: flex; gap: 10px; margin-bottom: 15px; font-size: 8px; justify-content: center;">
-                <label>
-                    <input type="radio" class="nes-radio" name="inputType" value="local" checked>
-                    <span>Local</span>
-                </label>
-                <label>
-                    <input type="radio" class="nes-radio" name="inputType" value="url">
-                    <span>URL</span>
-                </label>
-                <label>
-                    <input type="radio" class="nes-radio" name="inputType" value="preset">
-                    <span>Preset</span>
-                </label>
+            <div style="display: flex; gap: 10px; margin-bottom: 10px; font-size: 8px; justify-content: center;">
+                <label><input type="radio" class="nes-radio" name="inputType" value="local" checked><span>Local</span></label>
+                <label><input type="radio" class="nes-radio" name="inputType" value="url"><span>URL</span></label>
+                <label><input type="radio" class="nes-radio" name="inputType" value="preset"><span>Preset</span></label>
             </div>
 
-            <div id="localInputWrapper" title="Supports PNG, JPG, JPEG, SVG">
+            <div id="localInputWrapper">
                 <label class="nes-btn" style="width: 100%; display: block; text-align: center; padding: 6px;">
                     <span style="font-size: 8px;">Upload Image</span>
-                    <input type="file" id="fileInput" accept="image/*,.svg" style="display:none;">
+                    <input type="file" id="fileInput" accept="image/*,.svg" style="display:none;" aria-label="Upload Image">
                 </label>
             </div>
-
             <div id="urlInputWrapper" class="hidden">
                 <div style="display: flex; gap: 8px;">
-                    <input type="text" id="urlInput" class="nes-input" style="font-size: 8px; padding: 6px;" placeholder="https://...">
-                    <button id="fetchUrlBtn" class="nes-btn is-primary" style="font-size: 8px; padding: 6px 10px;">GO</button>
+                    <input type="text" id="urlInput" class="nes-input" style="font-size: 8px;" placeholder="https://..." aria-label="Image URL">
+                    <button id="fetchUrlBtn" class="nes-btn is-primary" style="font-size: 8px;" aria-label="Fetch URL">GO</button>
                 </div>
             </div>
-
             <div id="presetInputWrapper" class="hidden">
                 <div style="display: flex; gap: 10px; overflow-x: auto; padding-bottom: 5px;">
-                    <img src="https://dns.xuepoo.xyz/examples/01.jpg" class="preset-example" data-filename="01.jpg" alt="Ex 1" style="width: 48px; height: 48px; cursor: pointer; border: 2px solid var(--text-color); object-fit: cover; background: #fff;">
-                    <img src="https://dns.xuepoo.xyz/examples/fuji.png" class="preset-example" data-filename="fuji.png" alt="Fuji" style="width: 48px; height: 48px; cursor: pointer; border: 2px solid var(--text-color); object-fit: cover; background: #fff;">
-                    <img src="https://dns.xuepoo.xyz/examples/hatsune_miku.jpg" class="preset-example" data-filename="miku.jpg" alt="Miku" style="width: 48px; height: 48px; cursor: pointer; border: 2px solid var(--text-color); object-fit: cover; background: #fff;">
-                    <img src="https://dns.xuepoo.xyz/examples/十角馆事件.jpg" class="preset-example" data-filename="book.jpg" alt="Book" style="width: 48px; height: 48px; cursor: pointer; border: 2px solid var(--text-color); object-fit: cover; background: #fff;">
+                    <img src="https://cdn.xuepoo.xyz/presets/miku.webp" class="preset-example" data-filename="miku.webp" alt="Miku Preset" style="width: 48px; height: 48px; cursor: pointer; border: 2px solid var(--text-color); object-fit: cover;">
+                    <img src="https://cdn.xuepoo.xyz/presets/vim.webp" class="preset-example" data-filename="vim.webp" alt="Vim Preset" style="width: 48px; height: 48px; cursor: pointer; border: 2px solid var(--text-color); object-fit: cover;">
+                    <img src="https://cdn.xuepoo.xyz/presets/chiikawa.webp" class="preset-example" data-filename="chiikawa.webp" alt="Chiikawa Preset" style="width: 48px; height: 48px; cursor: pointer; border: 2px solid var(--text-color); object-fit: cover;">
+                    <img src="https://cdn.xuepoo.xyz/presets/iris.webp" class="preset-example" data-filename="iris.webp" alt="Iris Preset" style="width: 48px; height: 48px; cursor: pointer; border: 2px solid var(--text-color); object-fit: cover;">
                 </div>
             </div>
-
-            <div style="margin-top: 15px; text-align: center; border-top: 2px dashed #444; padding-top: 10px;">
+            <div style="margin-top: 10px; text-align: center; border-top: 2px dashed #444; padding-top: 10px;">
                 <span id="filename-display" class="truncate-text" style="font-size: 8px; color: #aaa;">No file selected</span>
             </div>
         </div>
 
         <div class="nes-container with-title control-group" style="padding: 15px; flex-grow: 1;">
             <p class="title" style="font-size: 10px;">Settings</p>
-
             <label for="modeSelect">Mode</label>
-            <div class="nes-select" style="margin-bottom: 15px;">
-                <select required id="modeSelect" style="font-size: 8px; padding: 6px;">
+            <div class="nes-select" style="margin-bottom: 10px;">
+                <select id="modeSelect" style="font-size: 8px; padding: 6px;" aria-label="Mode Select">
                     <option value="spline" selected>Spline (Bezier)</option>
                     <option value="fourier">Fourier (Epicycle)</option>
                     <option value="chaikin">Chaikin (Polyline)</option>
                 </select>
             </div>
 
-            <label style="display:flex; align-items:center; margin-bottom: 15px;">
-                <input type="checkbox" class="nes-checkbox" id="colorCheck" checked style="transform: scale(0.8); margin-right: 10px;"/>
-                <span style="font-size: 9px;">Extract Colors</span>
-            </label>
-
-            <label>Detail Level: <span id="detailVal" style="color: var(--accent-color);">50</span></label>
-            <input type="range" id="detailRange" min="1" max="100" value="50">
-
-            <label style="margin-top: 10px;">Min Path Len: <span id="minPathVal" style="color: var(--accent-color);">10</span></label>
-            <input type="range" id="minPathRange" min="2" max="50" value="10">
-
-            <div id="fourier-controls" class="hidden" style="margin-top: 10px;">
-                <label>Fourier Terms: <span id="termsVal" style="color: var(--accent-color);">1000</span></label>
-                <input type="range" id="termsRange" min="10" max="5000" step="10" value="1000">
+            <div style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 10px;">
+                <label style="margin: 0;"><input type="checkbox" class="nes-checkbox" id="colorCheck" checked aria-label="Enable Colors"/><span>Colors</span></label>
+                <label style="margin: 0;"><input type="checkbox" class="nes-checkbox" id="gridCheck" aria-label="Show Grid"/><span>Show Grid</span></label>
+                <label style="margin: 0;"><input type="checkbox" class="nes-checkbox" id="bgTransparentCheck" aria-label="Transparent Background"/><span>Transparent</span></label>
             </div>
 
-            <div id="chaikin-controls" class="hidden" style="margin-top: 10px;">
-                <label>Chaikin Iters: <span id="chaikinVal" style="color: var(--accent-color);">1</span></label>
-                <input type="range" id="chaikinRange" min="0" max="5" value="1">
+            <label for="detailRange">Detail Level: <span id="detailVal" style="color: var(--accent-color);">50</span></label>
+            <input type="range" id="detailRange" min="10" max="100" value="50" class="nes-range" aria-label="Detail Level">
+
+            <label for="minPathRange">Min Path Len: <span id="minPathVal" style="color: var(--accent-color);">10</span></label>
+            <input type="range" id="minPathRange" min="1" max="50" value="10" class="nes-range" aria-label="Minimum Path Length">
+
+            <div id="fourier-controls" class="hidden">
+                <label for="termsRange">Terms: <span id="termsVal" style="color: var(--accent-color);">50</span></label>
+                <input type="range" id="termsRange" min="5" max="200" value="50" class="nes-range" aria-label="Fourier Terms">
+            </div>
+            <div id="chaikin-controls" class="hidden">
+                <label for="chaikinRange">Iters: <span id="chaikinVal" style="color: var(--accent-color);">1</span></label>
+                <input type="range" id="chaikinRange" min="0" max="5" value="1" class="nes-range" aria-label="Chaikin Iterations">
             </div>
 
-            <button type="button" class="nes-btn is-primary" id="generateBtn" style="width: 100%; margin-top: 20px; font-size: 10px;">GENERATE</button>
-            <div id="status-text">INIT WASM...</div>
+            <button class="nes-btn is-primary" id="generateBtn" style="width: 100%; margin-top: 10px; font-size: 10px;" aria-label="Generate Image">GENERATE</button>
+            <div id="status-text" style="font-size: 8px; margin-top: 8px; text-align: center;">READY</div>
         </div>
 
-        <!-- EXPORT SECTION -->
-        <div class="nes-container with-title control-group" style="margin-bottom: 10px; padding: 15px;">
+        <div class="nes-container with-title control-group" style="padding: 15px;">
             <p class="title" style="font-size: 10px;">Export</p>
-            <div style="display: flex; gap: 10px; align-items: center;">
-                <div class="nes-select" style="flex-grow: 1; max-width: 60%;">
-                    <select required id="exportFormat" style="font-size: 8px; padding: 6px;">
-                        <option value="png" selected>PNG</option>
-                        <option value="jpg">JPG</option>
-                        <option value="json">JSON</option>
-                    </select>
-                </div>
-                <label style="display:flex; align-items:center; margin: 0;">
-                    <input type="checkbox" class="nes-checkbox" id="bgTransparentCheck" style="transform: scale(0.7);" />
-                    <span style="font-size:8px;">Transp BG</span>
-                </label>
+            <label for="exportFormat" class="sr-only" style="display:none;">Format</label>
+            <div class="nes-select" style="width: 100%; margin-bottom: 10px;">
+                <select id="exportFormat" style="font-size: 8px;" aria-label="Export Format">
+                    <option value="png">PNG (Transparent OK)</option>
+                    <option value="jpg">JPG (Solid background)</option>
+                    <option value="json">JSON (AST Vector)</option>
+                </select>
             </div>
-            <button type="button" class="nes-btn is-success" id="downloadBtn" style="width: 100%; margin-top: 15px; font-size: 10px;">DOWNLOAD</button>
-        </div>
-
-        <div style="margin-top: auto; text-align: center;">
-            <a href="https://github.com/Xuepoo/vectomancy" target="_blank" class="nes-btn is-warning" style="width: 100%; font-size: 8px; margin-bottom: 10px; padding: 6px;">GitHub Repo</a>
-            <p style="font-size: 7px; color: #888; margin:0;">Rust • WASM • Zola • NES.css</p>
+            <button class="nes-btn is-success" id="downloadBtn" style="width: 100%; font-size: 10px;" aria-label="Download File">DOWNLOAD</button>
         </div>
     </div>
 
-    <!-- MAIN VIEWPORT & GALLERY -->
     <div class="viewport-wrapper">
         <div class="top-bar">
-            <button type="button" class="nes-btn is-warning" id="helpBtn" style="font-size: 10px;">?</button>
-            <button type="button" class="nes-btn is-error" id="clearAllBtn" style="font-size: 10px;">Clear All</button>
-            <button type="button" class="nes-btn" id="themeToggleBtn" style="font-size: 10px;">Theme</button>
-            <button type="button" class="nes-btn" id="resetViewBtn" style="font-size: 10px;">Reset View</button>
+            <div style="flex-grow: 1; display: flex; align-items: center;">
+                <a href="https://github.com/Xuepoo/vectomancy" target="_blank" style="color: inherit; text-decoration: none;" aria-label="GitHub Repository">
+                    <i class="nes-icon github"></i>
+                </a>
+            </div>
+            <div style="display: flex; gap: 10px;">
+                <button class="nes-btn is-warning" id="helpBtn" style="font-size: 8px;" aria-label="Help">?</button>
+                <button class="nes-btn is-error" id="clearAllBtn" style="font-size: 8px;" aria-label="Clear All">Clear All</button>
+                <button class="nes-btn" id="themeToggleBtn" style="font-size: 8px;" aria-label="Toggle Theme">Theme</button>
+                <button class="nes-btn" id="resetViewBtn" style="font-size: 8px;" aria-label="Reset View">Reset View</button>
+            </div>
         </div>
 
         <div class="canvas-area" id="canvasArea">
-            <canvas id="mainCanvas"></canvas>
+            <canvas id="mainCanvas" aria-label="Main Drawing Canvas"></canvas>
+            <div class="overlay-stats nes-container is-rounded" id="overlayStats" aria-live="polite">Waiting for input...</div>
 
-            <div class="overlay-stats nes-container is-rounded" id="overlayStats">
-                Waiting for input...
+            <div class="canvas-controls">
+                <button class="nes-btn" id="btnZoomIn" title="Zoom In" aria-label="Zoom In">+</button>
+                <button class="nes-btn" id="btnZoomOut" title="Zoom Out" aria-label="Zoom Out">-</button>
+                <button class="nes-btn" id="btnResetViewObj" title="Fit Screen" aria-label="Fit Screen">▣</button>
+                <button class="nes-btn is-primary" id="btnFocus" title="Focus Mode" aria-label="Focus Mode">F</button>
             </div>
 
-            <!-- Progress Bar -->
             <div id="progressContainer" class="progress-overlay hidden">
-                <p style="margin: 0 0 10px 0; font-size: 10px; text-align: center; color: var(--accent-color);" id="progressText">COMPUTING AST...</p>
-                <progress class="nes-progress is-primary" value="0" max="100" id="progressBar" style="height: 24px;"></progress>
+                <p id="progressText" style="font-size: 8px; color: var(--accent-color);">COMPUTING...</p>
+                <progress class="nes-progress is-primary" value="0" max="100" id="progressBar" style="height: 15px;"></progress>
             </div>
         </div>
 
-        <div class="gallery-container" id="gallery">
-            <!-- Snapshots / Original go here -->
-        </div>
+        <div class="gallery-container" id="gallery"></div>
 
-        <!-- Loading Spinner -->
-        <div id="loaderOverlay" class="loader-overlay">
-            <div class="pixel-spinner"></div>
-            <p style="margin-top: 20px; font-size: 12px; text-shadow: 2px 2px 0 #000;" id="loaderText">Loading Engine...</p>
-        </div>
+        <div id="loaderOverlay" class="loader-overlay"><div class="pixel-spinner"></div><p id="loaderText">Loading Engine...</p></div>
     </div>
 
-    <!-- Help Dialog -->
-    <dialog class="nes-dialog" id="help-dialog" style="width: 80vw; max-width: 600px;">
+    <!-- DIALOGS -->
+    <dialog class="nes-dialog" id="delete-dialog"><form method="dialog"><p class="title">Confirm Delete</p><p style="font-size: 8px;">Erase snapshot?</p><menu class="dialog-menu"><button class="nes-btn" value="cancel">No</button><button class="nes-btn is-error" id="confirmDeleteBtn" value="confirm">Yes</button></menu></form></dialog>
+    <dialog class="nes-dialog" id="clear-dialog"><form method="dialog"><p class="title">Clear All</p><p style="font-size: 8px;">Erase all?</p><menu class="dialog-menu"><button class="nes-btn" value="cancel">No</button><button class="nes-btn is-error" value="confirm">Yes</button></menu></form></dialog>
+    <dialog class="nes-dialog" id="error-dialog"><form method="dialog"><p class="title">ERROR</p><p id="error-message" style="font-size: 8px;"></p><menu class="dialog-menu"><button class="nes-btn is-primary">OK</button></menu></form></dialog>
+
+    <dialog class="nes-dialog" id="help-dialog" style="width: 90vw; max-width: 600px;">
         <form method="dialog">
-            <p class="title" style="color: var(--accent-color); font-size: 12px; margin-bottom: 20px;">Parameter Tuning Guide</p>
-            <div style="font-size: 9px; line-height: 1.8; margin-bottom: 20px; text-align: left;">
-                <p><strong>Mode</strong>:<br>
-                   - Spline: Bezier curves, good for anime/lineart.<br>
-                   - Fourier: Epicycles, good for continuous loops.<br>
-                   - Chaikin: Polylines with corner cutting.</p>
-                <p><strong>Detail (Tolerance)</strong>:<br> Higher = More equations, tighter fit to original shape. Lower = abstract, smaller AST.</p>
-                <p><strong>Min Path</strong>:<br> Higher = Filters out tiny noise lines and compression artifacts. Keeps output clean.</p>
-                <hr style="border-top: 2px dashed var(--text-color); margin: 15px 0;">
-                <p style="color: #e76e55; margin-bottom: 10px;">🔥 Recommended Combos:</p>
-                <p><em>Anime / Lineart</em>: Spline | Detail 80 | Min Path 10<br><span style="color:#888">Smooth, flowing hair lines.</span></p>
-                <p><em>Logos / Geo</em>: Spline | Detail 90 | Min Path 5<br><span style="color:#888">Sharp corners, precise geometry.</span></p>
-                <p><em>Landscapes</em>: Spline | Detail 30 | Min Path 20<br><span style="color:#888">Abstract, stylized, prevents bloat.</span></p>
-                <p><em>Noisy JPEG</em>: Spline | Detail 50 | Min Path 15<br><span style="color:#888">Heals compression damage.</span></p>
+            <p class="title" style="color: var(--accent-color); font-size: 10px;">Vectomancy Pro Guide</p>
+            <div style="font-size: 8px; line-height: 1.8; text-align: left; max-height: 60vh; overflow-y: auto; padding: 5px;">
+                <p><strong>Algorithms:</strong><br>
+                - <b>Spline</b>: Precise Bezier curves. Best for lineart and logos.<br>
+                - <b>Fourier</b>: Continuous epicycle loops. Chaotic single-wire aesthetic.<br>
+                - <b>Chaikin</b>: Smooth polylines using corner-cutting. Organic "hand-drawn" look.</p>
+
+                <p><strong>Parameters:</strong><br>
+                - <b>Detail</b>: 10-100. Lower = abstract/fast, Higher = precise/heavy.<br>
+                - <b>Min Path</b>: Filters out noise and artifacts. Clean = 5, Noisy = 15+.<br>
+                - <b>Terms/Iters</b>: Controls complexity of Fourier/Chaikin modes.</p>
+
+                <p><strong>Pro Tips:</strong><br>
+                - <b>Clipboard</b>: You can paste (Ctrl+V) images directly anywhere!<br>
+                - <b>Focus Mode (F)</b>: Hides UI for pure viewing.<br>
+                - <b>Transparent</b>: Toggle in settings. Disables JPG export.<br>
+                - <b>Hotkeys</b>: Use mouse wheel to zoom, drag to pan.</p>
             </div>
-            <menu class="dialog-menu" style="display: flex; justify-content: flex-end; padding: 0; margin: 0;">
-                <button class="nes-btn is-primary">Got it!</button>
-            </menu>
-        </form>
-    </dialog>
-
-    <!-- Custom NES Dialog for Deletion -->
-    <dialog class="nes-dialog" id="delete-dialog">
-        <form method="dialog">
-            <p class="title" style="margin-bottom: 15px; font-size: 12px; color: #e76e55;">Confirm Deletion</p>
-            <p style="font-size: 10px; margin-bottom: 25px;">Erase this snapshot from memory?</p>
-            <menu class="dialog-menu" style="display: flex; gap: 15px; justify-content: flex-end; padding: 0; margin: 0;">
-                <button class="nes-btn" value="cancel">Cancel</button>
-                <button class="nes-btn is-error" id="confirmDeleteBtn" value="confirm">Delete</button>
-            </menu>
-        </form>
-    </dialog>
-
-    <dialog class="nes-dialog" id="clear-dialog">
-        <form method="dialog">
-            <p class="title" style="margin-bottom: 15px; font-size: 12px; color: #e76e55;">Clear ALL</p>
-            <p style="font-size: 10px; margin-bottom: 25px;">Erase ALL generated snapshots?</p>
-            <menu class="dialog-menu" style="display: flex; gap: 15px; justify-content: flex-end; padding: 0; margin: 0;">
-                <button class="nes-btn" value="cancel">Cancel</button>
-                <button class="nes-btn is-error" value="confirm">Clear All</button>
-            </menu>
-        </form>
-    </dialog>
-
-    <!-- Custom Error Dialog -->
-    <dialog class="nes-dialog" id="error-dialog">
-        <form method="dialog">
-            <p class="title" style="margin-bottom: 15px; font-size: 12px; color: #e76e55;">ERROR</p>
-            <p id="error-message" style="font-size: 9px; margin-bottom: 25px; line-height: 1.5; word-break: break-word;"></p>
-            <menu class="dialog-menu" style="display: flex; justify-content: flex-end; padding: 0; margin: 0;">
-                <button class="nes-btn is-primary">OK</button>
-            </menu>
+            <menu class="dialog-menu" style="margin-top: 10px;"><button class="nes-btn is-primary">OK</button></menu>
         </form>
     </dialog>
 
     <script type="module">
-        import init, { process_image } from '/wasm/wasm_engine.js';
+        import init, { process_image } from "/wasm/wasm_engine.js";
 
-        // --- State ---
         let isWasmLoaded = false;
+        let originalImageObj = null;
         let currentImageBytes = null;
         let currentFilename = "";
-        let originalImageObj = null;
+        let previewDataStore = new Map();
+        let activePreviewId = null;
+        let cachedViewportCanvas = null;
         let snapshotCount = 0;
         let pendingDeleteId = null;
 
-        const previewDataStore = new Map();
-        let activePreviewId = null;
-
-        // Cache for the active generated AST to prevent lag during pan/zoom
-        let cachedViewportCanvas = null;
-
-        // --- Pan/Zoom State ---        let scale = 1;
-        let offsetX = 0;
-        let offsetY = 0;
-        let isDragging = false;
-        let dragStart = { x: 0, y: 0 };
+        let scale = 1, offsetX = 0, offsetY = 0;
+        let isDragging = false, dragStart = { x: 0, y: 0 };
         let renderRequested = false;
 
-        // --- DOM Elements ---
+        const SUPPORTED_EXTS = ['png', 'jpg', 'jpeg', 'webp', 'svg'];
+
         const els = {
-            radioLocal: document.querySelector('input[value="local"]'),
-            radioUrl: document.querySelector('input[value="url"]'),
-            radioPreset: document.querySelector('input[value="preset"]'),
-            localWrapper: document.getElementById('localInputWrapper'),
-            urlWrapper: document.getElementById('urlInputWrapper'),
-            presetWrapper: document.getElementById('presetInputWrapper'),
+            fileInput: document.getElementById('fileInput'),
             urlInput: document.getElementById('urlInput'),
             fetchUrlBtn: document.getElementById('fetchUrlBtn'),
-            fileInput: document.getElementById('fileInput'),
             filenameDisplay: document.getElementById('filename-display'),
+            statusText: document.getElementById('status-text'),
+            generateBtn: document.getElementById('generateBtn'),
+            mainCanvas: document.getElementById('mainCanvas'),
+            canvasArea: document.getElementById('canvasArea'),
+            gallery: document.getElementById('gallery'),
+            resetViewBtn: document.getElementById('resetViewBtn'),
+            clearAllBtn: document.getElementById('clearAllBtn'),
+            themeToggleBtn: document.getElementById('themeToggleBtn'),
+            helpBtn: document.getElementById('helpBtn'),
+            helpDialog: document.getElementById('help-dialog'),
             modeSelect: document.getElementById('modeSelect'),
             colorCheck: document.getElementById('colorCheck'),
+            gridCheck: document.getElementById('gridCheck'),
             detailRange: document.getElementById('detailRange'),
             minPathRange: document.getElementById('minPathRange'),
             termsRange: document.getElementById('termsRange'),
             chaikinRange: document.getElementById('chaikinRange'),
             fourierControls: document.getElementById('fourier-controls'),
             chaikinControls: document.getElementById('chaikin-controls'),
-            generateBtn: document.getElementById('generateBtn'),
-            statusText: document.getElementById('status-text'),
-            themeToggleBtn: document.getElementById('themeToggleBtn'),
-            resetViewBtn: document.getElementById('resetViewBtn'),
-            helpBtn: document.getElementById('helpBtn'),
-            helpDialog: document.getElementById('help-dialog'),
-            canvasArea: document.getElementById('canvasArea'),
-            mainCanvas: document.getElementById('mainCanvas'),
-            gallery: document.getElementById('gallery'),
+            detailVal: document.getElementById('detailVal'),
+            minPathVal: document.getElementById('minPathVal'),
+            termsVal: document.getElementById('termsVal'),
+            chaikinVal: document.getElementById('chaikinVal'),
             overlayStats: document.getElementById('overlayStats'),
             exportFormat: document.getElementById('exportFormat'),
             bgTransparentCheck: document.getElementById('bgTransparentCheck'),
@@ -537,618 +463,384 @@
             progressContainer: document.getElementById('progressContainer'),
             progressBar: document.getElementById('progressBar'),
             deleteDialog: document.getElementById('delete-dialog'),
-            confirmDeleteBtn: document.getElementById('confirmDeleteBtn'),
-            clearAllBtn: document.getElementById('clearAllBtn'),
             clearDialog: document.getElementById('clear-dialog'),
             errorDialog: document.getElementById('error-dialog'),
-            errorMessage: document.getElementById('error-message')
+            errorMessage: document.getElementById('error-message'),
+            radioLocal: document.querySelector('input[value="local"]'),
+            radioUrl: document.querySelector('input[value="url"]'),
+            radioPreset: document.querySelector('input[value="preset"]'),
+            btnZoomIn: document.getElementById('btnZoomIn'),
+            btnZoomOut: document.getElementById('btnZoomOut'),
+            btnResetViewObj: document.getElementById('btnResetViewObj'),
+            btnFocus: document.getElementById('btnFocus')
         };
 
         const ctx = els.mainCanvas.getContext('2d');
-        const SUPPORTED_FORMATS = ['png', 'jpg', 'jpeg', 'svg', 'webp'];
 
         function showError(msg) {
             els.errorMessage.innerText = msg;
-            if (typeof els.errorDialog.showModal === "function") {
-                els.errorDialog.showModal();
-            } else {
-                els.errorDialog.setAttribute("open", "true");
-            }
+            els.errorDialog.showModal();
         }
 
         function truncateMiddle(str, maxLength) {
             if (str.length <= maxLength) return str;
-            const front = Math.ceil((maxLength - 3) / 2);
-            const back = Math.floor((maxLength - 3) / 2);
-            return str.substr(0, front) + '...' + str.substr(str.length - back);
+            return str.substr(0, Math.ceil(maxLength/2)) + '...' + str.substr(str.length - Math.floor(maxLength/2));
         }
 
-        // --- Initialization ---
         async function run() {
             try {
                 await init();
                 isWasmLoaded = true;
-                els.statusText.innerText = "READY. INSERT COIN";
-                els.loaderOverlay.classList.add('hidden');
+                els.statusText.innerText = "READY";
             } catch (e) {
-                els.statusText.innerText = "ERR: WASM CRASH";
-                els.loaderText.innerText = "CRITICAL ERROR";
-            }
-
-            if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-                document.body.classList.add('dark-theme');
-                els.deleteDialog.classList.add('is-dark');
-                els.clearDialog.classList.add('is-dark');
-                els.helpDialog.classList.add('is-dark');
-                els.errorDialog.classList.add('is-dark');
+                els.statusText.innerText = "ERR: LOAD";
+                console.error(e);
+            } finally {
+                els.loaderOverlay.classList.add('hidden');
             }
         }
 
-        // --- UI Updates ---
         function updateLabels() {
-            document.getElementById('detailVal').innerText = els.detailRange.value;
-            document.getElementById('minPathVal').innerText = els.minPathRange.value;
-            document.getElementById('termsVal').innerText = els.termsRange.value;
-            document.getElementById('chaikinVal').innerText = els.chaikinRange.value;
-
+            els.detailVal.innerText = els.detailRange.value;
+            els.minPathVal.innerText = els.minPathRange.value;
+            els.termsVal.innerText = els.termsRange.value;
+            els.chaikinVal.innerText = els.chaikinRange.value;
             const mode = els.modeSelect.value;
             els.fourierControls.classList.toggle('hidden', mode !== 'fourier');
             els.chaikinControls.classList.toggle('hidden', mode !== 'chaikin');
         }
 
-        [els.detailRange, els.minPathRange, els.termsRange, els.chaikinRange, els.modeSelect].forEach(el => {
-            el.addEventListener('input', updateLabels);
-        });
+        [els.detailRange, els.minPathRange, els.termsRange, els.chaikinRange, els.modeSelect].forEach(el => el.addEventListener('input', updateLabels));
 
         els.themeToggleBtn.addEventListener('click', () => {
             document.body.classList.toggle('dark-theme');
-            els.deleteDialog.classList.toggle('is-dark');
-            els.clearDialog.classList.toggle('is-dark');
-            els.helpDialog.classList.toggle('is-dark');
-            els.errorDialog.classList.toggle('is-dark');
+            [els.deleteDialog, els.clearDialog, els.errorDialog, els.helpDialog].forEach(d => d.classList.toggle('is-dark'));
             requestRender();
         });
 
-        els.resetViewBtn.addEventListener('click', () => {
-            resetViewport();
-            requestRender();
-        });
-
-        els.clearAllBtn.addEventListener('click', () => {
-            if (previewDataStore.size === 0) return;
-            if (typeof els.clearDialog.showModal === "function") {
-                els.clearDialog.showModal();
-            } else {
-                els.clearDialog.setAttribute("open", "true");
-            }
-        });
-
-        els.clearDialog.addEventListener('close', () => {
-            if (els.clearDialog.returnValue === 'confirm') {
-                // Clear all generated snapshots
-                for (let key of previewDataStore.keys()) {
-                    const item = document.getElementById(`gallery-${key}`);
-                    if (item) item.remove();
-                }
-                previewDataStore.clear();
-                setActivePreview('original');
-            }
-        });
-
-        els.helpBtn.addEventListener('click', () => {
-            if (typeof els.helpDialog.showModal === "function") {
-                els.helpDialog.showModal();
-            } else {
-                els.helpDialog.setAttribute("open", "true");
-            }
-        });
-
-        // --- Input Toggle ---
         function updateInputView() {
-            els.localWrapper.classList.add('hidden');
-            els.urlWrapper.classList.add('hidden');
-            els.presetWrapper.classList.add('hidden');
-
-            if (els.radioLocal.checked) els.localWrapper.classList.remove('hidden');
-            else if (els.radioUrl.checked) els.urlWrapper.classList.remove('hidden');
-            else if (els.radioPreset.checked) els.presetWrapper.classList.remove('hidden');
+            document.getElementById('localInputWrapper').classList.toggle('hidden', !els.radioLocal.checked);
+            document.getElementById('urlInputWrapper').classList.toggle('hidden', !els.radioUrl.checked);
+            document.getElementById('presetInputWrapper').classList.toggle('hidden', !els.radioPreset.checked);
         }
-        els.radioLocal.addEventListener('change', updateInputView);
-        els.radioUrl.addEventListener('change', updateInputView);
-        els.radioPreset.addEventListener('change', updateInputView);
-
-        // --- Export Logic ---
-        els.exportFormat.addEventListener('change', () => {
-            if (els.exportFormat.value === 'png') {
-                els.bgTransparentCheck.disabled = false;
-            } else {
-                els.bgTransparentCheck.disabled = true;
-                els.bgTransparentCheck.checked = false;
-            }
-        });
-
-        els.downloadBtn.addEventListener('click', () => {
-            if (!activePreviewId) {
-                showError("Please select an image to download.");
-                return;
-            }
-
-            const format = els.exportFormat.value;
-            const isTransparent = els.bgTransparentCheck.checked;
-            const isDark = document.body.classList.contains('dark-theme');
-            const baseName = currentFilename.split('.')[0] || "image";
-
-            if (activePreviewId === 'original') {
-                if (!originalImageObj) return;
-
-                if (format === 'json') {
-                    showError("Cannot export original image as JSON AST. Please GENERATE a math preview first.");
-                    return;
-                }
-
-                const exportCanvas = document.createElement('canvas');
-                exportCanvas.width = originalImageObj.width;
-                exportCanvas.height = originalImageObj.height;
-                const eCtx = exportCanvas.getContext('2d');
-
-                if (!isTransparent || format === 'jpg') {
-                    eCtx.fillStyle = isDark ? '#1a1a1a' : '#ffffff';
-                    eCtx.fillRect(0, 0, originalImageObj.width, originalImageObj.height);
-                }
-
-                eCtx.drawImage(originalImageObj, 0, 0);
-
-                const mimeType = format === 'jpg' ? 'image/jpeg' : 'image/png';
-                const quality = format === 'jpg' ? 0.9 : undefined;
-                const dataUrl = exportCanvas.toDataURL(mimeType, quality);
-                triggerDownload(dataUrl, `${baseName}_original.${format}`);
-                return;
-            }
-
-            const result = previewDataStore.get(activePreviewId);
-            if (!result) return;
-
-            const detailInfo = els.modeSelect.value === 'fourier' ? `T${els.termsRange.value}` : `D${els.detailRange.value}`;
-            const filename = `vectomancy_${baseName}_${result.ast.type.toLowerCase()}_${detailInfo}`;
-
-            if (format === 'json') {
-                const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(result.ast, null, 0));
-                triggerDownload(dataStr, `${filename}.json`);
-                return;
-            }
-
-            const exportCanvas = document.createElement('canvas');
-            exportCanvas.width = result.width;
-            exportCanvas.height = result.height;
-            const eCtx = exportCanvas.getContext('2d');
-
-            if (!isTransparent || format === 'jpg') {
-                eCtx.fillStyle = isDark ? '#1a1a1a' : '#ffffff';
-                eCtx.fillRect(0, 0, result.width, result.height);
-            }
-
-            drawAST(eCtx, result.ast, false, isDark, true);
-
-            const mimeType = format === 'jpg' ? 'image/jpeg' : 'image/png';
-            const quality = format === 'jpg' ? 0.9 : undefined;
-            const dataUrl = exportCanvas.toDataURL(mimeType, quality);
-            triggerDownload(dataUrl, `${filename}.${format}`);
-        });
-        function triggerDownload(dataUrl, filename) {
-            const a = document.createElement('a');
-            a.href = dataUrl;
-            a.download = filename;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-        }
+        [els.radioLocal, els.radioUrl, els.radioPreset].forEach(r => r.addEventListener('change', updateInputView));
 
         async function handleImageBytes(buffer, filename) {
+            // Extension validation
             const ext = filename.split('.').pop().toLowerCase();
-            if (!SUPPORTED_FORMATS.includes(ext) && ext !== filename.toLowerCase()) {
-                showError(`Unsupported file format: .${ext}\nPlease use PNG, JPG, SVG, or WEBP.`);
-                return;
+            if (filename.includes('.') && !SUPPORTED_EXTS.includes(ext)) {
+                return showError(`Unsupported file: .${ext}\nPlease use PNG, JPG, WebP or SVG.`);
             }
-
-            currentImageBytes = new Uint8Array(buffer);
-            currentFilename = filename;
-            els.filenameDisplay.innerText = truncateMiddle(filename, 30);
-            els.filenameDisplay.title = filename;
 
             const blob = new Blob([buffer]);
             const blobUrl = URL.createObjectURL(blob);
 
-            originalImageObj = new Image();
-            originalImageObj.onload = () => {
-                const oldOrig = document.getElementById('gallery-original');
-                if (oldOrig) oldOrig.remove();
-
-                addGalleryItem('original', originalImageObj.src, 'ORIGINAL');
-                activePreviewId = 'original';
-                resetViewport();
-                requestRender();
+            const tempImg = new Image();
+            tempImg.onerror = () => {
+                showError("Invalid Image Data!\nThe file could not be parsed as an image.");
+                els.loaderOverlay.classList.add('hidden');
             };
-            originalImageObj.src = blobUrl;
+            tempImg.onload = () => {
+                currentImageBytes = new Uint8Array(buffer);
+                currentFilename = filename;
+                els.filenameDisplay.innerText = truncateMiddle(filename, 20);
+                originalImageObj = tempImg;
+                const old = document.getElementById('gallery-original');
+                if(old) old.remove();
+                addGalleryItem('original', blobUrl, 'ORIGINAL');
+                setActivePreview('original');
+                els.loaderOverlay.classList.add('hidden');
+            };
+            tempImg.src = blobUrl;
         }
 
-        // --- File Handling ---
         els.fileInput.addEventListener('change', async (e) => {
-            const file = e.target.files[0];
-            if (!file) return;
-            const buffer = await file.arrayBuffer();
-            handleImageBytes(buffer, file.name);
-            els.fileInput.value = ''; // Reset input to allow uploading the same file again
+            if(e.target.files[0]) {
+                const b = await e.target.files[0].arrayBuffer();
+                handleImageBytes(b, e.target.files[0].name);
+            }
         });
 
         els.fetchUrlBtn.addEventListener('click', async () => {
             const url = els.urlInput.value;
-            if (!url) return;
-            els.loaderText.innerText = "Fetching URL...";
+            if(!url) return;
             els.loaderOverlay.classList.remove('hidden');
+            els.loaderText.innerText = "Fetching URL...";
             try {
-                // Use our Cloudflare Pages proxy function to bypass CORS
-                const proxyUrl = '/proxy?url=' + encodeURIComponent(url);
-                const response = await fetch(proxyUrl);
-                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-                const buffer = await response.arrayBuffer();
-                const filename = url.split('/').pop().split('?')[0] || "downloaded_image.png";
-                handleImageBytes(buffer, filename);
-            } catch (err) {
-                showError("Failed to fetch image from URL.\n\nThe image server might be blocking proxy requests or the URL is invalid.");
-            } finally {
+                const r = await fetch('/proxy?url=' + encodeURIComponent(url));
+                if (!r.ok) throw new Error("HTTP Error");
+                const b = await r.arrayBuffer();
+                handleImageBytes(b, url.split('/').pop().split('?')[0] || 'remote_image.png');
+            } catch(e) {
+                showError("Fetch Failed!\nCheck the URL or CORS proxy status.");
                 els.loaderOverlay.classList.add('hidden');
             }
         });
-        // --- Preset Examples Handling ---
+
+        // Clipboard Paste Support
+        window.addEventListener('paste', async (e) => {
+            const items = (e.clipboardData || e.originalEvent.clipboardData).items;
+            for (const item of items) {
+                if (item.type.indexOf('image') !== -1) {
+                    els.loaderOverlay.classList.remove('hidden');
+                    els.loaderText.innerText = "Pasting Image...";
+                    const blob = item.getAsFile();
+                    const buffer = await blob.arrayBuffer();
+                    handleImageBytes(buffer, `pasted_img_${Date.now()}.png`);
+                    break;
+                }
+            }
+        });
+
         document.querySelectorAll('.preset-example').forEach(img => {
             img.addEventListener('click', async (e) => {
-                const url = e.target.src;
-                const filename = e.target.getAttribute('data-filename');
-                els.loaderText.innerText = "Loading Preset...";
                 els.loaderOverlay.classList.remove('hidden');
                 try {
-                    const response = await fetch(url);
-                    const buffer = await response.arrayBuffer();
-                    handleImageBytes(buffer, filename);
-                } catch (error) {
-                    console.error("Error loading preset:", error);
-                } finally {
-                    els.loaderOverlay.classList.add('hidden');
+                    const r = await fetch('/proxy?url=' + encodeURIComponent(e.target.src));
+                    if (!r.ok) throw new Error("HTTP Error");
+                    const b = await r.arrayBuffer();
+                    handleImageBytes(b, e.target.dataset.filename);
+                } catch(e) {
+                    showError("Failed to load preset.\nPlease check your network.");
                 }
+                els.loaderOverlay.classList.add('hidden');
             });
         });
 
-        // --- Generation Logic ---
         els.generateBtn.addEventListener('click', () => {
-            if (!isWasmLoaded || !currentImageBytes) {
-                showError("Please select an image first!");
-                return;
-            }
-
-            els.statusText.innerText = "CALCULATING...";
+            if(!isWasmLoaded || !currentImageBytes) return showError("No Image!");
             els.progressContainer.classList.remove('hidden');
-
-            // Accelerated fake progress to 90%
             let p = 0;
-            els.progressBar.value = 0;
-            const pInt = setInterval(() => {
-                p += 20;
-                if(p >= 90) {
-                    p = 90;
-                    clearInterval(pInt);
-                }
-                els.progressBar.value = p;
-            }, 8);
-
-            const mode = els.modeSelect.value;
-            const ext = currentFilename.split('.').pop().toLowerCase();
-            const format = (ext === 'png' || ext === 'svg') ? ext : 'jpg';
-
-            const options = {
-                format: format,
-                color: true,
-                mode: mode,
-                chaikin_iters: parseInt(els.chaikinRange.value),
-                terms: parseInt(els.termsRange.value),
-                detail: parseInt(els.detailRange.value),
-                min_path_len: parseInt(els.minPathRange.value)
-            };
+            const pInt = setInterval(() => { p += 20; if(p>=90) { p=90; clearInterval(pInt); } els.progressBar.value = p; }, 10);
 
             setTimeout(() => {
                 try {
                     const start = performance.now();
+                    const options = { format: 'jpg', color: els.colorCheck.checked, mode: els.modeSelect.value,
+                                     chaikin_iters: parseInt(els.chaikinRange.value), terms: parseInt(els.termsRange.value),
+                                     detail: parseInt(els.detailRange.value), min_path_len: parseInt(els.minPathRange.value) };
                     const result = process_image(currentImageBytes, options);
-                    const ms = Math.round(performance.now() - start);
-
                     snapshotCount++;
                     const id = `snap-${snapshotCount}`;
-                    const label = `${mode.substring(0,3).toUpperCase()} D${options.detail}`;
-
-                    createSnapshot(id, result, label, ms);
-
-                    els.statusText.innerText = `DONE: ${ms}ms`;
-                } catch (err) {
-                    els.statusText.innerText = "ERR: FAILED";
-                    console.error(err);
-                } finally {
-                    clearInterval(pInt);
-                    els.progressBar.value = 100;
-                    setTimeout(() => {
-                        els.progressContainer.classList.add('hidden');
-                        els.progressBar.value = 0;
-                    }, 100); // Super fast hide after completion
-                }
-            }, 80); // Enough time for progress bar to jump to 90% before thread blocks
+                    createSnapshot(id, result, `${options.mode.substring(0,3).toUpperCase()} D${options.detail}`, Math.round(performance.now()-start));
+                } catch(e) { console.error(e); }
+                clearInterval(pInt); els.progressBar.value = 100;
+                setTimeout(() => els.progressContainer.classList.add('hidden'), 200);
+            }, 50);
         });
 
-        // --- Rendering & Multi-Preview ---
-        function createSnapshot(id, result, label, computeTime) {
-            const size = 128; // Smaller offscreen for memory
-            const offscreen = document.createElement('canvas');
-            offscreen.width = size;
-            offscreen.height = size;
-            const oCtx = offscreen.getContext('2d');
-
-            oCtx.fillStyle = document.body.classList.contains('dark-theme') ? '#1a1a1a' : '#ffffff';
+        function createSnapshot(id, result, label, time) {
+            const size = 128;
+            const off = document.createElement('canvas'); off.width = size; off.height = size;
+            const oCtx = off.getContext('2d');
+            oCtx.fillStyle = document.body.classList.contains('dark-theme') ? '#1a1a1a' : '#fff';
             oCtx.fillRect(0,0,size,size);
-
-            const scale = Math.min(size / result.width, size / result.height) * 0.9;
-            oCtx.translate((size - result.width * scale) / 2, (size - result.height * scale) / 2);
-            oCtx.scale(scale, scale);
-
+            const s = Math.min(size/result.width, size/result.height) * 0.9;
+            oCtx.translate((size-result.width*s)/2, (size-result.height*s)/2); oCtx.scale(s,s);
             drawAST(oCtx, result.ast, true, document.body.classList.contains('dark-theme'));
-
-            const dataUrl = offscreen.toDataURL('image/webp', 0.5);
-
-            result.computeTime = computeTime;
+            result.computeTime = time;
             previewDataStore.set(id, result);
-
-            addGalleryItem(id, dataUrl, label);
-
+            addGalleryItem(id, off.toDataURL(), label);
             setActivePreview(id);
-            }
+        }
 
-            // Custom Dialog Handlers
-            els.deleteDialog.addEventListener('close', () => {
-            if (els.deleteDialog.returnValue === 'confirm' && pendingDeleteId) {
+        function addGalleryItem(id, src, label) {
+            const div = document.createElement('div');
+            div.className = 'gallery-item'; div.id = `gallery-${id}`;
+            div.innerHTML = `<img src="${src}"><div class="gallery-label">${label}</div>` + (id!=='original'?'<div class="gallery-delete">X</div>':'');
+            div.onclick = (e) => {
+                if(e.target.classList.contains('gallery-delete')) {
+                    e.stopPropagation(); pendingDeleteId = id; els.deleteDialog.showModal();
+                } else setActivePreview(id);
+            };
+            els.gallery.prepend(div);
+        }
+
+        els.deleteDialog.addEventListener('close', () => {
+            if(els.deleteDialog.returnValue === 'confirm' && pendingDeleteId) {
                 previewDataStore.delete(pendingDeleteId);
                 document.getElementById(`gallery-${pendingDeleteId}`).remove();
-                if (activePreviewId === pendingDeleteId) {
-                    setActivePreview('original');
-                }
+                if(activePreviewId === pendingDeleteId) setActivePreview('original');
             }
-            pendingDeleteId = null;
-            });
+        });
 
-            function addGalleryItem(id, src, labelText) {
-            const item = document.createElement('div');
-            item.className = 'gallery-item';
-            item.id = `gallery-${id}`;
-
-            let innerHTML = `<img src="${src}"><div class="gallery-label">${labelText}</div>`;
-            if (id !== 'original') {
-                innerHTML += `<div class="gallery-delete" title="Delete">X</div>`;
+        els.clearAllBtn.addEventListener('click', () => { if(previewDataStore.size>0) els.clearDialog.showModal(); });
+        els.clearDialog.addEventListener('close', () => {
+            if(els.clearDialog.returnValue === 'confirm') {
+                for(let k of previewDataStore.keys()) document.getElementById(`gallery-${k}`).remove();
+                previewDataStore.clear(); setActivePreview('original');
             }
-            item.innerHTML = innerHTML;
+        });
 
-            item.onclick = (e) => {
-                if (e.target.classList.contains('gallery-delete')) {
-                    e.stopPropagation();
-                    pendingDeleteId = id;
-                    if (typeof els.deleteDialog.showModal === "function") {
-                      els.deleteDialog.showModal();
-                    } else {
-                      els.deleteDialog.setAttribute("open", "true");
-                    }
-                    return;
-                }
-                setActivePreview(id);
-            };
-            els.gallery.prepend(item);
-            if(id === 'original') item.click();
-            }
+        els.helpBtn.addEventListener('click', () => { els.helpDialog.showModal(); });
+
         function setActivePreview(id) {
             activePreviewId = id;
-            document.querySelectorAll('.gallery-item').forEach(c => c.classList.remove('active'));
-            const activeGalleryItem = document.getElementById(`gallery-${id}`);
-            if (activeGalleryItem) {
-                activeGalleryItem.classList.add('active');
-                activeGalleryItem.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
-            }
+            document.querySelectorAll('.gallery-item').forEach(el => el.classList.remove('active'));
+            const item = document.getElementById(`gallery-${id}`);
+            if(item) { item.classList.add('active'); item.scrollIntoView({ behavior:'smooth', inline:'center' }); }
 
-            if (id !== 'original') {
-                const result = previewDataStore.get(id);
-                if (result) {
-                    const isDark = document.body.classList.contains('dark-theme');
-                    cachedViewportCanvas = document.createElement('canvas');
-                    cachedViewportCanvas.width = result.width;
-                    cachedViewportCanvas.height = result.height;
-                    const cCtx = cachedViewportCanvas.getContext('2d');
+            if(id !== 'original') {
+                const res = previewDataStore.get(id);
+                cachedViewportCanvas = document.createElement('canvas');
+                cachedViewportCanvas.width = res.width; cachedViewportCanvas.height = res.height;
+                const cCtx = cachedViewportCanvas.getContext('2d');
+                drawAST(cCtx, res.ast, false, document.body.classList.contains('dark-theme'), true);
 
-                    // Fill background for cache to prevent transparent overlap issues during pan
-                    cCtx.fillStyle = isDark ? '#1a1a1a' : '#f7f7f7';
-                    cCtx.fillRect(0, 0, result.width, result.height);
-
-                    // Draw full resolution AST to cache
-                    drawAST(cCtx, result.ast, false, isDark, true); // true = export mode (1.5px constant width)
-                }
+                let stats = `RENDER STATS\nSIZE: ${res.width}x${res.height}\nTIME: ${res.computeTime}ms`;
+                if(res.ast.type === 'Spline' || res.ast.type === 'spline') stats += `\nPATHS: ${res.ast.equations.length}`;
+                else if(res.ast.type === 'Fourier' || res.ast.type === 'fourier') stats += `\nSTROKES: ${res.ast.strokes.length}`;
+                else if(res.ast.type === 'Polyline' || res.ast.type === 'polyline') stats += `\nPATHS: ${res.ast.paths.length}`;
+                els.overlayStats.innerText = stats;
             } else {
                 cachedViewportCanvas = null;
+                if(originalImageObj) {
+                    els.overlayStats.innerText = `ORIGINAL IMAGE\nSIZE: ${originalImageObj.width}x${originalImageObj.height}`;
+                } else {
+                    els.overlayStats.innerText = "Waiting for input...";
+                }
             }
-
-            resetViewport();
-            requestRender();
+            resetViewport(); requestRender();
         }
 
-        // --- Viewport Panning & Zooming ---
         function resetViewport() {
-            if (activePreviewId === 'original' && !originalImageObj) {
-                scale = 1;
-                offsetX = 0;
-                offsetY = 0;
-                return;
-            }
-
-            scale = 1;
-            const targetWidth = activePreviewId === 'original' ? originalImageObj.width : previewDataStore.get(activePreviewId).width;
-            const targetHeight = activePreviewId === 'original' ? originalImageObj.height : previewDataStore.get(activePreviewId).height;
-
-            const areaRect = els.canvasArea.getBoundingClientRect();
-            const scaleX = (areaRect.width * 0.8) / targetWidth;
-            const scaleY = (areaRect.height * 0.8) / targetHeight;
-            scale = Math.min(scaleX, scaleY);
-            if(scale > 2) scale = 2;
-
-            offsetX = (areaRect.width - targetWidth * scale) / 2;
-            offsetY = (areaRect.height - targetHeight * scale) / 2;
+            if(!originalImageObj && activePreviewId === 'original') return;
+            const w = activePreviewId==='original'?originalImageObj.width:previewDataStore.get(activePreviewId).width;
+            const h = activePreviewId==='original'?originalImageObj.height:previewDataStore.get(activePreviewId).height;
+            const r = els.canvasArea.getBoundingClientRect();
+            scale = Math.min((r.width*0.8)/w, (r.height*0.8)/h);
+            offsetX = (r.width - w*scale)/2; offsetY = (r.height - h*scale)/2;
         }
 
-        els.canvasArea.addEventListener('mousedown', (e) => {
-            isDragging = true;
-            dragStart = { x: e.clientX - offsetX, y: e.clientY - offsetY };
-        });
-        window.addEventListener('mousemove', (e) => {
-            if (!isDragging) return;
-            offsetX = e.clientX - dragStart.x;
-            offsetY = e.clientY - dragStart.y;
-            requestRender();
-        });
-        window.addEventListener('mouseup', () => { isDragging = false; });
+        els.canvasArea.addEventListener('mousedown', (e) => { isDragging = true; dragStart = { x: e.clientX-offsetX, y: e.clientY-offsetY }; });
+        window.addEventListener('mousemove', (e) => { if(isDragging) { offsetX = e.clientX-dragStart.x; offsetY = e.clientY-dragStart.y; requestRender(); } });
+        window.addEventListener('mouseup', () => isDragging = false);
         els.canvasArea.addEventListener('wheel', (e) => {
-            e.preventDefault();
-            const zoomIntensity = 0.1;
-            const wheel = e.deltaY < 0 ? 1 : -1;
-            const zoomFactor = Math.exp(wheel * zoomIntensity);
-
-            const rect = els.canvasArea.getBoundingClientRect();
-            const mouseX = e.clientX - rect.left;
-            const mouseY = e.clientY - rect.top;
-
-            offsetX = mouseX - (mouseX - offsetX) * zoomFactor;
-            offsetY = mouseY - (mouseY - offsetY) * zoomFactor;
-            scale *= zoomFactor;
-
-            requestRender();
+            e.preventDefault(); const factor = Math.exp((e.deltaY<0?1:-1)*0.1);
+            zoomAt(e.clientX, e.clientY, factor);
         });
 
-        // --- Core Drawing ---
-        function requestRender() {
-            if (!renderRequested) {
-                renderRequested = true;
-                requestAnimationFrame(renderViewport);
-            }
+        function zoomAt(clientX, clientY, factor) {
+            const r = els.canvasArea.getBoundingClientRect();
+            const mx = clientX-r.left, my = clientY-r.top;
+            offsetX = mx - (mx-offsetX)*factor; offsetY = my - (my-offsetY)*factor;
+            scale *= factor; requestRender();
         }
+
+        function requestRender() { if(!renderRequested) { renderRequested=true; requestAnimationFrame(renderViewport); } }
 
         function renderViewport() {
             renderRequested = false;
-
-            const rect = els.canvasArea.getBoundingClientRect();
-            els.mainCanvas.width = rect.width;
-            els.mainCanvas.height = rect.height;
-
-            ctx.clearRect(0, 0, els.mainCanvas.width, els.mainCanvas.height);
-
-            document.querySelectorAll('.gallery-item').forEach(el => el.classList.remove('active'));
-            const activeGalleryItem = document.getElementById(`gallery-${activePreviewId}`);
-            if (activeGalleryItem) activeGalleryItem.classList.add('active');
-
-            if (!activePreviewId) return;
+            const r = els.canvasArea.getBoundingClientRect();
+            els.mainCanvas.width = r.width; els.mainCanvas.height = r.height;
+            ctx.clearRect(0,0,r.width,r.height);
+            if(!activePreviewId) return;
 
             ctx.save();
             ctx.translate(offsetX, offsetY);
             ctx.scale(scale, scale);
 
-            const isDark = document.body.classList.contains('dark-theme');
+            const w = activePreviewId === 'original' ? originalImageObj.width : previewDataStore.get(activePreviewId).width;
+            const h = activePreviewId === 'original' ? originalImageObj.height : previewDataStore.get(activePreviewId).height;
+
+            if (!els.bgTransparentCheck.checked) {
+                ctx.fillStyle = document.body.classList.contains('dark-theme') ? '#1a1a1a' : '#f7f7f7';
+                ctx.fillRect(0, 0, w, h);
+            }
 
             if (activePreviewId === 'original') {
-                if (originalImageObj) {
-                    ctx.drawImage(originalImageObj, 0, 0);
-                    updateOverlayStats(`ORIGINAL IMAGE\nSIZE: ${originalImageObj.width}x${originalImageObj.height}`);
-                }
-            } else {
-                const result = previewDataStore.get(activePreviewId);
-                if (result && cachedViewportCanvas) {
-                    // Draw from offscreen cache for ultra-fast panning/zooming!
-                    ctx.drawImage(cachedViewportCanvas, 0, 0);
-
-                    let memoryMB = (JSON.stringify(result).length / (1024*1024)).toFixed(2);
-                    let statsText = `WASM RENDER\nSIZE: ${result.width}x${result.height}\nTIME: ${result.computeTime}ms\nMEM: ${memoryMB} MB`;
-                    if (result.ast.type === 'Spline' || result.ast.type === 'spline') {
-                        statsText += `\nPATHS: ${result.ast.equations.length}`;
-                    } else if (result.ast.type === 'Fourier' || result.ast.type === 'fourier') {
-                        statsText += `\nSTROKES: ${result.ast.strokes.length}`;
-                    }
-                    updateOverlayStats(statsText);
-                }
+                if(originalImageObj) ctx.drawImage(originalImageObj, 0, 0);
+            } else if(cachedViewportCanvas) {
+                ctx.drawImage(cachedViewportCanvas, 0, 0);
             }
             ctx.restore();
         }
 
-        function updateOverlayStats(text) {
-            els.overlayStats.innerText = text;
-        }
+        function drawAST(ctx, ast, isThumb, isDark, isExport) {
+            ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+            ctx.lineWidth = isThumb ? 3 : (isExport ? 1.5 : 1.5/scale);
+            const defCol = isDark ? '#fff' : '#000';
+            const extractColor = els.colorCheck.checked || isThumb || isExport;
 
-        function drawAST(ctx, ast, isThumbnail, isDarkTheme = false, isExport = false) {
-            ctx.lineJoin = 'round';
-            ctx.lineCap = 'round';
-            let currentStrokeW = isThumbnail ? 3.0 : (isExport ? 1.5 : (1.5 / Math.max(scale, 0.1)));
-            ctx.lineWidth = currentStrokeW;
-
-            const defaultColor = isDarkTheme ? '#ffffff' : '#000000';
-            const extractColor = els.colorCheck.checked || isThumbnail || isExport;
-
-            if (ast.type === 'Spline' || ast.type === 'spline') {
-                for (const path of ast.equations) {
-                    ctx.strokeStyle = (path.color_rgb && extractColor) ?
-                        `rgb(${path.color_rgb[0]},${path.color_rgb[1]},${path.color_rgb[2]})` : defaultColor;
-
-                    for (const eq of path.data) {
-                        ctx.beginPath();
-                        let first = true;
-                        let step = isThumbnail ? 0.2 : 0.05;
-                        for (let t = 0; t <= 1.0; t += step) {
+            if(ast.type==='Spline'||ast.type==='spline') {
+                ast.equations.forEach(path => {
+                    ctx.strokeStyle = (path.color_rgb && extractColor)?`rgb(${path.color_rgb.join(',')})`:defCol;
+                    path.data.forEach(eq => {
+                        ctx.beginPath(); let first=true;
+                        for(let t=0; t<=1; t+=isThumb?0.2:0.05) {
                             let x = eq.x_poly[0] + eq.x_poly[1]*t + eq.x_poly[2]*t*t + eq.x_poly[3]*t*t*t;
                             let y = eq.y_poly[0] + eq.y_poly[1]*t + eq.y_poly[2]*t*t + eq.y_poly[3]*t*t*t;
-                            if (first) { ctx.moveTo(x, y); first = false; } else { ctx.lineTo(x, y); }
+                            if(first) { ctx.moveTo(x,y); first=false; } else ctx.lineTo(x,y);
                         }
                         ctx.stroke();
-                    }
-                }
-            } else if (ast.type === 'Fourier' || ast.type === 'fourier') {
-                for (const stroke of ast.strokes) {
-                    ctx.strokeStyle = (stroke.color_rgb && extractColor) ?
-                        `rgb(${stroke.color_rgb[0]},${stroke.color_rgb[1]},${stroke.color_rgb[2]})` : defaultColor;
-
-                    ctx.beginPath();
-                    let first = true;
-                    const steps = Math.min(stroke.data.length * 4, isThumbnail ? 100 : 2000);
-                    for (let i = 0; i <= steps; i++) {
-                        let t = (i / steps) * Math.PI * 2;
-                        let x = 0, y = 0;
-                        for (const term of stroke.data) {
-                            x += term.amplitude * Math.cos(term.frequency * t + term.phase);
-                            y += term.amplitude * Math.sin(term.frequency * t + term.phase);
-                        }
-                        if (first) { ctx.moveTo(x, y); first = false; } else { ctx.lineTo(x, y); }
+                    });
+                });
+            } else if(ast.type==='Fourier'||ast.type==='fourier') {
+                ast.strokes.forEach(stroke => {
+                    ctx.strokeStyle = (stroke.color_rgb && extractColor)?`rgb(${stroke.color_rgb.join(',')})`:defCol;
+                    ctx.beginPath(); let first=true;
+                    const st = Math.min(stroke.data.length*4, isThumb?100:1000);
+                    for(let i=0; i<=st; i++) {
+                        let t = (i/st)*Math.PI*2, x=0, y=0;
+                        stroke.data.forEach(term => { x+=term.amplitude*Math.cos(term.frequency*t+term.phase); y+=term.amplitude*Math.sin(term.frequency*t+term.phase); });
+                        if(first) { ctx.moveTo(x,y); first=false; } else ctx.lineTo(x,y);
                     }
                     ctx.stroke();
-                }
-            } else if (ast.type === 'Polyline' || ast.type === 'polyline') {
-                 for (const path of ast.paths) {
-                    ctx.strokeStyle = (path.color_rgb && extractColor) ?
-                        `rgb(${path.color_rgb[0]},${path.color_rgb[1]},${path.color_rgb[2]})` : defaultColor;
-
-                    ctx.beginPath();
-                    let first = true;
-                    for (const pt of path.data) {
-                        if (first) { ctx.moveTo(pt.x, pt.y); first = false; } else { ctx.lineTo(pt.x, pt.y); }
-                    }
+                });
+            } else if(ast.type==='Polyline'||ast.type==='polyline') {
+                ast.paths.forEach(path => {
+                    ctx.strokeStyle = (path.color_rgb && extractColor)?`rgb(${path.color_rgb.join(',')})`:defCol;
+                    ctx.beginPath(); let first=true;
+                    path.data.forEach(pt => { if(first) { ctx.moveTo(pt.x, pt.y); first=false; } else ctx.lineTo(pt.x, pt.y); });
                     ctx.stroke();
-                 }
+                });
             }
         }
 
-        // --- Init ---
+        // --- Event Listeners ---
+        els.resetViewBtn.addEventListener('click', () => { resetViewport(); requestRender(); });
+        els.gridCheck.addEventListener('change', () => { els.canvasArea.classList.toggle('show-grid', els.gridCheck.checked); });
+        els.bgTransparentCheck.addEventListener('change', () => {
+            if (els.bgTransparentCheck.checked && els.exportFormat.value === 'jpg') els.exportFormat.value = 'png';
+            Array.from(els.exportFormat.options).find(o => o.value === 'jpg').disabled = els.bgTransparentCheck.checked;
+            requestRender();
+        });
+
+        els.btnZoomIn.onclick = () => { const r = els.canvasArea.getBoundingClientRect(); zoomAt(r.left+r.width/2, r.top+r.height/2, 1.2); };
+        els.btnZoomOut.onclick = () => { const r = els.canvasArea.getBoundingClientRect(); zoomAt(r.left+r.width/2, r.top+r.height/2, 0.8); };
+        els.btnResetViewObj.onclick = () => { resetViewport(); requestRender(); };
+        els.btnFocus.onclick = () => {
+            document.body.classList.toggle('focus-mode');
+            els.btnFocus.innerText = document.body.classList.contains('focus-mode') ? 'X' : 'F';
+            setTimeout(() => { resetViewport(); requestRender(); }, 100);
+        };
+
+        els.downloadBtn.addEventListener('click', () => {
+            if (!activePreviewId) return showError("No Image Selected!");
+            const format = els.exportFormat.value;
+            const isOriginal = activePreviewId === 'original';
+            const res = isOriginal ? { width: originalImageObj.width, height: originalImageObj.height } : previewDataStore.get(activePreviewId);
+            const canvas = document.createElement('canvas');
+            canvas.width = res.width; canvas.height = res.height;
+            const eCtx = canvas.getContext('2d');
+            if (!els.bgTransparentCheck.checked || format === 'jpg') {
+                eCtx.fillStyle = document.body.classList.contains('dark-theme') ? '#1a1a1a' : '#fff';
+                eCtx.fillRect(0, 0, res.width, res.height);
+            }
+            if (isOriginal) eCtx.drawImage(originalImageObj, 0, 0);
+            else drawAST(eCtx, res.ast, false, document.body.classList.contains('dark-theme'), true);
+            const baseName = currentFilename.split('.')[0] || "image";
+            let finalFilename = baseName + (isOriginal ? "_original" : `_vecto_${els.modeSelect.value.toUpperCase()}_D${els.detailRange.value}`);
+            if (format === 'json') {
+                if (isOriginal) return showError("No JSON for original!");
+                const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(res.ast));
+                const link = document.createElement('a'); link.download = `${finalFilename}.json`; link.href = dataStr; link.click();
+            } else {
+                const link = document.createElement('a'); link.download = `${finalFilename}.${format}`;
+                link.href = canvas.toDataURL(format === 'jpg' ? 'image/jpeg' : 'image/png'); link.click();
+            }
+        });
+
         run();
     </script>
 </body>

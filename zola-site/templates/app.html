@@ -1,3 +1,847 @@
-<tool_output_masked>
-[Tool intent string (0.05MB, 1227 lines) masked to preserve context window. Full string saved to: /home/fuyu/.gemini/tmp/vectomancy/tool-outputs/session-ef0590d2-10f9-4801-b9fa-08f35c3511bc/write_file_synth_ef0590d2-10f9-4801-b9fa-08f35c3511bc_1779141151676_69_intent_3ca54b6c-823d-4e92-91f9-edb302636f04.txt]
-</tool_output_masked>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vectomancy Pro - Retro Lab</title>
+
+    <!-- Performance Optimization: Preload -->
+    <link rel="preload" href="/fonts/pressstart2p.woff2" as="font" type="font/woff2" crossorigin>
+    <link rel="preload" href="/css/nes.min.css" as="style">
+    <link rel="preload" href="/wasm/wasm_engine_bg.wasm" as="fetch" crossorigin>
+    <link rel="preload" href="/img/logo.svg" as="image">
+
+    <link rel="apple-touch-icon" sizes="180x180" href="/favicons/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicons/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicons/favicon-16x16.png">
+    <link rel="shortcut icon" href="/favicons/favicon.ico">
+    <link href="/css/nes.min.css" rel="stylesheet">
+    <style>
+        @font-face {
+            font-family: 'Press Start 2P';
+            font-style: normal;
+            font-weight: 400;
+            font-display: swap;
+            src: url(/fonts/pressstart2p.woff2) format('woff2');
+            unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+        }
+
+        :root {
+            --bg-color: #e0e0e0;
+            --container-bg: #ffffff;
+            --text-color: #212529;
+            --accent-color: #209cee;
+            --grid-color: rgba(0,0,0,0.05);
+        }
+
+        body.dark-theme {
+            --bg-color: #212529;
+            --container-bg: #2d3436;
+            --text-color: #ffffff;
+            --accent-color: #f7d51d;
+            --grid-color: rgba(255,255,255,0.05);
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Press Start 2P', cursive;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+            transition: background-color 0.3s;
+        }
+
+        /* --- SIDEBAR --- */
+        .sidebar {
+            width: 320px;
+            background-color: var(--container-bg);
+            border-right: 4px solid var(--text-color);
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            z-index: 100;
+            overflow-y: auto;
+        }
+
+        .control-group { margin-bottom: 5px; }
+        .control-group label { display: block; font-size: 8px; margin-bottom: 8px; }
+        .hidden { display: none !important; }
+
+        /* --- VIEWPORT --- */
+        .viewport-wrapper {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            min-width: 0;
+        }
+
+        .top-bar {
+            height: 50px;
+            padding: 0 20px;
+            background: var(--container-bg);
+            border-bottom: 4px solid var(--text-color);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            z-index: 50;
+        }
+
+        .canvas-area {
+            flex-grow: 1;
+            overflow: hidden;
+            position: relative;
+            background-color: var(--bg-color);
+            cursor: grab;
+        }
+        .canvas-area.show-grid {
+            background-image: linear-gradient(var(--grid-color) 1px, transparent 1px),
+            linear-gradient(90deg, var(--grid-color) 1px, transparent 1px);
+            background-size: 50px 50px;
+        }
+        .canvas-area:active { cursor: grabbing; }
+
+        #mainCanvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+
+        /* --- GALLERY (SCROLLABLE) --- */
+        .gallery-container {
+            height: 130px;
+            background-color: var(--container-bg);
+            border-top: 4px solid var(--text-color);
+            padding: 10px 15px;
+            display: flex;
+            gap: 15px;
+            overflow-x: auto;
+            overflow-y: hidden;
+            align-items: center;
+            z-index: 10;
+        }
+
+        .gallery-item {
+            min-width: 90px;
+            width: 90px;
+            height: 90px;
+            flex-shrink: 0;
+            border: 4px solid transparent;
+            cursor: pointer;
+            position: relative;
+            background: #fff;
+            image-rendering: pixelated;
+            box-shadow: 0 4px 0 rgba(0,0,0,0.2);
+            transition: transform 0.1s, box-shadow 0.1s;
+        }
+        body.dark-theme .gallery-item { background: #333; }
+        .gallery-item:hover { border-color: #888; transform: translateY(-2px); }
+        .gallery-item.active { border-color: var(--accent-color); transform: translateY(2px); box-shadow: 0 2px 0 var(--accent-color); }
+        .gallery-item img { width: 100%; height: 100%; object-fit: contain; }
+
+        .gallery-label {
+            position: absolute;
+            bottom: 0; left: 0; right: 0;
+            background: rgba(0,0,0,0.7);
+            color: white;
+            font-size: 6px;
+            padding: 2px;
+            text-align: center;
+            pointer-events: none;
+        }
+        .gallery-delete {
+            position: absolute;
+            top: -8px; right: -8px;
+            background: #e76e55;
+            color: #fff;
+            border: 2px solid #000;
+            width: 18px; height: 18px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 8px; z-index: 5;
+        }
+
+        /* Overlay & Spinner */
+        .overlay-stats {
+            position: absolute;
+            top: 15px; left: 15px;
+            padding: 10px;
+            font-size: 8px;
+            line-height: 1.5;
+            pointer-events: none;
+            background: rgba(0,0,0,0.5) !important;
+            color: white !important;
+            border: 2px solid white;
+            z-index: 20;
+        }
+
+        .progress-overlay {
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            width: 300px;
+            background: var(--container-bg);
+            padding: 20px;
+            border: 4px solid var(--text-color);
+            z-index: 150;
+        }
+
+        .loader-overlay {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.6);
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            z-index: 200; color: white; backdrop-filter: blur(3px);
+        }
+        .pixel-spinner {
+            width: 48px; height: 48px;
+            border: 6px solid #fff; border-top: 6px solid var(--accent-color);
+            animation: spin 1s steps(8) infinite;
+        }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+
+        /* Canvas Controls */
+        .canvas-controls {
+            position: absolute;
+            bottom: 15px;
+            right: 15px;
+            display: flex;
+            gap: 10px;
+            z-index: 60;
+        }
+        .canvas-controls .nes-btn {
+            padding: 4px 10px;
+            font-size: 10px;
+            min-width: 36px;
+        }
+
+        /* Focus Mode */
+        body.focus-mode .sidebar,
+        body.focus-mode .top-bar,
+        body.focus-mode .gallery-container,
+        body.focus-mode .overlay-stats {
+            display: none !important;
+        }
+        body.focus-mode .viewport-wrapper {
+            width: 100vw;
+            height: 100vh;
+        }
+
+        dialog { font-family: 'Press Start 2P', cursive; border: 4px solid var(--text-color); background: var(--container-bg); color: var(--text-color); }
+        .truncate-text { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; display: inline-block; }
+
+        /* --- MOBILE RESPONSIVENESS --- */
+        @media (max-width: 768px) {
+            body { flex-direction: column; }
+            .sidebar { width: 100%; height: auto; border-right: none; border-bottom: 4px solid var(--text-color); padding: 10px; }
+            .viewport-wrapper { height: 60vh; }
+            .gallery-container { height: 110px; }
+            .gallery-item { min-width: 70px; width: 70px; height: 70px; }
+            .top-bar { height: 40px; padding: 0 10px; }
+            .top-bar .nes-btn { font-size: 6px !important; padding: 4px 6px; }
+            .canvas-controls { bottom: 5px; right: 5px; gap: 5px; }
+            .canvas-controls .nes-btn { font-size: 8px; min-width: 24px; padding: 2px 6px; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="sidebar">
+        <div class="nes-container with-title is-centered control-group" style="padding: 15px 10px;">
+            <a href="/" style="text-decoration: none; color: inherit;">
+                <p class="title" style="font-size: 12px; background: var(--container-bg);">VECTOMANCY</p>
+            </a>
+            <p style="font-size: 8px; margin:0; color: #888;">Pixel Math Engine</p>
+        </div>
+
+        <div class="nes-container with-title is-dark control-group" style="padding: 15px;">
+            <p class="title" style="font-size: 10px;">I/O</p>
+            <div style="display: flex; gap: 10px; margin-bottom: 10px; font-size: 8px; justify-content: center;">
+                <label><input type="radio" class="nes-radio" name="inputType" value="local" checked><span>Local</span></label>
+                <label><input type="radio" class="nes-radio" name="inputType" value="url"><span>URL</span></label>
+                <label><input type="radio" class="nes-radio" name="inputType" value="preset"><span>Preset</span></label>
+            </div>
+
+            <div id="localInputWrapper">
+                <label class="nes-btn" style="width: 100%; display: block; text-align: center; padding: 6px;">
+                    <span style="font-size: 8px;">Upload Image</span>
+                    <input type="file" id="fileInput" accept="image/*,.svg" style="display:none;" aria-label="Upload Image">
+                </label>
+            </div>
+            <div id="urlInputWrapper" class="hidden">
+                <div style="display: flex; gap: 8px;">
+                    <input type="text" id="urlInput" class="nes-input" style="font-size: 8px;" placeholder="https://..." aria-label="Image URL">
+                    <button id="fetchUrlBtn" class="nes-btn is-primary" style="font-size: 8px;" aria-label="Fetch URL">GO</button>
+                </div>
+            </div>
+            <div id="presetInputWrapper" class="hidden">
+                <div style="display: flex; gap: 10px; overflow-x: auto; padding-bottom: 5px;">
+                    <img src="https://cdn.xuepoo.xyz/presets/miku.webp" class="preset-example" data-filename="miku.webp" alt="Miku Preset" style="width: 48px; height: 48px; cursor: pointer; border: 2px solid var(--text-color); object-fit: cover;">
+                    <img src="https://cdn.xuepoo.xyz/presets/vim.webp" class="preset-example" data-filename="vim.webp" alt="Vim Preset" style="width: 48px; height: 48px; cursor: pointer; border: 2px solid var(--text-color); object-fit: cover;">
+                    <img src="https://cdn.xuepoo.xyz/presets/chiikawa.webp" class="preset-example" data-filename="chiikawa.webp" alt="Chiikawa Preset" style="width: 48px; height: 48px; cursor: pointer; border: 2px solid var(--text-color); object-fit: cover;">
+                    <img src="https://cdn.xuepoo.xyz/presets/iris.webp" class="preset-example" data-filename="iris.webp" alt="Iris Preset" style="width: 48px; height: 48px; cursor: pointer; border: 2px solid var(--text-color); object-fit: cover;">
+                </div>
+            </div>
+            <div style="margin-top: 10px; text-align: center; border-top: 2px dashed #444; padding-top: 10px;">
+                <span id="filename-display" class="truncate-text" style="font-size: 8px; color: #aaa;">No file selected</span>
+            </div>
+        </div>
+
+        <div class="nes-container with-title control-group" style="padding: 15px; flex-grow: 1;">
+            <p class="title" style="font-size: 10px;">Settings</p>
+            <label for="modeSelect">Mode</label>
+            <div class="nes-select" style="margin-bottom: 10px;">
+                <select id="modeSelect" style="font-size: 8px; padding: 6px;" aria-label="Mode Select">
+                    <option value="spline" selected>Spline (Bezier)</option>
+                    <option value="fourier">Fourier (Epicycle)</option>
+                    <option value="chaikin">Chaikin (Polyline)</option>
+                </select>
+            </div>
+
+            <div style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 10px;">
+                <label style="margin: 0;"><input type="checkbox" class="nes-checkbox" id="colorCheck" checked aria-label="Enable Colors"/><span>Colors</span></label>
+                <label style="margin: 0;"><input type="checkbox" class="nes-checkbox" id="gridCheck" aria-label="Show Grid"/><span>Show Grid</span></label>
+                <label style="margin: 0;"><input type="checkbox" class="nes-checkbox" id="bgTransparentCheck" aria-label="Transparent Background"/><span>Transparent</span></label>
+            </div>
+
+            <label for="detailRange">Detail Level: <span id="detailVal" style="color: var(--accent-color);">50</span></label>
+            <input type="range" id="detailRange" min="10" max="100" value="50" class="nes-range" aria-label="Detail Level">
+
+            <label for="minPathRange">Min Path Len: <span id="minPathVal" style="color: var(--accent-color);">10</span></label>
+            <input type="range" id="minPathRange" min="1" max="50" value="10" class="nes-range" aria-label="Minimum Path Length">
+
+            <div id="fourier-controls" class="hidden">
+                <label for="termsRange">Terms: <span id="termsVal" style="color: var(--accent-color);">50</span></label>
+                <input type="range" id="termsRange" min="5" max="200" value="50" class="nes-range" aria-label="Fourier Terms">
+            </div>
+            <div id="chaikin-controls" class="hidden">
+                <label for="chaikinRange">Iters: <span id="chaikinVal" style="color: var(--accent-color);">1</span></label>
+                <input type="range" id="chaikinRange" min="0" max="5" value="1" class="nes-range" aria-label="Chaikin Iterations">
+            </div>
+
+            <button class="nes-btn is-primary" id="generateBtn" style="width: 100%; margin-top: 10px; font-size: 10px;" aria-label="Generate Image">GENERATE</button>
+            <div id="status-text" style="font-size: 8px; margin-top: 8px; text-align: center;">READY</div>
+        </div>
+
+        <div class="nes-container with-title control-group" style="padding: 15px;">
+            <p class="title" style="font-size: 10px;">Export</p>
+            <label for="exportFormat" class="sr-only" style="display:none;">Format</label>
+            <div class="nes-select" style="width: 100%; margin-bottom: 10px;">
+                <select id="exportFormat" style="font-size: 8px;" aria-label="Export Format">
+                    <option value="png">PNG (Transparent OK)</option>
+                    <option value="jpg">JPG (Solid background)</option>
+                    <option value="json">JSON (AST Vector)</option>
+                </select>
+            </div>
+            <button class="nes-btn is-success" id="downloadBtn" style="width: 100%; font-size: 10px;" aria-label="Download File">DOWNLOAD</button>
+        </div>
+    </div>
+
+    <div class="viewport-wrapper">
+        <div class="top-bar">
+            <div style="flex-grow: 1; display: flex; align-items: center;">
+                <a href="https://github.com/Xuepoo/vectomancy" target="_blank" style="color: inherit; text-decoration: none;" aria-label="GitHub Repository">
+                    <i class="nes-icon github"></i>
+                </a>
+            </div>
+            <div style="display: flex; gap: 10px;">
+                <button class="nes-btn is-warning" id="helpBtn" style="font-size: 8px;" aria-label="Help">?</button>
+                <button class="nes-btn is-error" id="clearAllBtn" style="font-size: 8px;" aria-label="Clear All">Clear All</button>
+                <button class="nes-btn" id="themeToggleBtn" style="font-size: 8px;" aria-label="Toggle Theme">Theme</button>
+                <button class="nes-btn" id="resetViewBtn" style="font-size: 8px;" aria-label="Reset View">Reset View</button>
+            </div>
+        </div>
+
+        <div class="canvas-area" id="canvasArea">
+            <canvas id="mainCanvas" aria-label="Main Drawing Canvas"></canvas>
+            <div class="overlay-stats nes-container is-rounded" id="overlayStats" aria-live="polite">Waiting for input...</div>
+
+            <div class="canvas-controls">
+                <button class="nes-btn" id="btnZoomIn" title="Zoom In" aria-label="Zoom In">+</button>
+                <button class="nes-btn" id="btnZoomOut" title="Zoom Out" aria-label="Zoom Out">-</button>
+                <button class="nes-btn" id="btnResetViewObj" title="Fit Screen" aria-label="Fit Screen">▣</button>
+                <button class="nes-btn is-primary" id="btnFocus" title="Focus Mode" aria-label="Focus Mode">F</button>
+            </div>
+
+            <div id="progressContainer" class="progress-overlay hidden">
+                <p id="progressText" style="font-size: 8px; color: var(--accent-color);">COMPUTING...</p>
+                <progress class="nes-progress is-primary" value="0" max="100" id="progressBar" style="height: 15px;"></progress>
+            </div>
+        </div>
+
+        <div class="gallery-container" id="gallery"></div>
+
+        <div id="loaderOverlay" class="loader-overlay"><div class="pixel-spinner"></div><p id="loaderText">Loading Engine...</p></div>
+    </div>
+
+    <!-- DIALOGS -->
+    <dialog class="nes-dialog" id="delete-dialog"><form method="dialog"><p class="title">Confirm Delete</p><p style="font-size: 8px;">Erase snapshot?</p><menu class="dialog-menu"><button class="nes-btn" value="cancel">No</button><button class="nes-btn is-error" id="confirmDeleteBtn" value="confirm">Yes</button></menu></form></dialog>
+    <dialog class="nes-dialog" id="clear-dialog"><form method="dialog"><p class="title">Clear All</p><p style="font-size: 8px;">Erase all?</p><menu class="dialog-menu"><button class="nes-btn" value="cancel">No</button><button class="nes-btn is-error" value="confirm">Yes</button></menu></form></dialog>
+    <dialog class="nes-dialog" id="error-dialog"><form method="dialog"><p class="title">ERROR</p><p id="error-message" style="font-size: 8px;"></p><menu class="dialog-menu"><button class="nes-btn is-primary">OK</button></menu></form></dialog>
+
+    <dialog class="nes-dialog" id="help-dialog" style="width: 90vw; max-width: 600px;">
+        <form method="dialog">
+            <p class="title" style="color: var(--accent-color); font-size: 10px;">Vectomancy Pro Guide</p>
+            <div style="font-size: 8px; line-height: 1.8; text-align: left; max-height: 60vh; overflow-y: auto; padding: 5px;">
+                <p><strong>Algorithms:</strong><br>
+                - <b>Spline</b>: Precise Bezier curves. Best for lineart and logos.<br>
+                - <b>Fourier</b>: Continuous epicycle loops. Chaotic single-wire aesthetic.<br>
+                - <b>Chaikin</b>: Smooth polylines using corner-cutting. Organic "hand-drawn" look.</p>
+
+                <p><strong>Parameters:</strong><br>
+                - <b>Detail</b>: 10-100. Lower = abstract/fast, Higher = precise/heavy.<br>
+                - <b>Min Path</b>: Filters out noise and artifacts. Clean = 5, Noisy = 15+.<br>
+                - <b>Terms/Iters</b>: Controls complexity of Fourier/Chaikin modes.</p>
+
+                <p><strong>Pro Tips:</strong><br>
+                - <b>Clipboard</b>: You can paste (Ctrl+V) images directly anywhere!<br>
+                - <b>Focus Mode (F)</b>: Hides UI for pure viewing.<br>
+                - <b>Transparent</b>: Toggle in settings. Disables JPG export.<br>
+                - <b>Hotkeys</b>: Use mouse wheel to zoom, drag to pan.</p>
+            </div>
+            <menu class="dialog-menu" style="margin-top: 10px;"><button class="nes-btn is-primary">OK</button></menu>
+        </form>
+    </dialog>
+
+    <script type="module">
+        import init, { process_image } from "/wasm/wasm_engine.js";
+
+        let isWasmLoaded = false;
+        let originalImageObj = null;
+        let currentImageBytes = null;
+        let currentFilename = "";
+        let previewDataStore = new Map();
+        let activePreviewId = null;
+        let cachedViewportCanvas = null;
+        let snapshotCount = 0;
+        let pendingDeleteId = null;
+
+        let scale = 1, offsetX = 0, offsetY = 0;
+        let isDragging = false, dragStart = { x: 0, y: 0 };
+        let renderRequested = false;
+
+        const SUPPORTED_EXTS = ['png', 'jpg', 'jpeg', 'webp', 'svg'];
+
+        const els = {
+            fileInput: document.getElementById('fileInput'),
+            urlInput: document.getElementById('urlInput'),
+            fetchUrlBtn: document.getElementById('fetchUrlBtn'),
+            filenameDisplay: document.getElementById('filename-display'),
+            statusText: document.getElementById('status-text'),
+            generateBtn: document.getElementById('generateBtn'),
+            mainCanvas: document.getElementById('mainCanvas'),
+            canvasArea: document.getElementById('canvasArea'),
+            gallery: document.getElementById('gallery'),
+            resetViewBtn: document.getElementById('resetViewBtn'),
+            clearAllBtn: document.getElementById('clearAllBtn'),
+            themeToggleBtn: document.getElementById('themeToggleBtn'),
+            helpBtn: document.getElementById('helpBtn'),
+            helpDialog: document.getElementById('help-dialog'),
+            modeSelect: document.getElementById('modeSelect'),
+            colorCheck: document.getElementById('colorCheck'),
+            gridCheck: document.getElementById('gridCheck'),
+            detailRange: document.getElementById('detailRange'),
+            minPathRange: document.getElementById('minPathRange'),
+            termsRange: document.getElementById('termsRange'),
+            chaikinRange: document.getElementById('chaikinRange'),
+            fourierControls: document.getElementById('fourier-controls'),
+            chaikinControls: document.getElementById('chaikin-controls'),
+            detailVal: document.getElementById('detailVal'),
+            minPathVal: document.getElementById('minPathVal'),
+            termsVal: document.getElementById('termsVal'),
+            chaikinVal: document.getElementById('chaikinVal'),
+            overlayStats: document.getElementById('overlayStats'),
+            exportFormat: document.getElementById('exportFormat'),
+            bgTransparentCheck: document.getElementById('bgTransparentCheck'),
+            downloadBtn: document.getElementById('downloadBtn'),
+            loaderOverlay: document.getElementById('loaderOverlay'),
+            loaderText: document.getElementById('loaderText'),
+            progressContainer: document.getElementById('progressContainer'),
+            progressBar: document.getElementById('progressBar'),
+            deleteDialog: document.getElementById('delete-dialog'),
+            clearDialog: document.getElementById('clear-dialog'),
+            errorDialog: document.getElementById('error-dialog'),
+            errorMessage: document.getElementById('error-message'),
+            radioLocal: document.querySelector('input[value="local"]'),
+            radioUrl: document.querySelector('input[value="url"]'),
+            radioPreset: document.querySelector('input[value="preset"]'),
+            btnZoomIn: document.getElementById('btnZoomIn'),
+            btnZoomOut: document.getElementById('btnZoomOut'),
+            btnResetViewObj: document.getElementById('btnResetViewObj'),
+            btnFocus: document.getElementById('btnFocus')
+        };
+
+        const ctx = els.mainCanvas.getContext('2d');
+
+        function showError(msg) {
+            els.errorMessage.innerText = msg;
+            els.errorDialog.showModal();
+        }
+
+        function truncateMiddle(str, maxLength) {
+            if (str.length <= maxLength) return str;
+            return str.substr(0, Math.ceil(maxLength/2)) + '...' + str.substr(str.length - Math.floor(maxLength/2));
+        }
+
+        async function run() {
+            try {
+                await init();
+                isWasmLoaded = true;
+                els.statusText.innerText = "READY";
+            } catch (e) {
+                els.statusText.innerText = "ERR: LOAD";
+                console.error(e);
+            } finally {
+                els.loaderOverlay.classList.add('hidden');
+            }
+        }
+
+        function updateLabels() {
+            els.detailVal.innerText = els.detailRange.value;
+            els.minPathVal.innerText = els.minPathRange.value;
+            els.termsVal.innerText = els.termsRange.value;
+            els.chaikinVal.innerText = els.chaikinRange.value;
+            const mode = els.modeSelect.value;
+            els.fourierControls.classList.toggle('hidden', mode !== 'fourier');
+            els.chaikinControls.classList.toggle('hidden', mode !== 'chaikin');
+        }
+
+        [els.detailRange, els.minPathRange, els.termsRange, els.chaikinRange, els.modeSelect].forEach(el => el.addEventListener('input', updateLabels));
+
+        els.themeToggleBtn.addEventListener('click', () => {
+            document.body.classList.toggle('dark-theme');
+            [els.deleteDialog, els.clearDialog, els.errorDialog, els.helpDialog].forEach(d => d.classList.toggle('is-dark'));
+            requestRender();
+        });
+
+        function updateInputView() {
+            document.getElementById('localInputWrapper').classList.toggle('hidden', !els.radioLocal.checked);
+            document.getElementById('urlInputWrapper').classList.toggle('hidden', !els.radioUrl.checked);
+            document.getElementById('presetInputWrapper').classList.toggle('hidden', !els.radioPreset.checked);
+        }
+        [els.radioLocal, els.radioUrl, els.radioPreset].forEach(r => r.addEventListener('change', updateInputView));
+
+        async function handleImageBytes(buffer, filename) {
+            // Extension validation
+            const ext = filename.split('.').pop().toLowerCase();
+            if (filename.includes('.') && !SUPPORTED_EXTS.includes(ext)) {
+                return showError(`Unsupported file: .${ext}\nPlease use PNG, JPG, WebP or SVG.`);
+            }
+
+            const blob = new Blob([buffer]);
+            const blobUrl = URL.createObjectURL(blob);
+
+            const tempImg = new Image();
+            tempImg.onerror = () => {
+                showError("Invalid Image Data!\nThe file could not be parsed as an image.");
+                els.loaderOverlay.classList.add('hidden');
+            };
+            tempImg.onload = () => {
+                currentImageBytes = new Uint8Array(buffer);
+                currentFilename = filename;
+                els.filenameDisplay.innerText = truncateMiddle(filename, 20);
+                originalImageObj = tempImg;
+                const old = document.getElementById('gallery-original');
+                if(old) old.remove();
+                addGalleryItem('original', blobUrl, 'ORIGINAL');
+                setActivePreview('original');
+                els.loaderOverlay.classList.add('hidden');
+            };
+            tempImg.src = blobUrl;
+        }
+
+        els.fileInput.addEventListener('change', async (e) => {
+            if(e.target.files[0]) {
+                const b = await e.target.files[0].arrayBuffer();
+                handleImageBytes(b, e.target.files[0].name);
+            }
+        });
+
+        els.fetchUrlBtn.addEventListener('click', async () => {
+            const url = els.urlInput.value;
+            if(!url) return;
+            els.loaderOverlay.classList.remove('hidden');
+            els.loaderText.innerText = "Fetching URL...";
+            try {
+                const r = await fetch('/proxy?url=' + encodeURIComponent(url));
+                if (!r.ok) throw new Error("HTTP Error");
+                const b = await r.arrayBuffer();
+                handleImageBytes(b, url.split('/').pop().split('?')[0] || 'remote_image.png');
+            } catch(e) {
+                showError("Fetch Failed!\nCheck the URL or CORS proxy status.");
+                els.loaderOverlay.classList.add('hidden');
+            }
+        });
+
+        // Clipboard Paste Support
+        window.addEventListener('paste', async (e) => {
+            const items = (e.clipboardData || e.originalEvent.clipboardData).items;
+            for (const item of items) {
+                if (item.type.indexOf('image') !== -1) {
+                    els.loaderOverlay.classList.remove('hidden');
+                    els.loaderText.innerText = "Pasting Image...";
+                    const blob = item.getAsFile();
+                    const buffer = await blob.arrayBuffer();
+                    handleImageBytes(buffer, `pasted_img_${Date.now()}.png`);
+                    break;
+                }
+            }
+        });
+
+        document.querySelectorAll('.preset-example').forEach(img => {
+            img.addEventListener('click', async (e) => {
+                els.loaderOverlay.classList.remove('hidden');
+                try {
+                    const r = await fetch('/proxy?url=' + encodeURIComponent(e.target.src));
+                    if (!r.ok) throw new Error("HTTP Error");
+                    const b = await r.arrayBuffer();
+                    handleImageBytes(b, e.target.dataset.filename);
+                } catch(e) {
+                    showError("Failed to load preset.\nPlease check your network.");
+                }
+                els.loaderOverlay.classList.add('hidden');
+            });
+        });
+
+        els.generateBtn.addEventListener('click', () => {
+            if(!isWasmLoaded || !currentImageBytes) return showError("No Image!");
+            els.progressContainer.classList.remove('hidden');
+            let p = 0;
+            const pInt = setInterval(() => { p += 20; if(p>=90) { p=90; clearInterval(pInt); } els.progressBar.value = p; }, 10);
+
+            setTimeout(() => {
+                try {
+                    const start = performance.now();
+                    const options = { format: 'jpg', color: els.colorCheck.checked, mode: els.modeSelect.value,
+                                     chaikin_iters: parseInt(els.chaikinRange.value), terms: parseInt(els.termsRange.value),
+                                     detail: parseInt(els.detailRange.value), min_path_len: parseInt(els.minPathRange.value) };
+                    const result = process_image(currentImageBytes, options);
+                    snapshotCount++;
+                    const id = `snap-${snapshotCount}`;
+                    createSnapshot(id, result, `${options.mode.substring(0,3).toUpperCase()} D${options.detail}`, Math.round(performance.now()-start));
+                } catch(e) { console.error(e); }
+                clearInterval(pInt); els.progressBar.value = 100;
+                setTimeout(() => els.progressContainer.classList.add('hidden'), 200);
+            }, 50);
+        });
+
+        function createSnapshot(id, result, label, time) {
+            const size = 128;
+            const off = document.createElement('canvas'); off.width = size; off.height = size;
+            const oCtx = off.getContext('2d');
+            oCtx.fillStyle = document.body.classList.contains('dark-theme') ? '#1a1a1a' : '#fff';
+            oCtx.fillRect(0,0,size,size);
+            const s = Math.min(size/result.width, size/result.height) * 0.9;
+            oCtx.translate((size-result.width*s)/2, (size-result.height*s)/2); oCtx.scale(s,s);
+            drawAST(oCtx, result.ast, true, document.body.classList.contains('dark-theme'));
+            result.computeTime = time;
+            previewDataStore.set(id, result);
+            addGalleryItem(id, off.toDataURL(), label);
+            setActivePreview(id);
+        }
+
+        function addGalleryItem(id, src, label) {
+            const div = document.createElement('div');
+            div.className = 'gallery-item'; div.id = `gallery-${id}`;
+            div.innerHTML = `<img src="${src}"><div class="gallery-label">${label}</div>` + (id!=='original'?'<div class="gallery-delete">X</div>':'');
+            div.onclick = (e) => {
+                if(e.target.classList.contains('gallery-delete')) {
+                    e.stopPropagation(); pendingDeleteId = id; els.deleteDialog.showModal();
+                } else setActivePreview(id);
+            };
+            els.gallery.prepend(div);
+        }
+
+        els.deleteDialog.addEventListener('close', () => {
+            if(els.deleteDialog.returnValue === 'confirm' && pendingDeleteId) {
+                previewDataStore.delete(pendingDeleteId);
+                document.getElementById(`gallery-${pendingDeleteId}`).remove();
+                if(activePreviewId === pendingDeleteId) setActivePreview('original');
+            }
+        });
+
+        els.clearAllBtn.addEventListener('click', () => { if(previewDataStore.size>0) els.clearDialog.showModal(); });
+        els.clearDialog.addEventListener('close', () => {
+            if(els.clearDialog.returnValue === 'confirm') {
+                for(let k of previewDataStore.keys()) document.getElementById(`gallery-${k}`).remove();
+                previewDataStore.clear(); setActivePreview('original');
+            }
+        });
+
+        els.helpBtn.addEventListener('click', () => { els.helpDialog.showModal(); });
+
+        function setActivePreview(id) {
+            activePreviewId = id;
+            document.querySelectorAll('.gallery-item').forEach(el => el.classList.remove('active'));
+            const item = document.getElementById(`gallery-${id}`);
+            if(item) { item.classList.add('active'); item.scrollIntoView({ behavior:'smooth', inline:'center' }); }
+
+            if(id !== 'original') {
+                const res = previewDataStore.get(id);
+                cachedViewportCanvas = document.createElement('canvas');
+                cachedViewportCanvas.width = res.width; cachedViewportCanvas.height = res.height;
+                const cCtx = cachedViewportCanvas.getContext('2d');
+                drawAST(cCtx, res.ast, false, document.body.classList.contains('dark-theme'), true);
+
+                let stats = `RENDER STATS\nSIZE: ${res.width}x${res.height}\nTIME: ${res.computeTime}ms`;
+                if(res.ast.type === 'Spline' || res.ast.type === 'spline') stats += `\nPATHS: ${res.ast.equations.length}`;
+                else if(res.ast.type === 'Fourier' || res.ast.type === 'fourier') stats += `\nSTROKES: ${res.ast.strokes.length}`;
+                else if(res.ast.type === 'Polyline' || res.ast.type === 'polyline') stats += `\nPATHS: ${res.ast.paths.length}`;
+                els.overlayStats.innerText = stats;
+            } else {
+                cachedViewportCanvas = null;
+                if(originalImageObj) {
+                    els.overlayStats.innerText = `ORIGINAL IMAGE\nSIZE: ${originalImageObj.width}x${originalImageObj.height}`;
+                } else {
+                    els.overlayStats.innerText = "Waiting for input...";
+                }
+            }
+            resetViewport(); requestRender();
+        }
+
+        function resetViewport() {
+            if(!originalImageObj && activePreviewId === 'original') return;
+            const w = activePreviewId==='original'?originalImageObj.width:previewDataStore.get(activePreviewId).width;
+            const h = activePreviewId==='original'?originalImageObj.height:previewDataStore.get(activePreviewId).height;
+            const r = els.canvasArea.getBoundingClientRect();
+            scale = Math.min((r.width*0.8)/w, (r.height*0.8)/h);
+            offsetX = (r.width - w*scale)/2; offsetY = (r.height - h*scale)/2;
+        }
+
+        els.canvasArea.addEventListener('mousedown', (e) => { isDragging = true; dragStart = { x: e.clientX-offsetX, y: e.clientY-offsetY }; });
+        window.addEventListener('mousemove', (e) => { if(isDragging) { offsetX = e.clientX-dragStart.x; offsetY = e.clientY-dragStart.y; requestRender(); } });
+        window.addEventListener('mouseup', () => isDragging = false);
+        els.canvasArea.addEventListener('wheel', (e) => {
+            e.preventDefault(); const factor = Math.exp((e.deltaY<0?1:-1)*0.1);
+            zoomAt(e.clientX, e.clientY, factor);
+        });
+
+        function zoomAt(clientX, clientY, factor) {
+            const r = els.canvasArea.getBoundingClientRect();
+            const mx = clientX-r.left, my = clientY-r.top;
+            offsetX = mx - (mx-offsetX)*factor; offsetY = my - (my-offsetY)*factor;
+            scale *= factor; requestRender();
+        }
+
+        function requestRender() { if(!renderRequested) { renderRequested=true; requestAnimationFrame(renderViewport); } }
+
+        function renderViewport() {
+            renderRequested = false;
+            const r = els.canvasArea.getBoundingClientRect();
+            els.mainCanvas.width = r.width; els.mainCanvas.height = r.height;
+            ctx.clearRect(0,0,r.width,r.height);
+            if(!activePreviewId) return;
+
+            ctx.save();
+            ctx.translate(offsetX, offsetY);
+            ctx.scale(scale, scale);
+
+            const w = activePreviewId === 'original' ? originalImageObj.width : previewDataStore.get(activePreviewId).width;
+            const h = activePreviewId === 'original' ? originalImageObj.height : previewDataStore.get(activePreviewId).height;
+
+            if (!els.bgTransparentCheck.checked) {
+                ctx.fillStyle = document.body.classList.contains('dark-theme') ? '#1a1a1a' : '#f7f7f7';
+                ctx.fillRect(0, 0, w, h);
+            }
+
+            if (activePreviewId === 'original') {
+                if(originalImageObj) ctx.drawImage(originalImageObj, 0, 0);
+            } else if(cachedViewportCanvas) {
+                ctx.drawImage(cachedViewportCanvas, 0, 0);
+            }
+            ctx.restore();
+        }
+
+        function drawAST(ctx, ast, isThumb, isDark, isExport) {
+            ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+            ctx.lineWidth = isThumb ? 3 : (isExport ? 1.5 : 1.5/scale);
+            const defCol = isDark ? '#fff' : '#000';
+            const extractColor = els.colorCheck.checked || isThumb || isExport;
+
+            if(ast.type==='Spline'||ast.type==='spline') {
+                ast.equations.forEach(path => {
+                    ctx.strokeStyle = (path.color_rgb && extractColor)?`rgb(${path.color_rgb.join(',')})`:defCol;
+                    path.data.forEach(eq => {
+                        ctx.beginPath(); let first=true;
+                        for(let t=0; t<=1; t+=isThumb?0.2:0.05) {
+                            let x = eq.x_poly[0] + eq.x_poly[1]*t + eq.x_poly[2]*t*t + eq.x_poly[3]*t*t*t;
+                            let y = eq.y_poly[0] + eq.y_poly[1]*t + eq.y_poly[2]*t*t + eq.y_poly[3]*t*t*t;
+                            if(first) { ctx.moveTo(x,y); first=false; } else ctx.lineTo(x,y);
+                        }
+                        ctx.stroke();
+                    });
+                });
+            } else if(ast.type==='Fourier'||ast.type==='fourier') {
+                ast.strokes.forEach(stroke => {
+                    ctx.strokeStyle = (stroke.color_rgb && extractColor)?`rgb(${stroke.color_rgb.join(',')})`:defCol;
+                    ctx.beginPath(); let first=true;
+                    const st = Math.min(stroke.data.length*4, isThumb?100:1000);
+                    for(let i=0; i<=st; i++) {
+                        let t = (i/st)*Math.PI*2, x=0, y=0;
+                        stroke.data.forEach(term => { x+=term.amplitude*Math.cos(term.frequency*t+term.phase); y+=term.amplitude*Math.sin(term.frequency*t+term.phase); });
+                        if(first) { ctx.moveTo(x,y); first=false; } else ctx.lineTo(x,y);
+                    }
+                    ctx.stroke();
+                });
+            } else if(ast.type==='Polyline'||ast.type==='polyline') {
+                ast.paths.forEach(path => {
+                    ctx.strokeStyle = (path.color_rgb && extractColor)?`rgb(${path.color_rgb.join(',')})`:defCol;
+                    ctx.beginPath(); let first=true;
+                    path.data.forEach(pt => { if(first) { ctx.moveTo(pt.x, pt.y); first=false; } else ctx.lineTo(pt.x, pt.y); });
+                    ctx.stroke();
+                });
+            }
+        }
+
+        // --- Event Listeners ---
+        els.resetViewBtn.addEventListener('click', () => { resetViewport(); requestRender(); });
+        els.gridCheck.addEventListener('change', () => { els.canvasArea.classList.toggle('show-grid', els.gridCheck.checked); });
+        els.bgTransparentCheck.addEventListener('change', () => {
+            if (els.bgTransparentCheck.checked && els.exportFormat.value === 'jpg') els.exportFormat.value = 'png';
+            Array.from(els.exportFormat.options).find(o => o.value === 'jpg').disabled = els.bgTransparentCheck.checked;
+            requestRender();
+        });
+
+        els.btnZoomIn.onclick = () => { const r = els.canvasArea.getBoundingClientRect(); zoomAt(r.left+r.width/2, r.top+r.height/2, 1.2); };
+        els.btnZoomOut.onclick = () => { const r = els.canvasArea.getBoundingClientRect(); zoomAt(r.left+r.width/2, r.top+r.height/2, 0.8); };
+        els.btnResetViewObj.onclick = () => { resetViewport(); requestRender(); };
+        els.btnFocus.onclick = () => {
+            document.body.classList.toggle('focus-mode');
+            els.btnFocus.innerText = document.body.classList.contains('focus-mode') ? 'X' : 'F';
+            setTimeout(() => { resetViewport(); requestRender(); }, 100);
+        };
+
+        els.downloadBtn.addEventListener('click', () => {
+            if (!activePreviewId) return showError("No Image Selected!");
+            const format = els.exportFormat.value;
+            const isOriginal = activePreviewId === 'original';
+            const res = isOriginal ? { width: originalImageObj.width, height: originalImageObj.height } : previewDataStore.get(activePreviewId);
+            const canvas = document.createElement('canvas');
+            canvas.width = res.width; canvas.height = res.height;
+            const eCtx = canvas.getContext('2d');
+            if (!els.bgTransparentCheck.checked || format === 'jpg') {
+                eCtx.fillStyle = document.body.classList.contains('dark-theme') ? '#1a1a1a' : '#fff';
+                eCtx.fillRect(0, 0, res.width, res.height);
+            }
+            if (isOriginal) eCtx.drawImage(originalImageObj, 0, 0);
+            else drawAST(eCtx, res.ast, false, document.body.classList.contains('dark-theme'), true);
+            const baseName = currentFilename.split('.')[0] || "image";
+            let finalFilename = baseName + (isOriginal ? "_original" : `_vecto_${els.modeSelect.value.toUpperCase()}_D${els.detailRange.value}`);
+            if (format === 'json') {
+                if (isOriginal) return showError("No JSON for original!");
+                const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(res.ast));
+                const link = document.createElement('a'); link.download = `${finalFilename}.json`; link.href = dataStr; link.click();
+            } else {
+                const link = document.createElement('a'); link.download = `${finalFilename}.${format}`;
+                link.href = canvas.toDataURL(format === 'jpg' ? 'image/jpeg' : 'image/png'); link.click();
+            }
+        });
+
+        run();
+    </script>
+</body>
+</html>
