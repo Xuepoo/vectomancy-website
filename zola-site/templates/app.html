@@ -304,6 +304,32 @@
 
             <div style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 10px;">
                 <label style="margin: 0;"><input type="checkbox" class="nes-checkbox" id="colorCheck" checked aria-label="Enable Colors"/><span>Colors</span></label>
+
+                <!-- Color options, toggled by Colors checkbox -->
+                <div id="colorOptionsContainer" style="margin-left: 15px; border-left: 2px solid var(--accent-color); padding-left: 10px; display: flex; flex-direction: column; gap: 8px;">
+                    <div style="display: flex; flex-direction: column; gap: 4px;">
+                        <label for="colorDepthSelect" style="font-size: 8px; margin: 0;">Bit Depth</label>
+                        <div class="nes-select" style="font-size: 8px;">
+                            <select id="colorDepthSelect" aria-label="Color Bit Depth" style="font-size: 8px; padding: 4px;">
+                                <option value="24" selected>24-bit (True Color)</option>
+                                <option value="16">16-bit (High Color)</option>
+                                <option value="8">8-bit (256 Colors)</option>
+                                <option value="4">4-bit (16 Colors Retro)</option>
+                                <option value="1">1-bit (Monochrome)</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div style="display: flex; flex-direction: column; gap: 4px;">
+                        <label for="colorSpaceSelect" style="font-size: 8px; margin: 0;">Color Space</label>
+                        <div class="nes-select" style="font-size: 8px;">
+                            <select id="colorSpaceSelect" aria-label="Color Space" style="font-size: 8px; padding: 4px;">
+                                <option value="srgb" selected>sRGB (Standard)</option>
+                                <option value="grayscale">Grayscale (Mono)</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
                 <label style="margin: 0;"><input type="checkbox" class="nes-checkbox" id="gridCheck" aria-label="Show Grid"/><span>Show Grid</span></label>
                 <label style="margin: 0;"><input type="checkbox" class="nes-checkbox" id="bgTransparentCheck" aria-label="Transparent Background"/><span>Transparent</span></label>
             </div>
@@ -443,6 +469,8 @@
             helpDialog: document.getElementById('help-dialog'),
             modeSelect: document.getElementById('modeSelect'),
             colorCheck: document.getElementById('colorCheck'),
+            colorDepthSelect: document.getElementById('colorDepthSelect'),
+            colorSpaceSelect: document.getElementById('colorSpaceSelect'),
             gridCheck: document.getElementById('gridCheck'),
             detailRange: document.getElementById('detailRange'),
             minPathRange: document.getElementById('minPathRange'),
@@ -515,6 +543,7 @@
         els.themeToggleBtn.addEventListener('click', () => {
             document.body.classList.toggle('dark-theme');
             [els.deleteDialog, els.clearDialog, els.errorDialog, els.helpDialog].forEach(d => d.classList.toggle('is-dark'));
+            recacheViewportCanvas();
             requestRender();
         });
 
@@ -674,6 +703,19 @@
 
         els.helpBtn.addEventListener('click', () => { els.helpDialog.showModal(); });
 
+        function recacheViewportCanvas() {
+            if (activePreviewId && activePreviewId !== 'original') {
+                const res = previewDataStore.get(activePreviewId);
+                if (!cachedViewportCanvas) {
+                    cachedViewportCanvas = document.createElement('canvas');
+                }
+                cachedViewportCanvas.width = res.width;
+                cachedViewportCanvas.height = res.height;
+                const cCtx = cachedViewportCanvas.getContext('2d');
+                drawAST(cCtx, res.ast, false, document.body.classList.contains('dark-theme'), true);
+            }
+        }
+
         function setActivePreview(id) {
             activePreviewId = id;
             document.querySelectorAll('.gallery-item').forEach(el => el.classList.remove('active'));
@@ -681,12 +723,8 @@
             if(item) { item.classList.add('active'); item.scrollIntoView({ behavior:'smooth', inline:'center' }); }
 
             if(id !== 'original') {
+                recacheViewportCanvas();
                 const res = previewDataStore.get(id);
-                cachedViewportCanvas = document.createElement('canvas');
-                cachedViewportCanvas.width = res.width; cachedViewportCanvas.height = res.height;
-                const cCtx = cachedViewportCanvas.getContext('2d');
-                drawAST(cCtx, res.ast, false, document.body.classList.contains('dark-theme'), true);
-
                 let stats = `RENDER STATS\nSIZE: ${res.width}x${res.height}\nTIME: ${res.computeTime}ms`;
                 if(res.ast.type === 'Spline' || res.ast.type === 'spline') stats += `\nPATHS: ${res.ast.equations.length}`;
                 else if(res.ast.type === 'Fourier' || res.ast.type === 'fourier') stats += `\nSTROKES: ${res.ast.strokes.length}`;
@@ -756,15 +794,73 @@
             ctx.restore();
         }
 
+        function processColor(colorRgb, bitDepth, colorSpace) {
+            if (!colorRgb) return null;
+            let [r, g, b] = colorRgb;
+
+            // 1. Color Space Conversion
+            if (colorSpace === 'grayscale') {
+                const gray = Math.round(0.299 * r + 0.587 * g + 0.114 * b);
+                r = gray; g = gray; b = gray;
+            }
+
+            // 2. Bit Depth Quantization
+            if (bitDepth === '8') {
+                r = Math.round(r / 255 * 7) * (255 / 7);
+                g = Math.round(g / 255 * 7) * (255 / 7);
+                b = Math.round(b / 255 * 3) * (255 / 3);
+            } else if (bitDepth === '16') {
+                r = Math.round(r / 255 * 31) * (255 / 31);
+                g = Math.round(g / 255 * 63) * (255 / 63);
+                b = Math.round(b / 255 * 31) * (255 / 31);
+            } else if (bitDepth === '4') {
+                const palette = [
+                    [0, 0, 0], [255, 255, 255], [136, 0, 0], [170, 204, 238],
+                    [204, 68, 204], [0, 204, 85], [0, 0, 170], [238, 238, 51],
+                    [221, 136, 85], [102, 68, 0], [255, 119, 119], [51, 51, 51],
+                    [119, 119, 119], [170, 255, 102], [0, 136, 255], [187, 187, 187]
+                ];
+                let minD = Infinity;
+                let bestCol = palette[0];
+                for (const col of palette) {
+                    const d = Math.pow(r - col[0], 2) + Math.pow(g - col[1], 2) + Math.pow(b - col[2], 2);
+                    if (d < minD) {
+                        minD = d;
+                        bestCol = col;
+                    }
+                }
+                [r, g, b] = bestCol;
+            } else if (bitDepth === '1') {
+                const gray = 0.299 * r + 0.587 * g + 0.114 * b;
+                const bw = gray > 128 ? 255 : 0;
+                r = bw; g = bw; b = bw;
+            }
+
+            r = Math.min(255, Math.max(0, Math.round(r)));
+            g = Math.min(255, Math.max(0, Math.round(g)));
+            b = Math.min(255, Math.max(0, Math.round(b)));
+
+            return [r, g, b];
+        }
+
         function drawAST(ctx, ast, isThumb, isDark, isExport) {
             ctx.lineJoin = 'round'; ctx.lineCap = 'round';
             ctx.lineWidth = isThumb ? 3 : (isExport ? 1.5 : 1.5/scale);
             const defCol = isDark ? '#fff' : '#000';
             const extractColor = els.colorCheck.checked || isThumb || isExport;
 
+            const depth = els.colorDepthSelect ? els.colorDepthSelect.value : '24';
+            const space = els.colorSpaceSelect ? els.colorSpaceSelect.value : 'srgb';
+
+            function getStrokeStyle(colorRgb) {
+                if (!colorRgb || !extractColor) return defCol;
+                const finalRgb = processColor(colorRgb, depth, space);
+                return `rgb(${finalRgb.join(',')})`;
+            }
+
             if(ast.type==='Spline'||ast.type==='spline') {
                 ast.equations.forEach(path => {
-                    ctx.strokeStyle = (path.color_rgb && extractColor)?`rgb(${path.color_rgb.join(',')})`:defCol;
+                    ctx.strokeStyle = getStrokeStyle(path.color_rgb);
                     path.data.forEach(eq => {
                         ctx.beginPath(); let first=true;
                         for(let t=0; t<=1; t+=isThumb?0.2:0.05) {
@@ -777,7 +873,7 @@
                 });
             } else if(ast.type==='Fourier'||ast.type==='fourier') {
                 ast.strokes.forEach(stroke => {
-                    ctx.strokeStyle = (stroke.color_rgb && extractColor)?`rgb(${stroke.color_rgb.join(',')})`:defCol;
+                    ctx.strokeStyle = getStrokeStyle(stroke.color_rgb);
                     ctx.beginPath(); let first=true;
                     const st = Math.min(stroke.data.length*4, isThumb?100:1000);
                     for(let i=0; i<=st; i++) {
@@ -789,7 +885,7 @@
                 });
             } else if(ast.type==='Polyline'||ast.type==='polyline') {
                 ast.paths.forEach(path => {
-                    ctx.strokeStyle = (path.color_rgb && extractColor)?`rgb(${path.color_rgb.join(',')})`:defCol;
+                    ctx.strokeStyle = getStrokeStyle(path.color_rgb);
                     ctx.beginPath(); let first=true;
                     path.data.forEach(pt => { if(first) { ctx.moveTo(pt.x, pt.y); first=false; } else ctx.lineTo(pt.x, pt.y); });
                     ctx.stroke();
@@ -803,6 +899,22 @@
         els.bgTransparentCheck.addEventListener('change', () => {
             if (els.bgTransparentCheck.checked && els.exportFormat.value === 'jpg') els.exportFormat.value = 'png';
             Array.from(els.exportFormat.options).find(o => o.value === 'jpg').disabled = els.bgTransparentCheck.checked;
+            requestRender();
+        });
+
+        els.colorCheck.addEventListener('change', () => {
+            document.getElementById('colorOptionsContainer').classList.toggle('hidden', !els.colorCheck.checked);
+            recacheViewportCanvas();
+            requestRender();
+        });
+
+        els.colorDepthSelect.addEventListener('change', () => {
+            recacheViewportCanvas();
+            requestRender();
+        });
+
+        els.colorSpaceSelect.addEventListener('change', () => {
+            recacheViewportCanvas();
             requestRender();
         });
 
@@ -840,6 +952,9 @@
                 link.href = canvas.toDataURL(format === 'jpg' ? 'image/jpeg' : 'image/png'); link.click();
             }
         });
+
+        // Initial state sync
+        document.getElementById('colorOptionsContainer').classList.toggle('hidden', !els.colorCheck.checked);
 
         run();
     </script>
