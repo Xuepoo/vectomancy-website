@@ -71,7 +71,7 @@ Heavy assets like gallery images and presets are hosted on Cloudflare R2 and ser
 
 Upload new assets via:
 ```bash
-wrangler r2 object put "vectomancy-assets/path/to/file" --file "./local/file" --remote
+wrangler r2 object put "cdn-xuepoo-xyz/vectomancy/path/to/file" --file "./local/file" --remote
 ```
 
 ---
