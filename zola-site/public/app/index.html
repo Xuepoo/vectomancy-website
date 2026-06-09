@@ -52,27 +52,18 @@
             color: var(--text-color);
             background-color: var(--container-bg);
         }
-        body.dark-theme .nes-select select {
-            color: var(--text-color);
-            background-color: var(--container-bg);
-            border-color: var(--text-color);
-        }
-        body.dark-theme .nes-input {
-            color: var(--text-color);
-            background-color: var(--container-bg);
-            border-color: var(--text-color);
-        }
-        body.dark-theme label { color: var(--text-color); }
+        body.dark-theme label:not(.nes-btn) { color: var(--text-color); }
         body.dark-theme .nes-checkbox + span,
         body.dark-theme .nes-radio + span {
             color: var(--text-color);
         }
-        body.dark-theme .nes-radio+span::before { color: var(--text-color); }
-        body.dark-theme .nes-radio:checked+span::before { color: var(--text-color); }
-        body.dark-theme .nes-checkbox+span::before { color: var(--text-color); }
-        body.dark-theme .nes-checkbox:checked+span::before { color: var(--text-color); }
         body.dark-theme #status-text { color: #aaa; }
         body.dark-theme #filename-display { color: #aaa; }
+
+        /* Adjust radio button arrow alignment for 8px text */
+        .nes-radio+span::before {
+            top: -4px !important;
+        }
 
         body {
             margin: 0;
@@ -575,6 +566,12 @@
         els.themeToggleBtn.addEventListener('click', () => {
             document.body.classList.toggle('dark-theme');
             [els.deleteDialog, els.clearDialog, els.errorDialog, els.helpDialog].forEach(d => d.classList.toggle('is-dark'));
+
+            // Toggle is-dark class on all inputs, checkboxes, radios, select dropdowns, and basic non-colored buttons
+            document.querySelectorAll('.nes-input, .nes-checkbox, .nes-radio, .nes-select select, .nes-btn:not(.is-primary):not(.is-success):not(.is-error):not(.is-warning)').forEach(el => {
+                el.classList.toggle('is-dark');
+            });
+
             recacheViewportCanvas();
             requestRender();
         });
