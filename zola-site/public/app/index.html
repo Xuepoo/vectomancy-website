@@ -42,6 +42,29 @@
             --grid-color: rgba(255,255,255,0.05);
         }
 
+        /* Dark mode: override NES.css defaults, keep same visual style */
+        body.dark-theme .nes-container {
+            color: var(--text-color);
+            background-color: transparent;
+            border-color: var(--text-color);
+        }
+        body.dark-theme .nes-container.with-title > .title {
+            color: var(--text-color);
+            background-color: var(--container-bg);
+        }
+        body.dark-theme .nes-select select {
+            color: var(--text-color);
+            background-color: var(--container-bg);
+            border-color: var(--text-color);
+        }
+        body.dark-theme label { color: var(--text-color); }
+        body.dark-theme .nes-checkbox + span,
+        body.dark-theme .nes-radio + span {
+            color: var(--text-color);
+        }
+        body.dark-theme #status-text { color: #aaa; }
+        body.dark-theme #filename-display { color: #aaa; }
+
         body {
             margin: 0;
             padding: 0;
@@ -542,7 +565,6 @@
 
         els.themeToggleBtn.addEventListener('click', () => {
             document.body.classList.toggle('dark-theme');
-            document.querySelectorAll('.nes-container').forEach(c => c.classList.toggle('is-dark'));
             [els.deleteDialog, els.clearDialog, els.errorDialog, els.helpDialog].forEach(d => d.classList.toggle('is-dark'));
             recacheViewportCanvas();
             requestRender();
