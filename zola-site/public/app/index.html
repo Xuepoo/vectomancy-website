@@ -57,11 +57,20 @@
             background-color: var(--container-bg);
             border-color: var(--text-color);
         }
+        body.dark-theme .nes-input {
+            color: var(--text-color);
+            background-color: var(--container-bg);
+            border-color: var(--text-color);
+        }
         body.dark-theme label { color: var(--text-color); }
         body.dark-theme .nes-checkbox + span,
         body.dark-theme .nes-radio + span {
             color: var(--text-color);
         }
+        body.dark-theme .nes-radio+span::before { color: var(--text-color); }
+        body.dark-theme .nes-radio:checked+span::before { color: var(--text-color); }
+        body.dark-theme .nes-checkbox+span::before { color: var(--text-color); }
+        body.dark-theme .nes-checkbox:checked+span::before { color: var(--text-color); }
         body.dark-theme #status-text { color: #aaa; }
         body.dark-theme #filename-display { color: #aaa; }
 
