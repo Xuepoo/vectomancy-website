@@ -46,12 +46,18 @@ export async function onRequest(context) {
             return new Response('SSRF Blocked: Local/Internal addresses are forbidden', { status: 403 });
         }
 
+        // Set up headers to bypass hotlinking protection (especially for Pixiv)
+        const headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+        };
+
+        if (hostname.endsWith('pximg.net') || hostname.includes('pixiv')) {
+            headers['Referer'] = 'https://www.pixiv.net/';
+        }
+
         // Fetch the target URL
         const imageResponse = await fetch(url.toString(), {
-            headers: {
-                // Some servers block requests without a User-Agent
-                'User-Agent': 'Vectomancy/1.0 (Cloudflare Pages Proxy)'
-            }
+            headers: headers
         });
 
         if (!imageResponse.ok) {
