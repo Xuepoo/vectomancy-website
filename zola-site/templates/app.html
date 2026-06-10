@@ -654,7 +654,7 @@
             img.addEventListener('click', async (e) => {
                 els.loaderOverlay.classList.remove('hidden');
                 try {
-                    const r = await fetch('/proxy?url=' + encodeURIComponent(e.target.src));
+                    const r = await fetch(e.target.src);
                     if (!r.ok) throw new Error("HTTP Error");
                     const b = await r.arrayBuffer();
                     handleImageBytes(b, e.target.dataset.filename);
@@ -982,8 +982,69 @@
             }
         });
 
-        // Initial state sync
+        // Settings persistence functions
+        const STORAGE_KEY = 'vectomancy_user_settings';
+        function saveSettings() {
+            try {
+                const settings = {
+                    mode: els.modeSelect.value,
+                    color: els.colorCheck.checked,
+                    colorDepth: els.colorDepthSelect.value,
+                    colorSpace: els.colorSpaceSelect.value,
+                    grid: els.gridCheck.checked,
+                    transparent: els.bgTransparentCheck.checked,
+                    detail: els.detailRange.value,
+                    minPath: els.minPathRange.value,
+                    terms: els.termsRange.value,
+                    chaikin: els.chaikinRange.value,
+                    exportFormat: els.exportFormat.value
+                };
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
+            } catch(e) {
+                console.error("Failed to save settings to localStorage:", e);
+            }
+        }
+
+        function loadSettings() {
+            try {
+                const stored = localStorage.getItem(STORAGE_KEY);
+                if (!stored) return;
+                const settings = JSON.parse(stored);
+                if (settings.mode !== undefined) els.modeSelect.value = settings.mode;
+                if (settings.color !== undefined) els.colorCheck.checked = settings.color;
+                if (settings.colorDepth !== undefined) els.colorDepthSelect.value = settings.colorDepth;
+                if (settings.colorSpace !== undefined) els.colorSpaceSelect.value = settings.colorSpace;
+                if (settings.grid !== undefined) els.gridCheck.checked = settings.grid;
+                if (settings.transparent !== undefined) els.bgTransparentCheck.checked = settings.transparent;
+                if (settings.detail !== undefined) els.detailRange.value = settings.detail;
+                if (settings.minPath !== undefined) els.minPathRange.value = settings.minPath;
+                if (settings.terms !== undefined) els.termsRange.value = settings.terms;
+                if (settings.chaikin !== undefined) els.chaikinRange.value = settings.chaikin;
+                if (settings.exportFormat !== undefined) els.exportFormat.value = settings.exportFormat;
+            } catch(e) {
+                console.error("Failed to load settings from localStorage:", e);
+            }
+        }
+
+        // Listen for setting updates to persist them
+        [
+            els.modeSelect, els.colorCheck, els.colorDepthSelect, els.colorSpaceSelect,
+            els.gridCheck, els.bgTransparentCheck, els.detailRange, els.minPathRange,
+            els.termsRange, els.chaikinRange, els.exportFormat
+        ].forEach(el => {
+            el.addEventListener('input', saveSettings);
+            el.addEventListener('change', saveSettings);
+        });
+
+        // Load settings and synchronize state
+        loadSettings();
+        updateLabels();
         document.getElementById('colorOptionsContainer').classList.toggle('hidden', !els.colorCheck.checked);
+
+        // Listen to changes to adjust visibility of color depth/space containers
+        els.colorCheck.addEventListener('change', () => {
+            document.getElementById('colorOptionsContainer').classList.toggle('hidden', !els.colorCheck.checked);
+        });
 
         run();
     </script>
