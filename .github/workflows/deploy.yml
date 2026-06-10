@@ -45,6 +45,7 @@ jobs:
       - name: Build Zola site
         run: |
           cd zola-site
+          cp zola.toml config.toml || true
           zola build
 
       - name: Deploy to Cloudflare Pages
