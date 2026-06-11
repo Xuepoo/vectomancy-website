@@ -311,7 +311,7 @@
             <!-- 3: Cloud Presets -->
             <p style="font-size: 8px; margin-bottom: 5px; color: var(--accent-color);">▶ Cloud Presets</p>
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px;">
-                <button class="nes-btn font-preset-btn" data-url="https://raw.githubusercontent.com/google/fonts/main/ofl/pressstart2p/PressStart2P-Regular.ttf" data-filename="PressStart2P" style="font-size: 6px; padding: 4px;">8-bit Pixel</button>
+                <button class="nes-btn font-preset-btn" data-url="/fonts/font.ttf" data-filename="PressStart2P" style="font-size: 6px; padding: 4px;">8-bit Pixel</button>
                 <button class="nes-btn font-preset-btn" data-url="https://fonts.gstatic.com/l/font?kit=KFOMCnqEu92Fr1ME7kSn66aGLdTylUAMQXC89YmC2DPNWubEbVmUiA4&skey=a0a0114a1dcab3ac&v=v51" data-filename="Roboto" style="font-size: 6px; padding: 4px;">Roboto</button>
                 <button class="nes-btn font-preset-btn is-success" data-url="https://raw.githubusercontent.com/google/fonts/main/ofl/pacifico/Pacifico-Regular.ttf" data-filename="Pacifico" style="font-size: 6px; padding: 4px;">Brush Script</button>
                 <button class="nes-btn font-preset-btn is-warning" data-url="https://fonts.gstatic.com/l/font?kit=k3kCo84MPvpLmixcA63oeAL7Iqp5IZJF9bmaG9_FrYtHaQ&skey=cf0bb10b5602fdc3&v=v40" data-filename="Noto Sans SC" style="font-size: 6px; padding: 4px;">简体中文</button>
@@ -932,15 +932,21 @@
         document.querySelectorAll('.font-preset-btn').forEach(btn => {
             btn.addEventListener('click', async (e) => {
                 const url = e.target.dataset.url;
-                const filename = e.target.dataset.filename + " (Cloud)";
+                const isLocal = url.startsWith('/');
+                const filename = e.target.dataset.filename + (isLocal ? " (Local)" : " (Cloud)");
 
                 els.loaderOverlay.classList.remove('hidden');
                 els.loaderText.innerText = `Fetching ${filename}...`;
                 try {
-                    const proxyBase = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || window.location.protocol === 'file:')
-                        ? 'https://vectomancy.pages.dev/proxy'
-                        : '/proxy';
-                    const r = await fetch(proxyBase + '?url=' + encodeURIComponent(url));
+                    let r;
+                    if (isLocal) {
+                        r = await fetch(url);
+                    } else {
+                        const proxyBase = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || window.location.protocol === 'file:')
+                            ? 'https://vectomancy.pages.dev/proxy'
+                            : '/proxy';
+                        r = await fetch(proxyBase + '?url=' + encodeURIComponent(url));
+                    }
                     if (!r.ok) throw new Error("HTTP Error");
                     const b = await r.arrayBuffer();
                     currentFontBytes = new Uint8Array(b);
@@ -949,7 +955,7 @@
                     await saveFontCache('last_font_bytes', b);
                     await saveFontCache('last_font_name', new TextEncoder().encode(currentFontFilename).buffer);
                 } catch(err) {
-                    showError("Failed to fetch cloud font.\nPlease check your network.");
+                    showError("Failed to fetch font.\nPlease check your network.");
                 }
                 els.loaderOverlay.classList.add('hidden');
             });
