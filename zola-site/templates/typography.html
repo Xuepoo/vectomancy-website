@@ -455,6 +455,15 @@
         let snapshotCount = 0;
         let pendingDeleteId = null;
 
+        window.__debug = {
+            get currentFontBytes() { return currentFontBytes; },
+            set currentFontBytes(val) { currentFontBytes = val; },
+            get isWasmLoaded() { return isWasmLoaded; },
+            get currentFontFilename() { return currentFontFilename; },
+            process_text: process_text,
+            get previewDataStore() { return previewDataStore; }
+        };
+
         let scale = 1, offsetX = 0, offsetY = 0;
         let isDragging = false, dragStart = { x: 0, y: 0 };
         let renderRequested = false;
@@ -719,7 +728,7 @@
                     snapshotCount++;
                     const id = `snap-${snapshotCount}`;
                     createSnapshot(id, result, `${options.mode.substring(0,3).toUpperCase()} D${options.detail}`, Math.round(performance.now()-start));
-                } catch(e) { console.error(e); showError("Render failed: " + e.message); }
+                } catch(e) { console.error(e); showError("Render failed: " + (e.message || e.toString() || e)); }
                 clearInterval(pInt); els.progressBar.value = 100;
                 setTimeout(() => els.progressContainer.classList.add('hidden'), 200);
             }, 50);

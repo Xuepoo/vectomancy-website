@@ -413,11 +413,7 @@ pub fn process_frame_in_place(
 }
 
 #[wasm_bindgen]
-pub fn process_text(
-    font_bytes: &[u8],
-    text: &str,
-    options: JsValue,
-) -> Result<js_sys::Uint8Array, JsValue> {
+pub fn process_text(font_bytes: &[u8], text: &str, options: JsValue) -> Result<JsValue, JsValue> {
     if font_bytes.len() > 10 * 1024 * 1024 {
         return Err(JsValue::from_str("Font file too large (max 10MB)"));
     }
@@ -443,11 +439,8 @@ pub fn process_text(
             height: 100,
         };
 
-        let encoded = bincode::serialize(&result)
-            .map_err(|e| JsValue::from_str(&format!("Bincode serialization failed: {}", e)))?;
-        let array = js_sys::Uint8Array::new_with_length(encoded.len() as u32);
-        array.copy_from(&encoded);
-        return Ok(array);
+        return serde_wasm_bindgen::to_value(&result)
+            .map_err(|e| JsValue::from_str(&format!("Serialization failed: {}", e)));
     }
 
     let (segs, original_dimensions) =
@@ -484,10 +477,6 @@ pub fn process_text(
         height: original_dimensions.1,
     };
 
-    let encoded = bincode::serialize(&result)
-        .map_err(|e| JsValue::from_str(&format!("Bincode serialization failed: {}", e)))?;
-
-    let array = js_sys::Uint8Array::new_with_length(encoded.len() as u32);
-    array.copy_from(&encoded);
-    Ok(array)
+    serde_wasm_bindgen::to_value(&result)
+        .map_err(|e| JsValue::from_str(&format!("Serialization failed: {}", e)))
 }
