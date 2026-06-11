@@ -17,6 +17,8 @@ pub struct ProcessOptions {
     pub min_path_len: usize,
     #[serde(default)]
     pub color_style: Option<models::ColorStyle>,
+    #[serde(default)]
+    pub letter_spacing: Option<f32>,
 }
 
 #[wasm_bindgen(start)]
@@ -443,8 +445,9 @@ pub fn process_text(font_bytes: &[u8], text: &str, options: JsValue) -> Result<J
             .map_err(|e| JsValue::from_str(&format!("Serialization failed: {}", e)));
     }
 
+    let letter_spacing = opts.letter_spacing.unwrap_or(0.0);
     let (segs, original_dimensions) =
-        vectomancy_text::parser::extract_text_outlines(text, font_bytes, 64.0)
+        vectomancy_text::parser::extract_text_outlines(text, font_bytes, 64.0, letter_spacing)
             .map_err(|e| JsValue::from_str(&format!("Failed to parse text: {:?}", e)))?;
 
     let bbox = math::compute_bounding_box_segments(&segs);
