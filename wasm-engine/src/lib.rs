@@ -15,6 +15,8 @@ pub struct ProcessOptions {
     pub terms: usize,
     pub detail: usize,
     pub min_path_len: usize,
+    #[serde(default)]
+    pub color_style: Option<models::ColorStyle>,
 }
 
 #[wasm_bindgen(start)]
@@ -43,6 +45,7 @@ pub fn process_image(image_data: &[u8], options: JsValue) -> Result<JsValue, JsV
             paths,
             original_dimensions,
         } => {
+            let bbox = math::compute_bounding_box(&paths);
             let ast = match mode.as_str() {
                 "fourier" => {
                     let mut valid_paths = Vec::new();
@@ -54,7 +57,7 @@ pub fn process_image(image_data: &[u8], options: JsValue) -> Result<JsValue, JsV
                         let reduced = math::simplify_rdp(&path.data, tolerance);
                         if reduced.len() > 3 {
                             valid_paths.push(reduced);
-                            valid_colors.push(path.color_rgb);
+                            valid_colors.push(path.color_style.clone());
                         }
                     }
 
@@ -68,11 +71,14 @@ pub fn process_image(image_data: &[u8], options: JsValue) -> Result<JsValue, JsV
                     let mut strokes = Vec::new();
                     for (terms, color) in batch_results.into_iter().zip(valid_colors) {
                         strokes.push(models::ColoredPath {
-                            color_rgb: color,
+                            color_style: color,
                             data: terms,
                         });
                     }
-                    MathExpressionAST::Fourier { strokes }
+                    MathExpressionAST::Fourier {
+                        strokes,
+                        bounding_box: bbox,
+                    }
                 }
                 "spline" => {
                     let all_equations: Vec<_> = paths
@@ -86,7 +92,7 @@ pub fn process_image(image_data: &[u8], options: JsValue) -> Result<JsValue, JsV
                                 let segments = math::spline::fit_cubic_bezier(&reduced);
                                 let equations = math::spline::build_splines(&segments);
                                 Some(models::ColoredPath {
-                                    color_rgb: path.color_rgb,
+                                    color_style: path.color_style.clone(),
                                     data: equations,
                                 })
                             } else {
@@ -96,6 +102,7 @@ pub fn process_image(image_data: &[u8], options: JsValue) -> Result<JsValue, JsV
                         .collect();
                     MathExpressionAST::Spline {
                         equations: all_equations,
+                        bounding_box: bbox,
                     }
                 }
                 _ => {
@@ -113,13 +120,14 @@ pub fn process_image(image_data: &[u8], options: JsValue) -> Result<JsValue, JsV
                                 reduced
                             };
                             Some(models::ColoredPath {
-                                color_rgb: path.color_rgb,
+                                color_style: path.color_style.clone(),
                                 data: smoothed,
                             })
                         })
                         .collect();
                     MathExpressionAST::Polyline {
                         paths: smoothed_paths,
+                        bounding_box: bbox,
                     }
                 }
             };
@@ -129,6 +137,7 @@ pub fn process_image(image_data: &[u8], options: JsValue) -> Result<JsValue, JsV
             segments: segs,
             original_dimensions,
         } => {
+            let bbox = math::compute_bounding_box_segments(&segs);
             let ast = match mode.as_str() {
                 "spline" | "chaikin" => {
                     let all_equations: Vec<_> = segs
@@ -136,13 +145,14 @@ pub fn process_image(image_data: &[u8], options: JsValue) -> Result<JsValue, JsV
                         .map(|seg| {
                             let equations = math::spline::build_splines(&seg.data);
                             models::ColoredPath {
-                                color_rgb: seg.color_rgb,
+                                color_style: seg.color_style.clone(),
                                 data: equations,
                             }
                         })
                         .collect();
                     MathExpressionAST::Spline {
                         equations: all_equations,
+                        bounding_box: bbox,
                     }
                 }
                 "fourier" => {
@@ -152,7 +162,7 @@ pub fn process_image(image_data: &[u8], options: JsValue) -> Result<JsValue, JsV
                         let pts = math::spline::sample_segments(&seg.data, 100);
                         let ordered_points = math::solve_tsp_nearest_neighbor(pts);
                         valid_paths.push(ordered_points);
-                        valid_colors.push(seg.color_rgb);
+                        valid_colors.push(seg.color_style.clone());
                     }
 
                     let path_refs: Vec<&[models::Point2D]> =
@@ -163,11 +173,14 @@ pub fn process_image(image_data: &[u8], options: JsValue) -> Result<JsValue, JsV
                     let mut strokes = Vec::new();
                     for (terms, color) in batch_results.into_iter().zip(valid_colors) {
                         strokes.push(models::ColoredPath {
-                            color_rgb: color,
+                            color_style: color,
                             data: terms,
                         });
                     }
-                    MathExpressionAST::Fourier { strokes }
+                    MathExpressionAST::Fourier {
+                        strokes,
+                        bounding_box: bbox,
+                    }
                 }
                 _ => return Err(JsValue::from_str("Unsupported mode for SVG")),
             };
@@ -237,6 +250,7 @@ pub fn process_frame_in_place(
             paths,
             original_dimensions,
         } => {
+            let bbox = math::compute_bounding_box(&paths);
             let ast = match mode.as_str() {
                 "fourier" => {
                     let mut valid_paths = Vec::new();
@@ -248,7 +262,7 @@ pub fn process_frame_in_place(
                         let reduced = math::simplify_rdp(&path.data, tolerance);
                         if reduced.len() > 3 {
                             valid_paths.push(reduced);
-                            valid_colors.push(path.color_rgb);
+                            valid_colors.push(path.color_style.clone());
                         }
                     }
 
@@ -261,11 +275,14 @@ pub fn process_frame_in_place(
                     let mut strokes = Vec::new();
                     for (terms, color) in batch_results.into_iter().zip(valid_colors) {
                         strokes.push(models::ColoredPath {
-                            color_rgb: color,
+                            color_style: color,
                             data: terms,
                         });
                     }
-                    MathExpressionAST::Fourier { strokes }
+                    MathExpressionAST::Fourier {
+                        strokes,
+                        bounding_box: bbox,
+                    }
                 }
                 "spline" => {
                     let all_equations: Vec<_> = paths
@@ -279,7 +296,7 @@ pub fn process_frame_in_place(
                                 let segments = math::spline::fit_cubic_bezier(&reduced);
                                 let equations = math::spline::build_splines(&segments);
                                 Some(models::ColoredPath {
-                                    color_rgb: path.color_rgb,
+                                    color_style: path.color_style.clone(),
                                     data: equations,
                                 })
                             } else {
@@ -289,6 +306,7 @@ pub fn process_frame_in_place(
                         .collect();
                     MathExpressionAST::Spline {
                         equations: all_equations,
+                        bounding_box: bbox,
                     }
                 }
                 _ => {
@@ -305,13 +323,14 @@ pub fn process_frame_in_place(
                                 reduced
                             };
                             Some(models::ColoredPath {
-                                color_rgb: path.color_rgb,
+                                color_style: path.color_style.clone(),
                                 data: smoothed,
                             })
                         })
                         .collect();
                     MathExpressionAST::Polyline {
                         paths: smoothed_paths,
+                        bounding_box: bbox,
                     }
                 }
             };
@@ -321,6 +340,7 @@ pub fn process_frame_in_place(
             segments: segs,
             original_dimensions,
         } => {
+            let bbox = math::compute_bounding_box_segments(&segs);
             let ast = match mode.as_str() {
                 "spline" | "chaikin" => {
                     let all_equations: Vec<_> = segs
@@ -328,13 +348,14 @@ pub fn process_frame_in_place(
                         .map(|seg| {
                             let equations = math::spline::build_splines(&seg.data);
                             models::ColoredPath {
-                                color_rgb: seg.color_rgb,
+                                color_style: seg.color_style.clone(),
                                 data: equations,
                             }
                         })
                         .collect();
                     MathExpressionAST::Spline {
                         equations: all_equations,
+                        bounding_box: bbox,
                     }
                 }
                 "fourier" => {
@@ -344,7 +365,7 @@ pub fn process_frame_in_place(
                         let pts = math::spline::sample_segments(&seg.data, 100);
                         let ordered_points = math::solve_tsp_nearest_neighbor(pts);
                         valid_paths.push(ordered_points);
-                        valid_colors.push(seg.color_rgb);
+                        valid_colors.push(seg.color_style.clone());
                     }
 
                     let path_refs: Vec<&[models::Point2D]> =
@@ -355,11 +376,14 @@ pub fn process_frame_in_place(
                     let mut strokes = Vec::new();
                     for (terms, color) in batch_results.into_iter().zip(valid_colors) {
                         strokes.push(models::ColoredPath {
-                            color_rgb: color,
+                            color_style: color,
                             data: terms,
                         });
                     }
-                    MathExpressionAST::Fourier { strokes }
+                    MathExpressionAST::Fourier {
+                        strokes,
+                        bounding_box: bbox,
+                    }
                 }
                 _ => return Err(JsValue::from_str("Unsupported mode for SVG")),
             };
@@ -381,6 +405,86 @@ pub fn process_frame_in_place(
     };
 
     let encoded: Vec<u8> = bincode::serialize(&result)
+        .map_err(|e| JsValue::from_str(&format!("Bincode serialization failed: {}", e)))?;
+
+    let array = js_sys::Uint8Array::new_with_length(encoded.len() as u32);
+    array.copy_from(&encoded);
+    Ok(array)
+}
+
+#[wasm_bindgen]
+pub fn process_text(
+    font_bytes: &[u8],
+    text: &str,
+    options: JsValue,
+) -> Result<js_sys::Uint8Array, JsValue> {
+    if font_bytes.len() > 10 * 1024 * 1024 {
+        return Err(JsValue::from_str("Font file too large (max 10MB)"));
+    }
+
+    let opts: ProcessOptions = serde_wasm_bindgen::from_value(options)
+        .map_err(|e| JsValue::from_str(&format!("Invalid options: {}", e)))?;
+
+    if text.is_empty() {
+        // Return an empty transparent layer without throwing a VectomancyError
+        #[derive(serde::Serialize)]
+        struct WasmOutput {
+            ast: MathExpressionAST,
+            width: u32,
+            height: u32,
+        }
+
+        let result = WasmOutput {
+            ast: MathExpressionAST::Spline {
+                equations: vec![],
+                bounding_box: [0.0, 0.0, 0.0, 0.0],
+            },
+            width: 100,
+            height: 100,
+        };
+
+        let encoded = bincode::serialize(&result)
+            .map_err(|e| JsValue::from_str(&format!("Bincode serialization failed: {}", e)))?;
+        let array = js_sys::Uint8Array::new_with_length(encoded.len() as u32);
+        array.copy_from(&encoded);
+        return Ok(array);
+    }
+
+    let (segs, original_dimensions) =
+        vectomancy_text::parser::extract_text_outlines(text, font_bytes, 64.0)
+            .map_err(|e| JsValue::from_str(&format!("Failed to parse text: {:?}", e)))?;
+
+    let bbox = math::compute_bounding_box_segments(&segs);
+    let all_equations: Vec<_> = segs
+        .into_iter()
+        .map(|seg| {
+            let equations = math::spline::build_splines(&seg.data);
+            models::ColoredPath {
+                color_style: opts.color_style.clone().or_else(|| seg.color_style.clone()),
+                data: equations,
+            }
+        })
+        .collect();
+
+    let ast = MathExpressionAST::Spline {
+        equations: all_equations,
+        bounding_box: bbox,
+    };
+
+    #[derive(serde::Serialize)]
+    struct WasmOutput {
+        ast: MathExpressionAST,
+        width: u32,
+        height: u32,
+    }
+
+    let result = WasmOutput {
+        ast,
+        width: original_dimensions.0,
+        height: original_dimensions.1,
+    };
+
+    let encoded = bincode::serialize(&result)
         .map_err(|e| JsValue::from_str(&format!("Bincode serialization failed: {}", e)))?;
 
     let array = js_sys::Uint8Array::new_with_length(encoded.len() as u32);

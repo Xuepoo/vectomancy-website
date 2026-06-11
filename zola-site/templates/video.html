@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vectomancy - Video Engine (Coming Soon)</title>
+    <meta name="description" content="Vectomancy Video Engine: Convert video frames into mathematical parametric equations. Coming soon.">
+
+    <link rel="apple-touch-icon" sizes="180x180" href="/favicons/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicons/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicons/favicon-16x16.png">
+    <link rel="shortcut icon" href="/favicons/favicon.ico">
+    <link href="/css/nes.min.css" rel="stylesheet">
+    <style>
+        @font-face {
+            font-family: 'Press Start 2P';
+            font-style: normal;
+            font-weight: 400;
+            font-display: swap;
+            src: url(/fonts/pressstart2p.woff2) format('woff2');
+        }
+        :root {
+            --bg-color: #1a0a2e;
+            --container-bg: #2d1b4e;
+            --text-color: #e8d5ff;
+            --accent-color: #9b59b6;
+            --glow: rgba(155, 89, 182, 0.4);
+        }
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Press Start 2P', cursive;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            text-align: center;
+            overflow: hidden;
+        }
+
+        /* Scanline effect */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: repeating-linear-gradient(
+                0deg,
+                transparent,
+                transparent 2px,
+                rgba(0,0,0,0.15) 2px,
+                rgba(0,0,0,0.15) 4px
+            );
+            pointer-events: none;
+            z-index: 1000;
+        }
+
+        .container {
+            position: relative;
+            z-index: 1;
+            max-width: 600px;
+            padding: 40px 20px;
+        }
+
+        .logo-area {
+            margin-bottom: 30px;
+        }
+
+        .film-icon {
+            font-size: 48px;
+            display: block;
+            margin-bottom: 15px;
+            animation: blink 2s step-start infinite;
+        }
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0; }
+        }
+
+        h1 {
+            font-size: 20px;
+            margin: 0 0 8px;
+            color: var(--accent-color);
+            text-shadow: 0 0 20px var(--glow);
+        }
+
+        .subtitle {
+            font-size: 8px;
+            color: #aaa;
+            margin-bottom: 30px;
+            line-height: 1.8;
+        }
+
+        .nes-container {
+            border-color: var(--accent-color) !important;
+            background: rgba(45, 27, 78, 0.8);
+            margin-bottom: 20px;
+        }
+        .nes-container.with-title > .title {
+            background: var(--container-bg);
+            color: var(--accent-color);
+        }
+
+        .feature-list {
+            font-size: 8px;
+            text-align: left;
+            line-height: 2;
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        .feature-list li::before {
+            content: "▶ ";
+            color: var(--accent-color);
+        }
+
+        .progress-bar-container {
+            margin-top: 20px;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-top: 20px;
+        }
+
+        /* CRT flicker on hover */
+        .nes-btn:hover {
+            text-shadow: 0 0 8px var(--glow);
+        }
+
+        /* Stars background */
+        .stars {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            z-index: 0;
+            overflow: hidden;
+        }
+        .star {
+            position: absolute;
+            background: white;
+            border-radius: 50%;
+            animation: twinkle linear infinite;
+        }
+        @keyframes twinkle {
+            0%, 100% { opacity: 0.1; }
+            50% { opacity: 0.8; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Stars BG -->
+    <div class="stars" id="stars"></div>
+
+    <div class="container">
+        <div class="logo-area">
+            <a href="/" style="color: var(--accent-color); text-decoration: none; font-size: 8px;">← Back to Home</a>
+        </div>
+
+        <span class="film-icon">🎬</span>
+        <h1>VIDEO ENGINE</h1>
+        <p class="subtitle">
+            Frame-by-frame parametric decomposition.<br>
+            Each frame converted to mathematical curves.<br>
+            Coming when it's ready.
+        </p>
+
+        <div class="nes-container with-title" style="text-align: left;">
+            <p class="title" style="font-size: 8px;">Planned Features</p>
+            <ul class="feature-list">
+                <li>Frame-by-frame Bezier spline extraction</li>
+                <li>Fourier epicycle animation export</li>
+                <li>WebM / GIF / MP4 output</li>
+                <li>FFmpeg WASM backend (zero server)</li>
+                <li>Per-frame color palette reduction</li>
+                <li>Real-time preview at 60fps</li>
+            </ul>
+        </div>
+
+        <div class="nes-container with-title" style="text-align: left;">
+            <p class="title" style="font-size: 8px;">Development Status</p>
+            <p style="font-size: 8px; margin-bottom: 8px; color: #aaa;">FFmpeg WASM Integration</p>
+            <progress class="nes-progress is-primary" value="5" max="100" style="height: 12px;"></progress>
+            <p style="font-size: 8px; margin-top: 10px; margin-bottom: 8px; color: #aaa;">Frame Rendering Pipeline</p>
+            <progress class="nes-progress is-warning" value="0" max="100" style="height: 12px;"></progress>
+            <p style="font-size: 8px; margin-top: 10px; margin-bottom: 8px; color: #aaa;">WASM Memory Management</p>
+            <progress class="nes-progress is-error" value="0" max="100" style="height: 12px;"></progress>
+        </div>
+
+        <div class="btn-group">
+            <a href="/image" class="nes-btn is-primary" style="font-size: 8px;">Image Engine</a>
+            <a href="/typography" class="nes-btn is-success" style="font-size: 8px;">Typography</a>
+            <a href="https://github.com/Xuepoo/vectomancy" target="_blank" class="nes-btn" style="font-size: 8px;">Follow on GitHub</a>
+        </div>
+    </div>
+
+    <script>
+        // Generate twinkling stars
+        const starsContainer = document.getElementById('stars');
+        for (let i = 0; i < 80; i++) {
+            const star = document.createElement('div');
+            star.className = 'star';
+            const size = Math.random() * 2 + 1;
+            star.style.cssText = `
+                width: ${size}px;
+                height: ${size}px;
+                left: ${Math.random() * 100}%;
+                top: ${Math.random() * 100}%;
+                animation-duration: ${Math.random() * 3 + 1}s;
+                animation-delay: ${Math.random() * 3}s;
+            `;
+            starsContainer.appendChild(star);
+        }
+
+        // Check for saved theme preference
+        const stored = localStorage.getItem('vectomancy_user_settings');
+        if (stored) {
+            try {
+                const settings = JSON.parse(stored);
+                // Video page always uses its own dark purple theme
+            } catch(e) {}
+        }
+    </script>
+</body>
+</html>

@@ -184,8 +184,10 @@
             <h1 style="margin-bottom: 5px; font-size: 26px;">VECTOMANCY</h1>
             <p style="line-height: 1.4; font-size: 11px; margin-bottom: 15px;">Transform images into pure mathematical equations and curves.</p>
 
-            <div style="margin-top: 15px; display: flex; justify-content: center;">
-                <a href="/app" class="nes-btn is-primary">Launch Playground</a>
+            <div style="margin-top: 15px; display: flex; justify-content: center; gap: 15px; flex-wrap: wrap;">
+                <a href="/image" class="nes-btn is-primary">Image Engine (Core)</a>
+                <a href="/typography" class="nes-btn is-success">Typography (Plugin)</a>
+                <a href="/video" class="nes-btn is-disabled">Video (Coming Soon)</a>
             </div>
         </header>
     </div>
@@ -222,8 +224,20 @@
 </div>
 
 <script>
-    // System dark theme detection for the landing page
-    if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+    // System dark theme detection and localStorage persistence for the landing page
+    const stored = localStorage.getItem('vectomancy_user_settings');
+    let useDark = false;
+    if (stored) {
+        try {
+            const settings = JSON.parse(stored);
+            if (settings.theme === 'dark') useDark = true;
+            else if (settings.theme === 'light') useDark = false;
+        } catch(e) {}
+    } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        useDark = true;
+    }
+
+    if (useDark) {
         document.body.classList.add('dark-theme');
     }
 </script>

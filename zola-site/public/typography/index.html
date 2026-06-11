@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Vectomancy Pro - Retro Lab</title>
+    <title>Vectomancy - Typography Engine</title>
+    <meta name="description" content="Convert text and custom fonts into mathematical Bezier spline curves using WebAssembly. Supports CJK fonts, system fonts, and cloud font presets.">
 
     <!-- Performance Optimization: Preload -->
     <link rel="preload" href="/fonts/pressstart2p.woff2" as="font" type="font/woff2" crossorigin>
     <link rel="preload" href="/css/nes.min.css" as="style">
     <link rel="preload" href="/wasm/wasm_engine_bg.wasm" as="fetch" crossorigin>
-    <link rel="preload" href="/img/logo.svg" as="image">
 
     <link rel="apple-touch-icon" sizes="180x180" href="/favicons/apple-touch-icon.png">
     <link rel="icon" type="image/png" sizes="32x32" href="/favicons/favicon-32x32.png">
@@ -27,22 +27,22 @@
         }
 
         :root {
-            --bg-color: #e0e0e0;
-            --container-bg: #ffffff;
-            --text-color: #212529;
-            --accent-color: #209cee;
-            --grid-color: rgba(0,0,0,0.05);
+            --bg-color: #f5f0e8;
+            --container-bg: #fffef5;
+            --text-color: #2d2416;
+            --accent-color: #e76e55;
+            --grid-color: rgba(100,60,0,0.06);
         }
 
         body.dark-theme {
-            --bg-color: #212529;
-            --container-bg: #2d3436;
-            --text-color: #ffffff;
-            --accent-color: #f7d51d;
-            --grid-color: rgba(255,255,255,0.05);
+            --bg-color: #1a1208;
+            --container-bg: #251c0d;
+            --text-color: #f5e8c8;
+            --accent-color: #f7b731;
+            --grid-color: rgba(247,183,49,0.05);
         }
 
-        /* Dark mode: override NES.css defaults, keep same visual style */
+        /* Dark mode: override NES.css defaults */
         body.dark-theme .nes-container {
             color: var(--text-color);
             background-color: transparent;
@@ -278,60 +278,42 @@
             <a href="/" style="text-decoration: none; color: inherit;">
                 <p class="title" style="font-size: 12px; background: var(--container-bg);">VECTOMANCY</p>
             </a>
-            <p style="font-size: 8px; margin:0; color: #888;">Pixel Math Engine</p>
+            <p style="font-size: 8px; margin:0; color: var(--accent-color);">Typography Engine</p>
         </div>
 
         <div class="nes-container with-title control-group" style="padding: 15px;">
-            <p class="title" style="font-size: 10px;">I/O</p>
-            <div style="display: flex; gap: 10px; margin-bottom: 10px; font-size: 8px; justify-content: center;">
-                <label><input type="radio" class="nes-radio" name="inputType" value="local" checked><span>Local</span></label>
-                <label><input type="radio" class="nes-radio" name="inputType" value="url"><span>URL</span></label>
-                <label><input type="radio" class="nes-radio" name="inputType" value="preset"><span>Preset</span></label>
-                <label><input type="radio" class="nes-radio" name="inputType" value="text"><span>Text</span></label>
+            <p class="title" style="font-size: 10px;">Text Input</p>
+            <textarea id="textInput" class="nes-textarea" style="font-size: 8px; margin-bottom: 10px; min-height: 60px;" placeholder="Enter text to render..."></textarea>
+            <div style="margin-top: 5px; text-align: center; border-top: 2px dashed #888; padding-top: 10px;">
+                <span id="filename-display" class="truncate-text" style="font-size: 8px; color: #aaa;">No font selected</span>
+            </div>
+        </div>
+
+        <div class="nes-container with-title control-group" style="padding: 15px;">
+            <p class="title" style="font-size: 10px;">Font Source</p>
+
+            <!-- 1: System Font Access API -->
+            <button class="nes-btn is-primary" id="btnAccessLocalFonts" style="width:100%; font-size: 8px; margin-bottom: 8px; padding: 6px;">
+                Access System Fonts
+            </button>
+            <div class="nes-select" id="localFontSelectWrapper" style="display:none; margin-bottom: 8px;">
+                <select id="localFontSelect" style="font-size: 8px; padding: 4px;" aria-label="System Font Select"></select>
             </div>
 
-            <div id="localInputWrapper">
-                <label class="nes-btn" style="width: 100%; display: block; text-align: center; padding: 6px;">
-                    <span style="font-size: 8px;">Upload Image</span>
-                    <input type="file" id="fileInput" accept="image/*,.svg" style="display:none;" aria-label="Upload Image">
-                </label>
-            </div>
-            <div id="urlInputWrapper" class="hidden">
-                <div style="display: flex; gap: 8px;">
-                    <input type="text" id="urlInput" class="nes-input" style="font-size: 8px;" placeholder="https://..." aria-label="Image URL">
-                    <button id="fetchUrlBtn" class="nes-btn is-primary" style="font-size: 8px;" aria-label="Fetch URL">GO</button>
-                </div>
-            </div>
-            <div id="presetInputWrapper" class="hidden">
-                <div style="display: flex; gap: 10px; overflow-x: auto; padding-bottom: 5px;">
-                    <img src="https://cdn.xuepoo.xyz/vectomancy/presets/miku.webp" class="preset-example" data-filename="miku.webp" alt="Miku Preset" style="width: 48px; height: 48px; cursor: pointer; border: 2px solid var(--text-color); object-fit: cover;">
-                    <img src="https://cdn.xuepoo.xyz/vectomancy/presets/vim.webp" class="preset-example" data-filename="vim.webp" alt="Vim Preset" style="width: 48px; height: 48px; cursor: pointer; border: 2px solid var(--text-color); object-fit: cover;">
-                    <img src="https://cdn.xuepoo.xyz/vectomancy/presets/chiikawa.webp" class="preset-example" data-filename="chiikawa.webp" alt="Chiikawa Preset" style="width: 48px; height: 48px; cursor: pointer; border: 2px solid var(--text-color); object-fit: cover;">
-                    <img src="https://cdn.xuepoo.xyz/vectomancy/presets/iris.webp" class="preset-example" data-filename="iris.webp" alt="Iris Preset" style="width: 48px; height: 48px; cursor: pointer; border: 2px solid var(--text-color); object-fit: cover;">
-                </div>
-            </div>
-            <div id="textInputWrapper" class="hidden">
-                <textarea id="textInput" class="nes-textarea" style="font-size: 8px; margin-bottom: 5px;" placeholder="Enter text..."></textarea>
+            <!-- 2: Upload -->
+            <label class="nes-btn" style="width: 100%; display: block; text-align: center; padding: 6px; margin-bottom: 8px;">
+                <span style="font-size: 8px;">Upload Font (.ttf/.otf)</span>
+                <input type="file" id="fontInput" accept=".ttf,.otf,.woff,.woff2" style="display:none;">
+            </label>
 
-                <button class="nes-btn is-primary" id="btnAccessLocalFonts" style="width:100%; font-size: 8px; margin-bottom: 5px; padding: 6px;">Access System Fonts</button>
-                <div class="nes-select" id="localFontSelectWrapper" style="display:none; margin-bottom: 5px;">
-                    <select id="localFontSelect" style="font-size: 8px; padding: 4px;"></select>
-                </div>
-
-                <label class="nes-btn" style="width: 100%; display: block; text-align: center; padding: 6px; margin-top: 5px;">
-                    <span style="font-size: 8px;">Upload Custom Font (.ttf)</span>
-                    <input type="file" id="fontInput" accept=".ttf,.otf,.woff,.woff2" style="display:none;">
-                </label>
-
-                <p style="font-size: 8px; margin-top: 10px; margin-bottom: 5px;">Cloud Presets:</p>
-                <div style="display: flex; gap: 5px; overflow-x: auto; padding-bottom: 5px;">
-                    <button class="nes-btn font-preset-btn" data-url="https://cdn.xuepoo.xyz/vectomancy/fonts/PressStart2P-Regular.ttf" data-filename="PressStart2P" style="font-size: 6px; padding: 2px 4px; min-width: max-content;">8-bit</button>
-                    <button class="nes-btn font-preset-btn" data-url="https://cdn.xuepoo.xyz/vectomancy/fonts/Roboto-Regular.ttf" data-filename="Roboto" style="font-size: 6px; padding: 2px 4px; min-width: max-content;">Roboto</button>
-                    <button class="nes-btn font-preset-btn" data-url="https://cdn.xuepoo.xyz/vectomancy/fonts/Pacifico-Regular.ttf" data-filename="Pacifico" style="font-size: 6px; padding: 2px 4px; min-width: max-content;">Brush</button>
-                </div>
-            </div>
-            <div style="margin-top: 10px; text-align: center; border-top: 2px dashed #444; padding-top: 10px;">
-                <span id="filename-display" class="truncate-text" style="font-size: 8px; color: #aaa;">No file selected</span>
+            <!-- 3: Cloud Presets -->
+            <p style="font-size: 8px; margin-bottom: 5px; color: var(--accent-color);">▶ Cloud Presets</p>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px;">
+                <button class="nes-btn font-preset-btn" data-url="https://cdn.xuepoo.xyz/vectomancy/fonts/PressStart2P-Regular.ttf" data-filename="PressStart2P" style="font-size: 6px; padding: 4px;">8-bit Pixel</button>
+                <button class="nes-btn font-preset-btn" data-url="https://cdn.xuepoo.xyz/vectomancy/fonts/Roboto-Regular.ttf" data-filename="Roboto" style="font-size: 6px; padding: 4px;">Roboto</button>
+                <button class="nes-btn font-preset-btn is-success" data-url="https://cdn.xuepoo.xyz/vectomancy/fonts/Pacifico-Regular.ttf" data-filename="Pacifico" style="font-size: 6px; padding: 4px;">Brush Script</button>
+                <button class="nes-btn font-preset-btn is-warning" data-url="https://cdn.xuepoo.xyz/vectomancy/fonts/NotoSansSC-Regular.ttf" data-filename="Noto Sans SC" style="font-size: 6px; padding: 4px;">简体中文</button>
+                <button class="nes-btn font-preset-btn" data-url="https://cdn.xuepoo.xyz/vectomancy/fonts/NotoSansJP-Regular.ttf" data-filename="Noto Sans JP" style="font-size: 6px; padding: 4px; grid-column: 1/-1;">日本語 (Noto JP)</button>
             </div>
         </div>
 
@@ -348,32 +330,6 @@
 
             <div style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 10px;">
                 <label style="margin: 0;"><input type="checkbox" class="nes-checkbox" id="colorCheck" checked aria-label="Enable Colors"/><span>Colors</span></label>
-
-                <!-- Color options, toggled by Colors checkbox -->
-                <div id="colorOptionsContainer" style="margin-left: 15px; border-left: 2px solid var(--accent-color); padding-left: 10px; display: flex; flex-direction: column; gap: 8px;">
-                    <div style="display: flex; flex-direction: column; gap: 4px;">
-                        <label for="colorDepthSelect" style="font-size: 8px; margin: 0;">Bit Depth</label>
-                        <div class="nes-select" style="font-size: 8px;">
-                            <select id="colorDepthSelect" aria-label="Color Bit Depth" style="font-size: 8px; padding: 4px;">
-                                <option value="24" selected>24-bit (True Color)</option>
-                                <option value="16">16-bit (High Color)</option>
-                                <option value="8">8-bit (256 Colors)</option>
-                                <option value="4">4-bit (16 Colors Retro)</option>
-                                <option value="1">1-bit (Monochrome)</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div style="display: flex; flex-direction: column; gap: 4px;">
-                        <label for="colorSpaceSelect" style="font-size: 8px; margin: 0;">Color Space</label>
-                        <div class="nes-select" style="font-size: 8px;">
-                            <select id="colorSpaceSelect" aria-label="Color Space" style="font-size: 8px; padding: 4px;">
-                                <option value="srgb" selected>sRGB (Standard)</option>
-                                <option value="grayscale">Grayscale (Mono)</option>
-                            </select>
-                        </div>
-                    </div>
-                </div>
-
                 <label style="margin: 0;"><input type="checkbox" class="nes-checkbox" id="gridCheck" aria-label="Show Grid"/><span>Show Grid</span></label>
                 <label style="margin: 0;"><input type="checkbox" class="nes-checkbox" id="bgTransparentCheck" aria-label="Transparent Background"/><span>Transparent</span></label>
             </div>
@@ -381,8 +337,8 @@
             <label for="detailRange">Detail Level: <span id="detailVal" style="color: var(--accent-color);">50</span></label>
             <input type="range" id="detailRange" min="10" max="100" value="50" class="nes-range" aria-label="Detail Level">
 
-            <label for="minPathRange">Min Path Len: <span id="minPathVal" style="color: var(--accent-color);">10</span></label>
-            <input type="range" id="minPathRange" min="1" max="50" value="10" class="nes-range" aria-label="Minimum Path Length">
+            <label for="minPathRange">Min Path Len: <span id="minPathVal" style="color: var(--accent-color);">5</span></label>
+            <input type="range" id="minPathRange" min="1" max="50" value="5" class="nes-range" aria-label="Minimum Path Length">
 
             <div id="fourier-controls" class="hidden">
                 <label for="termsRange">Terms: <span id="termsVal" style="color: var(--accent-color);">50</span></label>
@@ -393,13 +349,12 @@
                 <input type="range" id="chaikinRange" min="0" max="5" value="1" class="nes-range" aria-label="Chaikin Iterations">
             </div>
 
-            <button class="nes-btn is-primary" id="generateBtn" style="width: 100%; margin-top: 10px; font-size: 10px;" aria-label="Generate Image">GENERATE</button>
+            <button class="nes-btn is-primary" id="generateBtn" style="width: 100%; margin-top: 10px; font-size: 10px;" aria-label="Generate">GENERATE</button>
             <div id="status-text" style="font-size: 8px; margin-top: 8px; text-align: center;">READY</div>
         </div>
 
         <div class="nes-container with-title control-group" style="padding: 15px;">
             <p class="title" style="font-size: 10px;">Export</p>
-            <label for="exportFormat" class="sr-only" style="display:none;">Format</label>
             <div class="nes-select" style="width: 100%; margin-bottom: 10px;">
                 <select id="exportFormat" style="font-size: 8px;" aria-label="Export Format">
                     <option value="png">PNG (Transparent OK)</option>
@@ -411,19 +366,21 @@
         </div>
 
         <div class="nes-container with-title control-group" id="partnerWidget" style="padding: 15px; text-align: center;">
-            <p class="title" style="font-size: 10px;">Partners</p>
-            <div id="partnerContent" style="font-size: 8px; line-height: 1.5;">
-                <!-- Dynamically Populated -->
+            <p class="title" style="font-size: 10px;">Font Resources</p>
+            <div style="display: flex; flex-direction: column; gap: 8px; font-size: 8px;">
+                <a href="https://fonts.google.com" target="_blank" class="nes-btn" style="font-size: 6px; padding: 2px;">Google Fonts</a>
+                <a href="https://fontdasu.com" target="_blank" class="nes-btn" style="font-size: 6px; padding: 2px;">FontDasu (JP)</a>
+                <a href="https://fonts.adobe.com" target="_blank" class="nes-btn is-primary" style="font-size: 6px; padding: 2px;">Adobe Fonts</a>
+                <a href="https://www.freejapanesefont.com" target="_blank" class="nes-btn is-warning" style="font-size: 6px; padding: 2px;">Free JP Fonts</a>
             </div>
         </div>
     </div>
 
     <div class="viewport-wrapper">
         <div class="top-bar">
-            <div style="flex-grow: 1; display: flex; align-items: center;">
-                <a href="https://github.com/Xuepoo/vectomancy" target="_blank" style="color: inherit; text-decoration: none;" aria-label="GitHub Repository">
-                    <i class="nes-icon github"></i>
-                </a>
+            <div style="flex-grow: 1; display: flex; align-items: center; gap: 10px;">
+                <a href="/" style="color: inherit; text-decoration: none; font-size: 8px;">← Home</a>
+                <a href="/image" style="color: var(--accent-color); text-decoration: none; font-size: 7px;">Image Engine</a>
             </div>
             <div style="display: flex; gap: 10px;">
                 <button class="nes-btn is-warning" id="helpBtn" style="font-size: 8px;" aria-label="Help">?</button>
@@ -462,37 +419,34 @@
 
     <dialog class="nes-dialog" id="help-dialog" style="width: 90vw; max-width: 600px;">
         <form method="dialog">
-            <p class="title" style="color: var(--accent-color); font-size: 10px;">Vectomancy Pro Guide</p>
+            <p class="title" style="color: var(--accent-color); font-size: 10px;">Typography Engine Guide</p>
             <div style="font-size: 8px; line-height: 1.8; text-align: left; max-height: 60vh; overflow-y: auto; padding: 5px;">
+                <p><strong>Font Sources:</strong><br>
+                - <b>System Fonts</b>: Chrome/Edge only. Instantly loads ALL fonts installed on your OS (including CJK).<br>
+                - <b>Upload Font</b>: Drag any .ttf/.otf file from your computer.<br>
+                - <b>Cloud Presets</b>: Curated small-size fonts fetched instantly from our CDN.<br>
+                - <b>IndexedDB Cache</b>: Your last font is remembered across sessions automatically.</p>
+
                 <p><strong>Algorithms:</strong><br>
-                - <b>Spline</b>: Precise Bezier curves. Best for lineart and logos.<br>
-                - <b>Fourier</b>: Continuous epicycle loops. Chaotic single-wire aesthetic.<br>
-                - <b>Chaikin</b>: Smooth polylines using corner-cutting. Organic "hand-drawn" look.</p>
+                - <b>Spline</b>: Precise Bezier curves per glyph contour.<br>
+                - <b>Fourier</b>: Continuous epicycle loops for each character path.<br>
+                - <b>Chaikin</b>: Smooth polyline corner-cutting per contour.</p>
 
-                <p><strong>Parameters:</strong><br>
-                - <b>Detail</b>: 10-100. Lower = abstract/fast, Higher = precise/heavy.<br>
-                - <b>Min Path</b>: Filters out noise and artifacts. Clean = 5, Noisy = 15+.<br>
-                - <b>Terms/Iters</b>: Controls complexity of Fourier/Chaikin modes.</p>
-
-                <p><strong>Pro Tips:</strong><br>
-                - <b>Clipboard</b>: You can paste (Ctrl+V) images directly anywhere!<br>
-                - <b>Focus Mode (F)</b>: Hides UI for pure viewing.<br>
-                - <b>Transparent</b>: Toggle in settings. Disables JPG export.<br>
-                - <b>Hotkeys</b>: Use mouse wheel to zoom, drag to pan.</p>
+                <p><strong>Tips:</strong><br>
+                - For CJK text, use "System Fonts" API (Chrome) or upload a Noto CJK font.<br>
+                - Large CJK fonts (10-30MB) are cached in IndexedDB after first load.<br>
+                - Use transparent background + PNG for best overlay results.</p>
             </div>
             <menu class="dialog-menu" style="margin-top: 10px;"><button class="nes-btn is-primary">OK</button></menu>
         </form>
     </dialog>
 
     <script type="module">
-        import init, { process_image, process_text } from "/wasm/wasm_engine.js";
+        import init, { process_text } from "/wasm/wasm_engine.js";
 
         let isWasmLoaded = false;
-        let originalImageObj = null;
-        let currentImageBytes = null;
         let currentFontBytes = null;
         let currentFontFilename = "";
-        let currentFilename = "";
         let previewDataStore = new Map();
         let activePreviewId = null;
         let cachedViewportCanvas = null;
@@ -503,12 +457,9 @@
         let isDragging = false, dragStart = { x: 0, y: 0 };
         let renderRequested = false;
 
-        const SUPPORTED_EXTS = ['png', 'jpg', 'jpeg', 'webp', 'svg'];
-
         const els = {
-            fileInput: document.getElementById('fileInput'),
-            urlInput: document.getElementById('urlInput'),
-            fetchUrlBtn: document.getElementById('fetchUrlBtn'),
+            textInput: document.getElementById('textInput'),
+            fontInput: document.getElementById('fontInput'),
             filenameDisplay: document.getElementById('filename-display'),
             statusText: document.getElementById('status-text'),
             generateBtn: document.getElementById('generateBtn'),
@@ -522,8 +473,6 @@
             helpDialog: document.getElementById('help-dialog'),
             modeSelect: document.getElementById('modeSelect'),
             colorCheck: document.getElementById('colorCheck'),
-            colorDepthSelect: document.getElementById('colorDepthSelect'),
-            colorSpaceSelect: document.getElementById('colorSpaceSelect'),
             gridCheck: document.getElementById('gridCheck'),
             detailRange: document.getElementById('detailRange'),
             minPathRange: document.getElementById('minPathRange'),
@@ -547,12 +496,6 @@
             clearDialog: document.getElementById('clear-dialog'),
             errorDialog: document.getElementById('error-dialog'),
             errorMessage: document.getElementById('error-message'),
-            radioLocal: document.querySelector('input[value="local"]'),
-            radioUrl: document.querySelector('input[value="url"]'),
-            radioPreset: document.querySelector('input[value="preset"]'),
-            radioText: document.querySelector('input[value="text"]'),
-            textInput: document.getElementById('textInput'),
-            fontInput: document.getElementById('fontInput'),
             btnAccessLocalFonts: document.getElementById('btnAccessLocalFonts'),
             localFontSelectWrapper: document.getElementById('localFontSelectWrapper'),
             localFontSelect: document.getElementById('localFontSelect'),
@@ -580,7 +523,6 @@
                 isWasmLoaded = true;
                 els.loaderOverlay.classList.add('hidden');
                 console.log("WASM Initialized!");
-
                 await restoreCachedFont();
             } catch (e) {
                 els.statusText.innerText = "ERR: LOAD";
@@ -605,95 +547,12 @@
         els.themeToggleBtn.addEventListener('click', () => {
             document.body.classList.toggle('dark-theme');
             [els.deleteDialog, els.clearDialog, els.errorDialog, els.helpDialog].forEach(d => d.classList.toggle('is-dark'));
-
-            // Toggle is-dark class on all inputs, checkboxes, radios, select dropdowns, and basic non-colored buttons
             document.querySelectorAll('.nes-input, .nes-checkbox, .nes-radio, .nes-select select, .nes-btn:not(.is-primary):not(.is-success):not(.is-error):not(.is-warning)').forEach(el => {
                 el.classList.toggle('is-dark');
             });
-
             recacheViewportCanvas();
             requestRender();
             saveSettings();
-        });
-
-        function updateInputView() {
-            document.getElementById('localInputWrapper').classList.toggle('hidden', !els.radioLocal.checked);
-            document.getElementById('urlInputWrapper').classList.toggle('hidden', !els.radioUrl.checked);
-            document.getElementById('presetInputWrapper').classList.toggle('hidden', !els.radioPreset.checked);
-            document.getElementById('textInputWrapper').classList.toggle('hidden', !els.radioText.checked);
-        }
-        [els.radioLocal, els.radioUrl, els.radioPreset, els.radioText].forEach(r => r.addEventListener('change', updateInputView));
-
-        // URL Plugin routing
-        const urlParams = new URLSearchParams(window.location.search);
-        const pluginMode = urlParams.get('plugin') || 'image';
-
-        // Dynamically load Partner Links/Ads based on context
-        const partnerContent = document.getElementById('partnerContent');
-        if (pluginMode === 'text') {
-            partnerContent.innerHTML = `
-                <p style="margin-bottom: 8px; color: var(--accent-color);">Font Resources</p>
-                <div style="display: flex; flex-direction: column; gap: 8px;">
-                    <a href="https://fonts.google.com" target="_blank" class="nes-btn" style="font-size: 6px; padding: 2px;">Google Fonts</a>
-                    <a href="https://fontdasu.com" target="_blank" class="nes-btn" style="font-size: 6px; padding: 2px;">FontDasu (JP)</a>
-                </div>
-            `;
-            els.radioLocal.parentElement.style.display = 'none';
-            els.radioUrl.parentElement.style.display = 'none';
-            els.radioPreset.parentElement.style.display = 'none';
-            els.radioText.checked = true;
-            updateInputView();
-        } else {
-            // Image mode
-            partnerContent.innerHTML = `
-                <p style="margin-bottom: 8px; color: var(--accent-color);">Image Networks</p>
-                <div style="display: flex; flex-direction: column; gap: 8px;">
-                    <a href="https://www.pixiv.net" target="_blank" class="nes-btn" style="font-size: 6px; padding: 2px;">Pixiv</a>
-                    <a href="https://www.xiaohongshu.com" target="_blank" class="nes-btn is-error" style="font-size: 6px; padding: 2px;">Xiaohongshu</a>
-                    <a href="https://www.pinterest.com" target="_blank" class="nes-btn" style="font-size: 6px; padding: 2px;">Pinterest</a>
-                </div>
-            `;
-            els.radioText.parentElement.style.display = 'none';
-            if(els.radioText.checked) {
-                els.radioLocal.checked = true;
-            }
-            updateInputView();
-        }
-
-        async function handleImageBytes(buffer, filename) {
-            // Extension validation
-            const ext = filename.split('.').pop().toLowerCase();
-            if (filename.includes('.') && !SUPPORTED_EXTS.includes(ext)) {
-                return showError(`Unsupported file: .${ext}\nPlease use PNG, JPG, WebP or SVG.`);
-            }
-
-            const blob = new Blob([buffer]);
-            const blobUrl = URL.createObjectURL(blob);
-
-            const tempImg = new Image();
-            tempImg.onerror = () => {
-                showError("Invalid Image Data!\nThe file could not be parsed as an image.");
-                els.loaderOverlay.classList.add('hidden');
-            };
-            tempImg.onload = () => {
-                currentImageBytes = new Uint8Array(buffer);
-                currentFilename = filename;
-                els.filenameDisplay.innerText = truncateMiddle(filename, 20);
-                originalImageObj = tempImg;
-                const old = document.getElementById('gallery-original');
-                if(old) old.remove();
-                addGalleryItem('original', blobUrl, 'ORIGINAL');
-                setActivePreview('original');
-                els.loaderOverlay.classList.add('hidden');
-            };
-            tempImg.src = blobUrl;
-        }
-
-        els.fileInput.addEventListener('change', async (e) => {
-            if(e.target.files[0]) {
-                const b = await e.target.files[0].arrayBuffer();
-                handleImageBytes(b, e.target.files[0].name);
-            }
         });
 
         // --- Font IndexedDB Cache ---
@@ -786,7 +645,6 @@
                 currentFontBytes = new Uint8Array(b);
                 currentFontFilename = family + " (System)";
                 els.filenameDisplay.innerText = truncateMiddle(currentFontFilename, 20);
-
                 await saveFontCache('last_font_bytes', b);
                 await saveFontCache('last_font_name', new TextEncoder().encode(currentFontFilename).buffer);
             } catch(err) {
@@ -801,8 +659,6 @@
                 currentFontBytes = new Uint8Array(b);
                 currentFontFilename = e.target.files[0].name;
                 els.filenameDisplay.innerText = truncateMiddle(currentFontFilename, 20);
-
-                // Save to cache
                 saveFontCache('last_font_bytes', b);
                 saveFontCache('last_font_name', new TextEncoder().encode(currentFontFilename).buffer);
             }
@@ -822,11 +678,9 @@
                     const r = await fetch(proxyBase + '?url=' + encodeURIComponent(url));
                     if (!r.ok) throw new Error("HTTP Error");
                     const b = await r.arrayBuffer();
-
                     currentFontBytes = new Uint8Array(b);
                     currentFontFilename = filename;
                     els.filenameDisplay.innerText = truncateMiddle(currentFontFilename, 20);
-
                     await saveFontCache('last_font_bytes', b);
                     await saveFontCache('last_font_name', new TextEncoder().encode(currentFontFilename).buffer);
                 } catch(err) {
@@ -836,69 +690,10 @@
             });
         });
 
-        els.fetchUrlBtn.addEventListener('click', async () => {
-            const url = els.urlInput.value;
-            if(!url) return;
-            els.loaderOverlay.classList.remove('hidden');
-            els.loaderText.innerText = "Fetching URL...";
-            try {
-                const proxyBase = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || window.location.protocol === 'file:')
-                    ? 'https://vectomancy.pages.dev/proxy'
-                    : '/proxy';
-                const r = await fetch(proxyBase + '?url=' + encodeURIComponent(url));
-                if (!r.ok) throw new Error("HTTP Error");
-                const b = await r.arrayBuffer();
-                handleImageBytes(b, url.split('/').pop().split('?')[0] || 'remote_image.png');
-            } catch(e) {
-                showError("Fetch Failed!\nCheck the URL or CORS proxy status.");
-                els.loaderOverlay.classList.add('hidden');
-            }
-        });
-
-        // Clipboard Paste Support
-        window.addEventListener('paste', async (e) => {
-            const items = (e.clipboardData || e.originalEvent.clipboardData).items;
-            for (const item of items) {
-                if (item.type.indexOf('image') !== -1) {
-                    els.loaderOverlay.classList.remove('hidden');
-                    els.loaderText.innerText = "Pasting Image...";
-                    const blob = item.getAsFile();
-                    const buffer = await blob.arrayBuffer();
-                    handleImageBytes(buffer, `pasted_img_${Date.now()}.png`);
-                    break;
-                }
-            }
-        });
-
-        document.querySelectorAll('.preset-example').forEach(img => {
-            img.addEventListener('click', async (e) => {
-                els.loaderOverlay.classList.remove('hidden');
-                els.loaderText.innerText = "Loading Preset...";
-                try {
-                    // Use proxy to avoid CORS issues. Use production proxy if testing locally.
-                    const proxyBase = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || window.location.protocol === 'file:')
-                        ? 'https://vectomancy.pages.dev/proxy'
-                        : '/proxy';
-                    const r = await fetch(proxyBase + '?url=' + encodeURIComponent(e.target.src));
-                    if (!r.ok) throw new Error("HTTP Error");
-                    const b = await r.arrayBuffer();
-                    handleImageBytes(b, e.target.dataset.filename);
-                } catch(err) {
-                    showError("Failed to load preset.\nPlease check your network.");
-                }
-                els.loaderOverlay.classList.add('hidden');
-            });
-        });
-
         els.generateBtn.addEventListener('click', () => {
             if(!isWasmLoaded) return;
-            const isTextMode = els.radioText.checked;
-            if (isTextMode) {
-                if(!currentFontBytes) return showError("No Font Selected!");
-                if(!els.textInput.value) return showError("No Text entered!");
-            } else {
-                if(!currentImageBytes) return showError("No Image!");
-            }
+            if(!currentFontBytes) return showError("No Font Selected!\nUse System Fonts, Upload, or Cloud Presets.");
+            if(!els.textInput.value) return showError("No Text entered!");
 
             els.progressContainer.classList.remove('hidden');
             let p = 0;
@@ -907,22 +702,22 @@
             setTimeout(() => {
                 try {
                     const start = performance.now();
-                    // Optional style configs can be added here
-                    const options = { format: 'jpg', color: els.colorCheck.checked, mode: els.modeSelect.value,
-                                     chaikin_iters: parseInt(els.chaikinRange.value), terms: parseInt(els.termsRange.value),
-                                     detail: parseInt(els.detailRange.value), min_path_len: parseInt(els.minPathRange.value) };
+                    const options = {
+                        format: 'jpg',
+                        color: els.colorCheck.checked,
+                        mode: els.modeSelect.value,
+                        chaikin_iters: parseInt(els.chaikinRange.value),
+                        terms: parseInt(els.termsRange.value),
+                        detail: parseInt(els.detailRange.value),
+                        min_path_len: parseInt(els.minPathRange.value)
+                    };
 
-                    let result;
-                    if(isTextMode) {
-                        result = process_text(currentFontBytes, els.textInput.value, options);
-                    } else {
-                        result = process_image(currentImageBytes, options);
-                    }
+                    const result = process_text(currentFontBytes, els.textInput.value, options);
 
                     snapshotCount++;
                     const id = `snap-${snapshotCount}`;
                     createSnapshot(id, result, `${options.mode.substring(0,3).toUpperCase()} D${options.detail}`, Math.round(performance.now()-start));
-                } catch(e) { console.error(e); }
+                } catch(e) { console.error(e); showError("Render failed: " + e.message); }
                 clearInterval(pInt); els.progressBar.value = 100;
                 setTimeout(() => els.progressContainer.classList.add('hidden'), 200);
             }, 50);
@@ -946,7 +741,7 @@
         function addGalleryItem(id, src, label) {
             const div = document.createElement('div');
             div.className = 'gallery-item'; div.id = `gallery-${id}`;
-            div.innerHTML = `<img src="${src}"><div class="gallery-label">${label}</div>` + (id!=='original'?'<div class="gallery-delete">X</div>':'');
+            div.innerHTML = `<img src="${src}"><div class="gallery-label">${label}</div><div class="gallery-delete">X</div>`;
             div.onclick = (e) => {
                 if(e.target.classList.contains('gallery-delete')) {
                     e.stopPropagation(); pendingDeleteId = id; els.deleteDialog.showModal();
@@ -959,7 +754,7 @@
             if(els.deleteDialog.returnValue === 'confirm' && pendingDeleteId) {
                 previewDataStore.delete(pendingDeleteId);
                 document.getElementById(`gallery-${pendingDeleteId}`).remove();
-                if(activePreviewId === pendingDeleteId) setActivePreview('original');
+                if(activePreviewId === pendingDeleteId) setActivePreview(null);
             }
         });
 
@@ -967,15 +762,16 @@
         els.clearDialog.addEventListener('close', () => {
             if(els.clearDialog.returnValue === 'confirm') {
                 for(let k of previewDataStore.keys()) document.getElementById(`gallery-${k}`).remove();
-                previewDataStore.clear(); setActivePreview('original');
+                previewDataStore.clear(); setActivePreview(null);
             }
         });
 
         els.helpBtn.addEventListener('click', () => { els.helpDialog.showModal(); });
 
         function recacheViewportCanvas() {
-            if (activePreviewId && activePreviewId !== 'original') {
+            if (activePreviewId) {
                 const res = previewDataStore.get(activePreviewId);
+                if (!res) return;
                 if (!cachedViewportCanvas) {
                     cachedViewportCanvas = document.createElement('canvas');
                 }
@@ -989,35 +785,30 @@
         function setActivePreview(id) {
             activePreviewId = id;
             document.querySelectorAll('.gallery-item').forEach(el => el.classList.remove('active'));
-            const item = document.getElementById(`gallery-${id}`);
+            const item = id ? document.getElementById(`gallery-${id}`) : null;
             if(item) { item.classList.add('active'); item.scrollIntoView({ behavior:'smooth', inline:'center' }); }
 
-            if(id !== 'original') {
+            if(id) {
                 recacheViewportCanvas();
                 const res = previewDataStore.get(id);
                 let stats = `RENDER STATS\nSIZE: ${res.width}x${res.height}\nTIME: ${res.computeTime}ms`;
                 if(res.ast.type === 'Spline' || res.ast.type === 'spline') stats += `\nPATHS: ${res.ast.equations.length}`;
-                else if(res.ast.type === 'Fourier' || res.ast.type === 'fourier') stats += `\nSTROKES: ${res.ast.strokes.length}`;
-                else if(res.ast.type === 'Polyline' || res.ast.type === 'polyline') stats += `\nPATHS: ${res.ast.paths.length}`;
                 els.overlayStats.innerText = stats;
             } else {
                 cachedViewportCanvas = null;
-                if(originalImageObj) {
-                    els.overlayStats.innerText = `ORIGINAL IMAGE\nSIZE: ${originalImageObj.width}x${originalImageObj.height}`;
-                } else {
-                    els.overlayStats.innerText = "Waiting for input...";
-                }
+                els.overlayStats.innerText = "Waiting for input...";
             }
             resetViewport(); requestRender();
         }
 
         function resetViewport() {
-            if(!originalImageObj && activePreviewId === 'original') return;
-            const w = activePreviewId==='original'?originalImageObj.width:previewDataStore.get(activePreviewId).width;
-            const h = activePreviewId==='original'?originalImageObj.height:previewDataStore.get(activePreviewId).height;
+            if(!activePreviewId) return;
+            const res = previewDataStore.get(activePreviewId);
+            if (!res) return;
             const r = els.canvasArea.getBoundingClientRect();
-            scale = Math.min((r.width*0.8)/w, (r.height*0.8)/h);
-            offsetX = (r.width - w*scale)/2; offsetY = (r.height - h*scale)/2;
+            scale = Math.min((r.width*0.8)/res.width, (r.height*0.8)/res.height);
+            offsetX = (r.width - res.width*scale)/2;
+            offsetY = (r.height - res.height*scale)/2;
         }
 
         els.canvasArea.addEventListener('mousedown', (e) => { isDragging = true; dragStart = { x: e.clientX-offsetX, y: e.clientY-offsetY }; });
@@ -1042,111 +833,39 @@
             const r = els.canvasArea.getBoundingClientRect();
             els.mainCanvas.width = r.width; els.mainCanvas.height = r.height;
             ctx.clearRect(0,0,r.width,r.height);
-            if(!activePreviewId) return;
+            if(!activePreviewId || !cachedViewportCanvas) return;
 
             ctx.save();
             ctx.translate(offsetX, offsetY);
             ctx.scale(scale, scale);
 
-            const w = activePreviewId === 'original' ? originalImageObj.width : previewDataStore.get(activePreviewId).width;
-            const h = activePreviewId === 'original' ? originalImageObj.height : previewDataStore.get(activePreviewId).height;
+            const res = previewDataStore.get(activePreviewId);
+            if (!res) { ctx.restore(); return; }
+            const w = res.width, h = res.height;
 
             if (!els.bgTransparentCheck.checked) {
-                ctx.fillStyle = document.body.classList.contains('dark-theme') ? '#1a1a1a' : '#f7f7f7';
+                ctx.fillStyle = document.body.classList.contains('dark-theme') ? '#1a1208' : '#fffef5';
                 ctx.fillRect(0, 0, w, h);
             }
 
-            if (activePreviewId === 'original') {
-                if(originalImageObj) ctx.drawImage(originalImageObj, 0, 0);
-            } else if(cachedViewportCanvas) {
-                ctx.drawImage(cachedViewportCanvas, 0, 0);
-            }
+            ctx.drawImage(cachedViewportCanvas, 0, 0);
             ctx.restore();
-        }
-
-        function processColor(colorRgb, bitDepth, colorSpace) {
-            if (!colorRgb) return null;
-            let [r, g, b] = colorRgb;
-
-            // 1. Color Space Conversion
-            if (colorSpace === 'grayscale') {
-                const gray = Math.round(0.299 * r + 0.587 * g + 0.114 * b);
-                r = gray; g = gray; b = gray;
-            }
-
-            // 2. Bit Depth Quantization
-            if (bitDepth === '8') {
-                r = Math.round(r / 255 * 7) * (255 / 7);
-                g = Math.round(g / 255 * 7) * (255 / 7);
-                b = Math.round(b / 255 * 3) * (255 / 3);
-            } else if (bitDepth === '16') {
-                r = Math.round(r / 255 * 31) * (255 / 31);
-                g = Math.round(g / 255 * 63) * (255 / 63);
-                b = Math.round(b / 255 * 31) * (255 / 31);
-            } else if (bitDepth === '4') {
-                const palette = [
-                    [0, 0, 0], [255, 255, 255], [136, 0, 0], [170, 204, 238],
-                    [204, 68, 204], [0, 204, 85], [0, 0, 170], [238, 238, 51],
-                    [221, 136, 85], [102, 68, 0], [255, 119, 119], [51, 51, 51],
-                    [119, 119, 119], [170, 255, 102], [0, 136, 255], [187, 187, 187]
-                ];
-                let minD = Infinity;
-                let bestCol = palette[0];
-                for (const col of palette) {
-                    const d = Math.pow(r - col[0], 2) + Math.pow(g - col[1], 2) + Math.pow(b - col[2], 2);
-                    if (d < minD) {
-                        minD = d;
-                        bestCol = col;
-                    }
-                }
-                [r, g, b] = bestCol;
-            } else if (bitDepth === '1') {
-                const gray = 0.299 * r + 0.587 * g + 0.114 * b;
-                const bw = gray > 128 ? 255 : 0;
-                r = bw; g = bw; b = bw;
-            }
-
-            r = Math.min(255, Math.max(0, Math.round(r)));
-            g = Math.min(255, Math.max(0, Math.round(g)));
-            b = Math.min(255, Math.max(0, Math.round(b)));
-
-            return [r, g, b];
         }
 
         function drawAST(ctx, ast, isThumb, isDark, isExport) {
             ctx.lineJoin = 'round'; ctx.lineCap = 'round';
             ctx.lineWidth = isThumb ? 3 : (isExport ? 1.5 : 1.5/scale);
-            const defCol = isDark ? '#fff' : '#000';
-            const extractColor = els.colorCheck.checked || isThumb || isExport;
+            const defCol = isDark ? '#f7b731' : '#2d2416';
 
-            const depth = els.colorDepthSelect ? els.colorDepthSelect.value : '24';
-            const space = els.colorSpaceSelect ? els.colorSpaceSelect.value : 'srgb';
-
-            function getStrokeStyle(colorStyle, bbox) {
-                if (!colorStyle || !extractColor) return defCol;
-                if (Array.isArray(colorStyle)) {
-                    const finalRgb = processColor(colorStyle, depth, space);
-                    return `rgb(${finalRgb.join(',')})`;
-                } else if (colorStyle.LinearGradient) {
-                    const start = processColor(colorStyle.LinearGradient.start, depth, space);
-                    const end = processColor(colorStyle.LinearGradient.end, depth, space);
-                    const angle = colorStyle.LinearGradient.angle * Math.PI / 180.0;
-                    const w = bbox[2] - bbox[0], h = bbox[3] - bbox[1];
-                    const cx = bbox[0] + w/2, cy = bbox[1] + h/2;
-                    const r = Math.sqrt(w*w + h*h)/2;
-                    const x1 = cx - Math.cos(angle)*r, y1 = cy - Math.sin(angle)*r;
-                    const x2 = cx + Math.cos(angle)*r, y2 = cy + Math.sin(angle)*r;
-                    const grad = ctx.createLinearGradient(x1, y1, x2, y2);
-                    grad.addColorStop(0, `rgb(${start.join(',')})`);
-                    grad.addColorStop(1, `rgb(${end.join(',')})`);
-                    return grad;
-                }
+            const getStrokeStyle = (colorStyle) => {
+                if (!colorStyle || !els.colorCheck.checked) return defCol;
+                if (Array.isArray(colorStyle)) return `rgb(${colorStyle.join(',')})`;
                 return defCol;
-            }
+            };
 
             if(ast.type==='Spline'||ast.type==='spline') {
                 ast.equations.forEach(path => {
-                    ctx.strokeStyle = getStrokeStyle(path.color_style || path.color_rgb, ast.bounding_box);
+                    ctx.strokeStyle = getStrokeStyle(path.color_style || path.color_rgb);
                     path.data.forEach(eq => {
                         ctx.beginPath(); let first=true;
                         for(let t=0; t<=1; t+=isThumb?0.2:0.05) {
@@ -1159,7 +878,7 @@
                 });
             } else if(ast.type==='Fourier'||ast.type==='fourier') {
                 ast.strokes.forEach(stroke => {
-                    ctx.strokeStyle = getStrokeStyle(stroke.color_style || stroke.color_rgb, ast.bounding_box);
+                    ctx.strokeStyle = getStrokeStyle(stroke.color_style || stroke.color_rgb);
                     ctx.beginPath(); let first=true;
                     const st = Math.min(stroke.data.length*4, isThumb?100:1000);
                     for(let i=0; i<=st; i++) {
@@ -1171,7 +890,7 @@
                 });
             } else if(ast.type==='Polyline'||ast.type==='polyline') {
                 ast.paths.forEach(path => {
-                    ctx.strokeStyle = getStrokeStyle(path.color_style || path.color_rgb, ast.bounding_box);
+                    ctx.strokeStyle = getStrokeStyle(path.color_style || path.color_rgb);
                     ctx.beginPath(); let first=true;
                     path.data.forEach(pt => { if(first) { ctx.moveTo(pt.x, pt.y); first=false; } else ctx.lineTo(pt.x, pt.y); });
                     ctx.stroke();
@@ -1179,28 +898,11 @@
             }
         }
 
-        // --- Event Listeners ---
         els.resetViewBtn.addEventListener('click', () => { resetViewport(); requestRender(); });
         els.gridCheck.addEventListener('change', () => { els.canvasArea.classList.toggle('show-grid', els.gridCheck.checked); });
         els.bgTransparentCheck.addEventListener('change', () => {
             if (els.bgTransparentCheck.checked && els.exportFormat.value === 'jpg') els.exportFormat.value = 'png';
             Array.from(els.exportFormat.options).find(o => o.value === 'jpg').disabled = els.bgTransparentCheck.checked;
-            requestRender();
-        });
-
-        els.colorCheck.addEventListener('change', () => {
-            document.getElementById('colorOptionsContainer').classList.toggle('hidden', !els.colorCheck.checked);
-            recacheViewportCanvas();
-            requestRender();
-        });
-
-        els.colorDepthSelect.addEventListener('change', () => {
-            recacheViewportCanvas();
-            requestRender();
-        });
-
-        els.colorSpaceSelect.addEventListener('change', () => {
-            recacheViewportCanvas();
             requestRender();
         });
 
@@ -1214,23 +916,20 @@
         };
 
         els.downloadBtn.addEventListener('click', () => {
-            if (!activePreviewId) return showError("No Image Selected!");
+            if (!activePreviewId) return showError("No render selected!");
             const format = els.exportFormat.value;
-            const isOriginal = activePreviewId === 'original';
-            const res = isOriginal ? { width: originalImageObj.width, height: originalImageObj.height } : previewDataStore.get(activePreviewId);
+            const res = previewDataStore.get(activePreviewId);
             const canvas = document.createElement('canvas');
             canvas.width = res.width; canvas.height = res.height;
             const eCtx = canvas.getContext('2d');
             if (!els.bgTransparentCheck.checked || format === 'jpg') {
-                eCtx.fillStyle = document.body.classList.contains('dark-theme') ? '#1a1a1a' : '#fff';
+                eCtx.fillStyle = document.body.classList.contains('dark-theme') ? '#1a1208' : '#fffef5';
                 eCtx.fillRect(0, 0, res.width, res.height);
             }
-            if (isOriginal) eCtx.drawImage(originalImageObj, 0, 0);
-            else drawAST(eCtx, res.ast, false, document.body.classList.contains('dark-theme'), true);
-            const baseName = currentFilename.split('.')[0] || "image";
-            let finalFilename = baseName + (isOriginal ? "_original" : `_vecto_${els.modeSelect.value.toUpperCase()}_D${els.detailRange.value}`);
+            drawAST(eCtx, res.ast, false, document.body.classList.contains('dark-theme'), true);
+            const baseName = els.textInput.value.substring(0, 12).replace(/\s+/g, '_') || "text_render";
+            let finalFilename = `${baseName}_vecto_${els.modeSelect.value.toUpperCase()}_D${els.detailRange.value}`;
             if (format === 'json') {
-                if (isOriginal) return showError("No JSON for original!");
                 const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(res.ast));
                 const link = document.createElement('a'); link.download = `${finalFilename}.json`; link.href = dataStr; link.click();
             } else {
@@ -1239,15 +938,13 @@
             }
         });
 
-        // Settings persistence functions
-        const STORAGE_KEY = 'vectomancy_user_settings';
+        // Settings persistence
+        const STORAGE_KEY = 'vectomancy_typo_settings';
         function saveSettings() {
             try {
                 const settings = {
                     mode: els.modeSelect.value,
                     color: els.colorCheck.checked,
-                    colorDepth: els.colorDepthSelect.value,
-                    colorSpace: els.colorSpaceSelect.value,
                     grid: els.gridCheck.checked,
                     transparent: els.bgTransparentCheck.checked,
                     detail: els.detailRange.value,
@@ -1258,9 +955,7 @@
                     theme: document.body.classList.contains('dark-theme') ? 'dark' : 'light'
                 };
                 localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
-            } catch(e) {
-                console.error("Failed to save settings to localStorage:", e);
-            }
+            } catch(e) {}
         }
 
         function loadSettings() {
@@ -1270,8 +965,6 @@
                 const settings = JSON.parse(stored);
                 if (settings.mode !== undefined) els.modeSelect.value = settings.mode;
                 if (settings.color !== undefined) els.colorCheck.checked = settings.color;
-                if (settings.colorDepth !== undefined) els.colorDepthSelect.value = settings.colorDepth;
-                if (settings.colorSpace !== undefined) els.colorSpaceSelect.value = settings.colorSpace;
                 if (settings.grid !== undefined) els.gridCheck.checked = settings.grid;
                 if (settings.transparent !== undefined) els.bgTransparentCheck.checked = settings.transparent;
                 if (settings.detail !== undefined) els.detailRange.value = settings.detail;
@@ -1279,46 +972,27 @@
                 if (settings.terms !== undefined) els.termsRange.value = settings.terms;
                 if (settings.chaikin !== undefined) els.chaikinRange.value = settings.chaikin;
                 if (settings.exportFormat !== undefined) els.exportFormat.value = settings.exportFormat;
-
                 if (settings.theme === 'dark') {
                     document.body.classList.add('dark-theme');
                     [els.deleteDialog, els.clearDialog, els.errorDialog, els.helpDialog].forEach(d => d.classList.add('is-dark'));
-                    document.querySelectorAll('.nes-input, .nes-checkbox, .nes-radio, .nes-select select, .nes-btn:not(.is-primary):not(.is-success):not(.is-error):not(.is-warning)').forEach(el => {
-                        el.classList.add('is-dark');
-                    });
+                    document.querySelectorAll('.nes-input, .nes-checkbox, .nes-radio, .nes-select select, .nes-btn:not(.is-primary):not(.is-success):not(.is-error):not(.is-warning)').forEach(el => el.classList.add('is-dark'));
                 } else if (settings.theme === 'light') {
                     document.body.classList.remove('dark-theme');
-                    [els.deleteDialog, els.clearDialog, els.errorDialog, els.helpDialog].forEach(d => d.classList.remove('is-dark'));
-                    document.querySelectorAll('.nes-input, .nes-checkbox, .nes-radio, .nes-select select, .nes-btn:not(.is-primary):not(.is-success):not(.is-error):not(.is-warning)').forEach(el => {
-                        el.classList.remove('is-dark');
-                    });
+                    document.querySelectorAll('.nes-input, .nes-checkbox, .nes-radio, .nes-select select, .nes-btn:not(.is-primary):not(.is-success):not(.is-error):not(.is-warning)').forEach(el => el.classList.remove('is-dark'));
                 }
-            } catch(e) {
-                console.error("Failed to load settings from localStorage:", e);
-            }
+            } catch(e) {}
         }
 
-        // Listen for setting updates to persist them
         [
-            els.modeSelect, els.colorCheck, els.colorDepthSelect, els.colorSpaceSelect,
-            els.gridCheck, els.bgTransparentCheck, els.detailRange, els.minPathRange,
-            els.termsRange, els.chaikinRange, els.exportFormat
+            els.modeSelect, els.colorCheck, els.gridCheck, els.bgTransparentCheck,
+            els.detailRange, els.minPathRange, els.termsRange, els.chaikinRange, els.exportFormat
         ].forEach(el => {
             el.addEventListener('input', saveSettings);
             el.addEventListener('change', saveSettings);
         });
 
-        // Load settings and synchronize state
         loadSettings();
         updateLabels();
-        document.getElementById('colorOptionsContainer').classList.toggle('hidden', !els.colorCheck.checked);
-
-        // Listen to changes to adjust visibility of color depth/space containers
-        els.colorCheck.addEventListener('change', () => {
-            document.getElementById('colorOptionsContainer').classList.toggle('hidden', !els.colorCheck.checked);
-        });
-
-        run();
     </script>
 </body>
 </html>
