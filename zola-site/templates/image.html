@@ -601,7 +601,6 @@
             <p style="margin-bottom: 8px; color: var(--accent-color);">Image Networks</p>
             <div style="display: flex; flex-direction: column; gap: 8px;">
                 <a href="https://www.pixiv.net" target="_blank" class="nes-btn" style="font-size: 6px; padding: 2px;">Pixiv</a>
-                <a href="https://www.xiaohongshu.com" target="_blank" class="nes-btn is-error" style="font-size: 6px; padding: 2px;">Xiaohongshu</a>
                 <a href="https://www.pinterest.com" target="_blank" class="nes-btn" style="font-size: 6px; padding: 2px;">Pinterest</a>
             </div>
         `;
@@ -865,6 +864,15 @@
         function processColor(colorRgb, bitDepth, colorSpace) {
             if (!colorRgb) return null;
             let [r, g, b] = colorRgb;
+
+            // Scale from [0.0, 1.0] to [0.0, 255.0] if necessary
+            // Because our Rust engine serialization provides normalized floats for colorStyle Solid.
+            const isFloat = colorRgb.every(v => v <= 1.0001);
+            if (isFloat) {
+                r *= 255.0;
+                g *= 255.0;
+                b *= 255.0;
+            }
 
             // 1. Color Space Conversion
             if (colorSpace === 'grayscale') {
