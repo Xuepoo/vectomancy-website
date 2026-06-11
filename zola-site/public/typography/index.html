@@ -861,7 +861,20 @@
 
             const getStrokeStyle = (colorStyle) => {
                 if (!colorStyle || !els.colorCheck.checked) return defCol;
-                if (Array.isArray(colorStyle)) return `rgb(${colorStyle.join(',')})`;
+                if (Array.isArray(colorStyle)) {
+                    const r = Math.round(colorStyle[0] * 255);
+                    const g = Math.round(colorStyle[1] * 255);
+                    const b = Math.round(colorStyle[2] * 255);
+                    return `rgb(${r},${g},${b})`;
+                }
+                if (colorStyle.LinearGradient) {
+                    const startColor = `rgb(${Math.round(colorStyle.LinearGradient.start[0]*255)},${Math.round(colorStyle.LinearGradient.start[1]*255)},${Math.round(colorStyle.LinearGradient.start[2]*255)})`;
+                    const endColor = `rgb(${Math.round(colorStyle.LinearGradient.end[0]*255)},${Math.round(colorStyle.LinearGradient.end[1]*255)},${Math.round(colorStyle.LinearGradient.end[2]*255)})`;
+                    const grad = ctx.createLinearGradient(0, 0, 0, 100);
+                    grad.addColorStop(0, startColor);
+                    grad.addColorStop(1, endColor);
+                    return grad;
+                }
                 return defCol;
             };
 
