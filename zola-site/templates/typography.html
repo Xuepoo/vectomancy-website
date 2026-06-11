@@ -1302,7 +1302,7 @@
         }
 
         let isDraggingHandle = false;
-        let activeHandleType = null; // 'start' or 'end'
+        let activeHandleType = null; // 'start', 'end', or number (stop index)
 
         els.canvasArea.addEventListener('mousedown', (e) => {
             if (activePreviewId && !els.hideHandlesCheck.checked) {
@@ -1335,16 +1335,35 @@
                                 const screenX = e.clientX - rect.left;
                                 const screenY = e.clientY - rect.top;
 
-                                const dist0 = Math.hypot(screenX - screenX0, screenY - screenY0);
-                                const dist1 = Math.hypot(screenX - screenX1, screenY - screenY1);
+                                let bestDist = 15;
+                                let bestHandle = null;
 
-                                if (dist0 < 15) {
+                                const dist0 = Math.hypot(screenX - screenX0, screenY - screenY0);
+                                if (dist0 < bestDist) {
+                                    bestDist = dist0;
+                                    bestHandle = 'start';
+                                }
+
+                                const dist1 = Math.hypot(screenX - screenX1, screenY - screenY1);
+                                if (dist1 < bestDist) {
+                                    bestDist = dist1;
+                                    bestHandle = 'end';
+                                }
+
+                                for (let i = 0; i < colorStyle.stops.length; i++) {
+                                    const offset = colorStyle.stops[i][0];
+                                    const screenCX = screenX0 + offset * (screenX1 - screenX0);
+                                    const screenCY = screenY0 + offset * (screenY1 - screenY0);
+                                    const distStop = Math.hypot(screenX - screenCX, screenY - screenCY);
+                                    if (distStop < bestDist) {
+                                        bestDist = distStop;
+                                        bestHandle = i;
+                                    }
+                                }
+
+                                if (bestHandle !== null) {
                                     isDraggingHandle = true;
-                                    activeHandleType = 'start';
-                                    return; // Don't trigger pan dragging
-                                } else if (dist1 < 15) {
-                                    isDraggingHandle = true;
-                                    activeHandleType = 'end';
+                                    activeHandleType = bestHandle;
                                     return; // Don't trigger pan dragging
                                 }
                             }
@@ -1391,8 +1410,33 @@
                                 if (style && style.stops) {
                                     if (activeHandleType === 'start') {
                                         style.start_pos = [relX, relY];
-                                    } else {
+                                        currentGradient.start_pos = [relX, relY];
+                                    } else if (activeHandleType === 'end') {
                                         style.end_pos = [relX, relY];
+                                        currentGradient.end_pos = [relX, relY];
+                                    } else if (typeof activeHandleType === 'number') {
+                                        const start_pos = style.start_pos || [0.0, 0.5];
+                                        const end_pos = style.end_pos || [1.0, 0.5];
+                                        const ab_x = end_pos[0] - start_pos[0];
+                                        const ab_y = end_pos[1] - start_pos[1];
+                                        const ap_x = relX - start_pos[0];
+                                        const ap_y = relY - start_pos[1];
+
+                                        const ab_len_sq = ab_x * ab_x + ab_y * ab_y;
+                                        let t = 0.0;
+                                        if (ab_len_sq > 1e-6) {
+                                            t = (ap_x * ab_x + ap_y * ab_y) / ab_len_sq;
+                                        }
+                                        t = Math.min(1.0, Math.max(0.0, t));
+
+                                        style.stops[activeHandleType][0] = t;
+                                        currentGradient.stops[activeHandleType][0] = t;
+
+                                        // Update range slider in the sidebar UI directly to sync in real-time
+                                        const sliders = els.customStopsContainer ? els.customStopsContainer.querySelectorAll('input[type="range"]') : [];
+                                        if (sliders[activeHandleType]) {
+                                            sliders[activeHandleType].value = Math.round(t * 100);
+                                        }
                                     }
                                 }
                             });
@@ -1410,6 +1454,13 @@
         });
 
         window.addEventListener('mouseup', () => {
+            if (isDraggingHandle && typeof activeHandleType === 'number' && activePreviewId) {
+                currentGradient.stops.sort((a, b) => a[0] - b[0]);
+                updateColorStyleOnAst();
+                renderStopsEditor();
+            } else if (isDraggingHandle && (activeHandleType === 'start' || activeHandleType === 'end')) {
+                updateColorStyleOnAst();
+            }
             isDragging = false;
             isDraggingHandle = false;
             activeHandleType = null;
