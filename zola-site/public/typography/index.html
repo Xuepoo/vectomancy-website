@@ -1976,15 +1976,20 @@
 
       document.querySelectorAll(".font-preset-btn").forEach((btn) => {
         btn.addEventListener("click", async (e) => {
-          const url = e.target.dataset.url;
-          const filename = e.target.dataset.filename + " (CDN)";
+          const url = btn.dataset.url;
+          const filename = btn.dataset.filename + " (CDN)";
 
           els.loaderOverlay.classList.remove("hidden");
           els.loaderText.innerText = `Fetching ${filename}...`;
           try {
-            const r = await fetch(url);
+            const r = await fetch(
+              url + (url.includes("?") ? "&" : "?") + "v=2",
+            );
             if (!r.ok) throw new Error("HTTP Error");
             const b = await r.arrayBuffer();
+            if (!isValidFontBuffer(b)) {
+              throw new Error("InvalidFontFormat");
+            }
             currentFontBytes = new Uint8Array(b);
             currentFontFilename = filename;
             els.filenameDisplay.innerText = truncateMiddle(
@@ -1997,7 +2002,11 @@
               new TextEncoder().encode(currentFontFilename).buffer,
             );
           } catch (err) {
-            showError("Failed to fetch font.\nPlease check your network.");
+            if (err.message === "InvalidFontFormat") {
+              showError("Failed to load font: Invalid font file format.");
+            } else {
+              showError("Failed to fetch font.\nPlease check your network.");
+            }
           }
           els.loaderOverlay.classList.add("hidden");
           if (previewDataStore.size === 0 && els.textInput.value) {
