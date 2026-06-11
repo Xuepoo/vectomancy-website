@@ -470,8 +470,6 @@
         let isWasmLoaded = false;
         let originalImageObj = null;
         let currentImageBytes = null;
-        let currentFontBytes = null;
-        let currentFontFilename = "";
         let currentFilename = "";
         let previewDataStore = new Map();
         let activePreviewId = null;
@@ -530,12 +528,6 @@
             radioLocal: document.querySelector('input[value="local"]'),
             radioUrl: document.querySelector('input[value="url"]'),
             radioPreset: document.querySelector('input[value="preset"]'),
-            radioText: document.querySelector('input[value="text"]'),
-            textInput: document.getElementById('textInput'),
-            fontInput: document.getElementById('fontInput'),
-            btnAccessLocalFonts: document.getElementById('btnAccessLocalFonts'),
-            localFontSelectWrapper: document.getElementById('localFontSelectWrapper'),
-            localFontSelect: document.getElementById('localFontSelect'),
             btnZoomIn: document.getElementById('btnZoomIn'),
             btnZoomOut: document.getElementById('btnZoomOut'),
             btnResetViewObj: document.getElementById('btnResetViewObj'),
@@ -560,8 +552,6 @@
                 isWasmLoaded = true;
                 els.loaderOverlay.classList.add('hidden');
                 console.log("WASM Initialized!");
-
-                await restoreCachedFont();
             } catch (e) {
                 els.statusText.innerText = "ERR: LOAD";
                 console.error(e);
@@ -600,9 +590,8 @@
             document.getElementById('localInputWrapper').classList.toggle('hidden', !els.radioLocal.checked);
             document.getElementById('urlInputWrapper').classList.toggle('hidden', !els.radioUrl.checked);
             document.getElementById('presetInputWrapper').classList.toggle('hidden', !els.radioPreset.checked);
-            document.getElementById('textInputWrapper').classList.toggle('hidden', !els.radioText.checked);
         }
-        [els.radioLocal, els.radioUrl, els.radioPreset, els.radioText].forEach(r => r.addEventListener('change', updateInputView));
+        [els.radioLocal, els.radioUrl, els.radioPreset].forEach(r => r.addEventListener('change', updateInputView));
 
         // Image page: hardcode image partner links
         const partnerContent = document.getElementById('partnerContent');
@@ -652,145 +641,7 @@
             }
         });
 
-        // --- Font IndexedDB Cache ---
-        const DB_NAME = 'VectomancyFontDB';
-        const DB_VERSION = 1;
-        function openFontDB() {
-            return new Promise((resolve, reject) => {
-                const req = indexedDB.open(DB_NAME, DB_VERSION);
-                req.onupgradeneeded = e => {
-                    const db = e.target.result;
-                    if(!db.objectStoreNames.contains('fonts')) db.createObjectStore('fonts');
-                };
-                req.onsuccess = () => resolve(req.result);
-                req.onerror = () => reject(req.error);
-            });
-        }
-        async function saveFontCache(name, arrayBuffer) {
-            const db = await openFontDB();
-            return new Promise((resolve, reject) => {
-                const tx = db.transaction('fonts', 'readwrite');
-                tx.objectStore('fonts').put(arrayBuffer, name);
-                tx.oncomplete = () => resolve();
-                tx.onerror = () => reject(tx.error);
-            });
-        }
-        async function loadFontCache(name) {
-            const db = await openFontDB();
-            return new Promise((resolve, reject) => {
-                const tx = db.transaction('fonts', 'readonly');
-                const req = tx.objectStore('fonts').get(name);
-                req.onsuccess = () => resolve(req.result);
-                req.onerror = () => reject(tx.error);
-            });
-        }
 
-        async function restoreCachedFont() {
-            try {
-                const buffer = await loadFontCache('last_font_bytes');
-                const nameBuffer = await loadFontCache('last_font_name');
-                if (buffer && nameBuffer) {
-                    currentFontBytes = new Uint8Array(buffer);
-                    currentFontFilename = new TextDecoder().decode(nameBuffer);
-                    els.filenameDisplay.innerText = truncateMiddle(currentFontFilename, 20);
-                }
-            } catch(e) { console.error("No cached font found.", e); }
-        }
-
-        // --- Local Font Access API ---
-        let localFontsList = [];
-        els.btnAccessLocalFonts.addEventListener('click', async () => {
-            try {
-                if (!('queryLocalFonts' in window)) {
-                    throw new Error("Local Font Access API is not supported in your browser (try Chrome/Edge desktop).");
-                }
-                els.loaderOverlay.classList.remove('hidden');
-                els.loaderText.innerText = "Requesting Font Access...";
-                localFontsList = await window.queryLocalFonts();
-
-                els.localFontSelectWrapper.style.display = 'block';
-                els.btnAccessLocalFonts.style.display = 'none';
-                els.localFontSelect.innerHTML = '<option value="" disabled selected>Select system font...</option>';
-
-                const familyMap = new Map();
-                for (const f of localFontsList) {
-                    if (!familyMap.has(f.family)) familyMap.set(f.family, f);
-                }
-                Array.from(familyMap.keys()).sort().forEach(family => {
-                    const opt = document.createElement('option');
-                    opt.value = family;
-                    opt.textContent = family;
-                    els.localFontSelect.appendChild(opt);
-                });
-                els.loaderOverlay.classList.add('hidden');
-            } catch(err) {
-                els.loaderOverlay.classList.add('hidden');
-                showError(err.message || "Failed to access system fonts. Permission denied?");
-            }
-        });
-
-        els.localFontSelect.addEventListener('change', async () => {
-            const family = els.localFontSelect.value;
-            const fontObj = localFontsList.find(f => f.family === family);
-            if (!fontObj) return;
-
-            els.loaderOverlay.classList.remove('hidden');
-            els.loaderText.innerText = `Extracting ${family}...`;
-            try {
-                const blob = await fontObj.blob();
-                const b = await blob.arrayBuffer();
-                currentFontBytes = new Uint8Array(b);
-                currentFontFilename = family + " (System)";
-                els.filenameDisplay.innerText = truncateMiddle(currentFontFilename, 20);
-
-                await saveFontCache('last_font_bytes', b);
-                await saveFontCache('last_font_name', new TextEncoder().encode(currentFontFilename).buffer);
-            } catch(err) {
-                showError("Could not extract font data.");
-            }
-            els.loaderOverlay.classList.add('hidden');
-        });
-
-        els.fontInput.addEventListener('change', async (e) => {
-            if(e.target.files[0]) {
-                const b = await e.target.files[0].arrayBuffer();
-                currentFontBytes = new Uint8Array(b);
-                currentFontFilename = e.target.files[0].name;
-                els.filenameDisplay.innerText = truncateMiddle(currentFontFilename, 20);
-
-                // Save to cache
-                saveFontCache('last_font_bytes', b);
-                saveFontCache('last_font_name', new TextEncoder().encode(currentFontFilename).buffer);
-            }
-        });
-
-        document.querySelectorAll('.font-preset-btn').forEach(btn => {
-            btn.addEventListener('click', async (e) => {
-                const url = e.target.dataset.url;
-                const filename = e.target.dataset.filename + " (Cloud)";
-
-                els.loaderOverlay.classList.remove('hidden');
-                els.loaderText.innerText = `Fetching ${filename}...`;
-                try {
-                    const proxyBase = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || window.location.protocol === 'file:')
-                        ? 'https://vectomancy.pages.dev/proxy'
-                        : '/proxy';
-                    const r = await fetch(proxyBase + '?url=' + encodeURIComponent(url));
-                    if (!r.ok) throw new Error("HTTP Error");
-                    const b = await r.arrayBuffer();
-
-                    currentFontBytes = new Uint8Array(b);
-                    currentFontFilename = filename;
-                    els.filenameDisplay.innerText = truncateMiddle(currentFontFilename, 20);
-
-                    await saveFontCache('last_font_bytes', b);
-                    await saveFontCache('last_font_name', new TextEncoder().encode(currentFontFilename).buffer);
-                } catch(err) {
-                    showError("Failed to fetch cloud font.\nPlease check your network.");
-                }
-                els.loaderOverlay.classList.add('hidden');
-            });
-        });
 
         els.fetchUrlBtn.addEventListener('click', async () => {
             const url = els.urlInput.value;
@@ -848,13 +699,7 @@
 
         els.generateBtn.addEventListener('click', () => {
             if(!isWasmLoaded) return;
-            const isTextMode = els.radioText.checked;
-            if (isTextMode) {
-                if(!currentFontBytes) return showError("No Font Selected!");
-                if(!els.textInput.value) return showError("No Text entered!");
-            } else {
-                if(!currentImageBytes) return showError("No Image!");
-            }
+            if(!currentImageBytes) return showError("No Image!");
 
             els.progressContainer.classList.remove('hidden');
             let p = 0;
@@ -868,12 +713,7 @@
                                      chaikin_iters: parseInt(els.chaikinRange.value), terms: parseInt(els.termsRange.value),
                                      detail: parseInt(els.detailRange.value), min_path_len: parseInt(els.minPathRange.value) };
 
-                    let result;
-                    if(isTextMode) {
-                        result = process_text(currentFontBytes, els.textInput.value, options);
-                    } else {
-                        result = process_image(currentImageBytes, options);
-                    }
+                    const result = process_image(currentImageBytes, options);
 
                     snapshotCount++;
                     const id = `snap-${snapshotCount}`;
