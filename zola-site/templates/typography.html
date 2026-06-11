@@ -413,6 +413,42 @@
                 <input type="range" id="chaikinRange" min="0" max="5" value="1" class="nes-range" aria-label="Chaikin Iterations">
             </div>
 
+            <!-- Output Size Settings -->
+            <hr style="border: 1px dashed var(--text-color); margin: 12px 0;">
+            <p style="font-size: 8px; margin-bottom: 5px; color: var(--accent-color);">▶ Output Size</p>
+            <div class="nes-select" style="margin-bottom: 10px;">
+                <select id="sizeModeSelect" style="font-size: 8px; padding: 6px;" aria-label="Size Mode Select">
+                    <option value="auto" selected>Auto (Text Aspect Ratio)</option>
+                    <option value="custom">Custom Dimensions</option>
+                </select>
+            </div>
+
+            <div id="auto-size-controls" style="margin-bottom: 10px;">
+                <label for="resolutionScaleRange">Resolution Scale: <span id="resScaleVal" style="color: var(--accent-color);">2x</span></label>
+                <input type="range" id="resolutionScaleRange" min="1" max="8" value="2" class="nes-range" aria-label="Resolution Scale">
+            </div>
+
+            <div id="custom-size-controls" class="hidden" style="margin-bottom: 10px;">
+                <div style="display: flex; gap: 10px; margin-bottom: 8px;">
+                    <div style="flex: 1;">
+                        <label for="customWidthInput" style="font-size: 7px; margin-bottom: 2px;">Width (px)</label>
+                        <input type="number" id="customWidthInput" class="nes-input" style="font-size: 8px; padding: 4px; width: 100%;" value="1024">
+                    </div>
+                    <div style="flex: 1;">
+                        <label for="customHeightInput" style="font-size: 7px; margin-bottom: 2px;">Height (px)</label>
+                        <input type="number" id="customHeightInput" class="nes-input" style="font-size: 8px; padding: 4px; width: 100%;" value="256">
+                    </div>
+                </div>
+                <label style="margin: 0; font-size: 7px; display: flex; align-items: center; gap: 4px;">
+                    <input type="checkbox" class="nes-checkbox" id="keepAspectRatioCheck" checked aria-label="Keep Aspect Ratio"/>
+                    <span>Lock Ratio</span>
+                </label>
+            </div>
+
+            <div style="font-size: 7px; color: #aaa; margin-bottom: 10px;">
+                Target Size: <span id="targetSizeDisplay" style="color: var(--accent-color); font-weight: bold;">-</span>
+            </div>
+
             <button class="nes-btn is-primary" id="generateBtn" style="width: 100%; margin-top: 10px; font-size: 10px;" aria-label="Generate">GENERATE</button>
             <div id="status-text" style="font-size: 8px; margin-top: 8px; text-align: center;">READY</div>
         </div>
@@ -599,7 +635,16 @@
             btnZoomIn: document.getElementById('btnZoomIn'),
             btnZoomOut: document.getElementById('btnZoomOut'),
             btnResetViewObj: document.getElementById('btnResetViewObj'),
-            btnFocus: document.getElementById('btnFocus')
+            btnFocus: document.getElementById('btnFocus'),
+            sizeModeSelect: document.getElementById('sizeModeSelect'),
+            resolutionScaleRange: document.getElementById('resolutionScaleRange'),
+            autoSizeControls: document.getElementById('auto-size-controls'),
+            customSizeControls: document.getElementById('custom-size-controls'),
+            customWidthInput: document.getElementById('customWidthInput'),
+            customHeightInput: document.getElementById('customHeightInput'),
+            keepAspectRatioCheck: document.getElementById('keepAspectRatioCheck'),
+            targetSizeDisplay: document.getElementById('targetSizeDisplay'),
+            resScaleVal: document.getElementById('resScaleVal')
         };
 
         const ctx = els.mainCanvas.getContext('2d');
@@ -644,6 +689,7 @@
         }
 
         run();
+
 
         function hexToRgb(hex) {
             const r = parseInt(hex.slice(1, 3), 16) / 255.0;
@@ -793,6 +839,32 @@
         if (els.solidColorInput) {
             els.solidColorInput.addEventListener('change', updateColorStyleOnAst);
             els.solidColorInput.addEventListener('input', updateColorStyleOnAst);
+
+
+        function getActiveAspectRatio() {
+            if (activePreviewId) {
+                const res = previewDataStore.get(activePreviewId);
+                if (res && res.width > 0 && res.height > 0) {
+                    return res.width / res.height;
+                }
+            }
+            return 6.0;
+        }
+
+        function getTargetDimensions(baseWidth, baseHeight) {
+            const sizeMode = els.sizeModeSelect.value;
+            if (sizeMode === 'auto') {
+                const scale = parseInt(els.resolutionScaleRange.value) || 2;
+                return {
+                    width: Math.round(baseWidth * scale),
+                    height: Math.round(baseHeight * scale)
+                };
+            } else {
+                const w = parseInt(els.customWidthInput.value) || 1024;
+                const h = parseInt(els.customHeightInput.value) || 256;
+                return { width: w, height: h };
+            }
+
         }
 
         function updateLabels() {
@@ -806,6 +878,7 @@
             const mode = els.modeSelect.value;
             els.fourierControls.classList.toggle('hidden', mode !== 'fourier');
             els.chaikinControls.classList.toggle('hidden', mode !== 'chaikin');
+
 
             const hasColor = els.colorCheck.checked;
             if (els.colorStyleControls) {
@@ -821,6 +894,20 @@
             const flowControls = document.getElementById('flow-controls');
             if (flowControls) {
                 flowControls.classList.toggle('hidden', colorType !== 'gradient' || !hasColor);
+            }
+
+            els.resScaleVal.innerText = `${els.resolutionScaleRange.value}x`;
+            if (activePreviewId) {
+                const res = previewDataStore.get(activePreviewId);
+                if (res) {
+                    const dims = getTargetDimensions(res.width, res.height);
+                    els.targetSizeDisplay.innerText = `${dims.width} x ${dims.height} px`;
+                } else {
+                    els.targetSizeDisplay.innerText = "-";
+                }
+            } else {
+                els.targetSizeDisplay.innerText = "Waiting for render...";
+
             }
         }
 
@@ -858,6 +945,60 @@
 
         if (els.colorCheck) els.colorCheck.addEventListener('change', updateColorStyleOnAst);
         if (els.colorTypeSelect) els.colorTypeSelect.addEventListener('change', updateColorStyleOnAst);
+
+        els.sizeModeSelect.addEventListener('change', () => {
+            const mode = els.sizeModeSelect.value;
+            els.autoSizeControls.classList.toggle('hidden', mode !== 'auto');
+            els.customSizeControls.classList.toggle('hidden', mode !== 'custom');
+            updateLabels();
+            recacheViewportCanvas();
+            requestRender();
+        });
+
+        els.resolutionScaleRange.addEventListener('input', () => {
+            updateLabels();
+            recacheViewportCanvas();
+            requestRender();
+        });
+
+        els.customWidthInput.addEventListener('input', () => {
+            if (els.keepAspectRatioCheck.checked) {
+                const ratio = getActiveAspectRatio();
+                if (ratio > 0) {
+                    const w = parseInt(els.customWidthInput.value) || 0;
+                    els.customHeightInput.value = Math.max(1, Math.round(w / ratio));
+                }
+            }
+            updateLabels();
+            recacheViewportCanvas();
+            requestRender();
+        });
+
+        els.customHeightInput.addEventListener('input', () => {
+            if (els.keepAspectRatioCheck.checked) {
+                const ratio = getActiveAspectRatio();
+                if (ratio > 0) {
+                    const h = parseInt(els.customHeightInput.value) || 0;
+                    els.customWidthInput.value = Math.max(1, Math.round(h * ratio));
+                }
+            }
+            updateLabels();
+            recacheViewportCanvas();
+            requestRender();
+        });
+
+        els.keepAspectRatioCheck.addEventListener('change', () => {
+            if (els.keepAspectRatioCheck.checked) {
+                const ratio = getActiveAspectRatio();
+                if (ratio > 0) {
+                    const w = parseInt(els.customWidthInput.value) || 1024;
+                    els.customHeightInput.value = Math.max(1, Math.round(w / ratio));
+                }
+            }
+            updateLabels();
+            recacheViewportCanvas();
+            requestRender();
+        });
 
         els.themeToggleBtn.addEventListener('click', () => {
             document.body.classList.toggle('dark-theme');
@@ -1256,19 +1397,28 @@
                 if (!cachedViewportCanvas) {
                     cachedViewportCanvas = document.createElement('canvas');
                 }
-                if (cachedViewportCanvas.width !== res.width || cachedViewportCanvas.height !== res.height) {
-                    cachedViewportCanvas.width = res.width;
-                    cachedViewportCanvas.height = res.height;
-                }
+                const dims = getTargetDimensions(res.width, res.height);
+                cachedViewportCanvas.width = dims.width;
+                cachedViewportCanvas.height = dims.height;
                 const cCtx = cachedViewportCanvas.getContext('2d');
 
-                cCtx.clearRect(0, 0, res.width, res.height);
+                cCtx.clearRect(0, 0, dims.width, dims.height);
+
+                cCtx.save();
+                const scaleX = dims.width / res.width;
+                const scaleY = dims.height / res.height;
+                const scale = Math.min(scaleX, scaleY);
+                const offsetX = (dims.width - res.width * scale) / 2;
+                const offsetY = (dims.height - res.height * scale) / 2;
+                cCtx.translate(offsetX, offsetY);
+                cCtx.scale(scale, scale);
 
                 if (!res.cachedPaths) {
                     res.cachedPaths = buildPath2DCache(res.ast);
                 }
 
                 drawCachedPaths(cCtx, res.cachedPaths, res.ast, false, document.body.classList.contains('dark-theme'), true);
+                cCtx.restore();
             }
         }
 
@@ -1279,8 +1429,13 @@
             if(item) { item.classList.add('active'); item.scrollIntoView({ behavior:'smooth', inline:'center' }); }
 
             if(id) {
-                recacheViewportCanvas();
                 const res = previewDataStore.get(id);
+                if (els.keepAspectRatioCheck.checked && res.width > 0 && res.height > 0) {
+                    const ratio = res.width / res.height;
+                    const w = parseInt(els.customWidthInput.value) || 1024;
+                    els.customHeightInput.value = Math.max(1, Math.round(w / ratio));
+                }
+                recacheViewportCanvas();
                 let stats = `RENDER STATS\nSIZE: ${res.width}x${res.height}\nTIME: ${res.computeTime}ms`;
                 if(res.ast.type === 'Spline' || res.ast.type === 'spline') stats += `\nPATHS: ${res.ast.equations.length}`;
                 els.overlayStats.innerText = stats;
@@ -1288,6 +1443,7 @@
                 cachedViewportCanvas = null;
                 els.overlayStats.innerText = "Waiting for input...";
             }
+            updateLabels();
             resetViewport(); requestRender();
         }
 
@@ -1499,7 +1655,7 @@
                 ctx.fillRect(0, 0, w, h);
             }
 
-            ctx.drawImage(cachedViewportCanvas, 0, 0);
+            ctx.drawImage(cachedViewportCanvas, 0, 0, w, h);
 
             // Add constant physical size handle rendering
             const paths = res.ast.equations || res.ast.strokes || res.ast.paths || [];
@@ -1605,7 +1761,6 @@
                     }
                 }
             }
-
             ctx.restore();
         }
 
@@ -1671,14 +1826,24 @@
             if (!activePreviewId) return showError("No render selected!");
             const format = els.exportFormat.value;
             const res = previewDataStore.get(activePreviewId);
+            const dims = getTargetDimensions(res.width, res.height);
             const canvas = document.createElement('canvas');
-            canvas.width = res.width; canvas.height = res.height;
+            canvas.width = dims.width; canvas.height = dims.height;
             const eCtx = canvas.getContext('2d');
             if (!els.bgTransparentCheck.checked || format === 'jpg') {
                 eCtx.fillStyle = document.body.classList.contains('dark-theme') ? '#000000' : '#ffffff';
-                eCtx.fillRect(0, 0, res.width, res.height);
+                eCtx.fillRect(0, 0, dims.width, dims.height);
             }
+            eCtx.save();
+            const scaleX = dims.width / res.width;
+            const scaleY = dims.height / res.height;
+            const scale = Math.min(scaleX, scaleY);
+            const offsetX = (dims.width - res.width * scale) / 2;
+            const offsetY = (dims.height - res.height * scale) / 2;
+            eCtx.translate(offsetX, offsetY);
+            eCtx.scale(scale, scale);
             drawAST(eCtx, res.ast, false, document.body.classList.contains('dark-theme'), true);
+            eCtx.restore();
             const baseName = els.textInput.value.substring(0, 12).replace(/\s+/g, '_') || "text_render";
             let finalFilename = `${baseName}_vecto_${els.modeSelect.value.toUpperCase()}_D${els.detailRange.value}`;
             if (format === 'json') {
@@ -1709,6 +1874,11 @@
                     terms: els.termsRange.value,
                     chaikin: els.chaikinRange.value,
                     exportFormat: els.exportFormat.value,
+                    sizeMode: els.sizeModeSelect.value,
+                    resScale: els.resolutionScaleRange.value,
+                    customWidth: els.customWidthInput.value,
+                    customHeight: els.customHeightInput.value,
+                    keepRatio: els.keepAspectRatioCheck.checked,
                     theme: document.body.classList.contains('dark-theme') ? 'dark' : 'light'
                 };
                 localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
@@ -1734,6 +1904,17 @@
                 if (settings.terms !== undefined) els.termsRange.value = settings.terms;
                 if (settings.chaikin !== undefined) els.chaikinRange.value = settings.chaikin;
                 if (settings.exportFormat !== undefined) els.exportFormat.value = settings.exportFormat;
+
+                if (settings.sizeMode !== undefined) {
+                    els.sizeModeSelect.value = settings.sizeMode;
+                    els.autoSizeControls.classList.toggle('hidden', settings.sizeMode !== 'auto');
+                    els.customSizeControls.classList.toggle('hidden', settings.sizeMode !== 'custom');
+                }
+                if (settings.resScale !== undefined) els.resolutionScaleRange.value = settings.resScale;
+                if (settings.customWidth !== undefined) els.customWidthInput.value = settings.customWidth;
+                if (settings.customHeight !== undefined) els.customHeightInput.value = settings.customHeight;
+                if (settings.keepRatio !== undefined) els.keepAspectRatioCheck.checked = settings.keepRatio;
+
                 if (settings.theme === 'dark') {
                     document.body.classList.add('dark-theme');
                     [els.deleteDialog, els.clearDialog, els.errorDialog, els.helpDialog].forEach(d => d.classList.add('is-dark'));
@@ -1744,17 +1925,17 @@
                 }
             } catch(e) {}
         }
-
         [
             els.modeSelect, els.colorCheck, els.colorTypeSelect, els.flowSpeedRange, els.gridCheck, els.bgTransparentCheck, els.hideHandlesCheck,
-            els.detailRange, els.minPathRange, els.termsRange, els.chaikinRange, els.exportFormat, els.solidColorInput
+            els.detailRange, els.minPathRange, els.termsRange, els.chaikinRange, els.exportFormat, els.solidColorInput,
+            els.sizeModeSelect, els.resolutionScaleRange, els.customWidthInput, els.customHeightInput,
+            els.keepAspectRatioCheck
         ].forEach(el => {
             if (el) {
                 el.addEventListener('input', saveSettings);
                 el.addEventListener('change', saveSettings);
             }
         });
-
         loadSettings();
         updateLabels();
         renderPalettePresets();
