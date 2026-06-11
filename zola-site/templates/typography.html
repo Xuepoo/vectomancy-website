@@ -314,8 +314,11 @@
                 <button class="nes-btn font-preset-btn" data-url="/fonts/font.ttf" data-filename="PressStart2P" style="font-size: 6px; padding: 4px;">8-bit Pixel</button>
                 <button class="nes-btn font-preset-btn" data-url="https://fonts.gstatic.com/l/font?kit=KFOMCnqEu92Fr1ME7kSn66aGLdTylUAMQXC89YmC2DPNWubEbVmUiA4&skey=a0a0114a1dcab3ac&v=v51" data-filename="Roboto" style="font-size: 6px; padding: 4px;">Roboto</button>
                 <button class="nes-btn font-preset-btn is-success" data-url="https://raw.githubusercontent.com/google/fonts/main/ofl/pacifico/Pacifico-Regular.ttf" data-filename="Pacifico" style="font-size: 6px; padding: 4px;">Brush Script</button>
-                <button class="nes-btn font-preset-btn is-warning" data-url="https://fonts.gstatic.com/l/font?kit=k3kCo84MPvpLmixcA63oeAL7Iqp5IZJF9bmaG9_FrYtHaQ&skey=cf0bb10b5602fdc3&v=v40" data-filename="Noto Sans SC" style="font-size: 6px; padding: 4px;">简体中文</button>
-                <button class="nes-btn font-preset-btn" data-url="https://fonts.gstatic.com/l/font?kit=-F6jfjtqLzI2JPCgQBnw7HFyzSD-AsregP8VFBEj35zS1w&skey=72472b0eb8793570&v=v56" data-filename="Noto Sans JP" style="font-size: 6px; padding: 4px; grid-column: 1/-1;">日本語 (Noto JP)</button>
+                <button class="nes-btn font-preset-btn is-warning" data-url="/fonts/QingKeHuangYou.ttf" data-filename="QingKeHuangYou" style="font-size: 6px; padding: 4px;">简体中文(黄油)</button>
+                <button class="nes-btn font-preset-btn is-warning" data-url="/fonts/MaShanZheng.ttf" data-filename="MaShanZheng" style="font-size: 6px; padding: 4px;">中文毛笔</button>
+                <button class="nes-btn font-preset-btn is-warning" data-url="/fonts/LongCang.ttf" data-filename="LongCang" style="font-size: 6px; padding: 4px;">中文行书</button>
+                <button class="nes-btn font-preset-btn is-primary" data-url="/fonts/SawarabiMincho.ttf" data-filename="SawarabiMincho" style="font-size: 6px; padding: 4px;">日本語 (明朝)</button>
+                <button class="nes-btn font-preset-btn is-primary" data-url="/fonts/DotGothic16.ttf" data-filename="DotGothic16" style="font-size: 6px; padding: 4px;">日本語 (像素)</button>
             </div>
         </div>
 
@@ -334,6 +337,7 @@
                 <label style="margin: 0;"><input type="checkbox" class="nes-checkbox" id="colorCheck" checked aria-label="Enable Colors"/><span>Colors</span></label>
                 <label style="margin: 0;"><input type="checkbox" class="nes-checkbox" id="gridCheck" aria-label="Show Grid"/><span>Show Grid</span></label>
                 <label style="margin: 0;"><input type="checkbox" class="nes-checkbox" id="bgTransparentCheck" aria-label="Transparent Background"/><span>Transparent</span></label>
+                <label style="margin: 0;"><input type="checkbox" class="nes-checkbox" id="hideHandlesCheck" aria-label="Hide Controls"/><span>Hide Controls</span></label>
             </div>
 
             <div id="colorStyleControls" style="margin-top: 10px; margin-bottom: 10px;">
@@ -550,6 +554,7 @@
             overlayStats: document.getElementById('overlayStats'),
             exportFormat: document.getElementById('exportFormat'),
             bgTransparentCheck: document.getElementById('bgTransparentCheck'),
+            hideHandlesCheck: document.getElementById('hideHandlesCheck'),
             downloadBtn: document.getElementById('downloadBtn'),
             loaderOverlay: document.getElementById('loaderOverlay'),
             loaderText: document.getElementById('loaderText'),
@@ -1252,7 +1257,7 @@
         let activeHandleType = null; // 'start' or 'end'
 
         els.canvasArea.addEventListener('mousedown', (e) => {
-            if (activePreviewId) {
+            if (activePreviewId && !els.hideHandlesCheck.checked) {
                 const res = previewDataStore.get(activePreviewId);
                 if (res && res.ast) {
                     const paths = res.ast.equations || res.ast.strokes || res.ast.paths || [];
@@ -1401,7 +1406,7 @@
             const paths = res.ast.equations || res.ast.strokes || res.ast.paths || [];
             const firstPath = paths[0];
             const colorStyle = firstPath ? (firstPath.color_style || firstPath.color_rgb) : null;
-            if (colorStyle && colorStyle.stops) {
+            if (!els.hideHandlesCheck.checked && colorStyle && colorStyle.stops) {
                 const start_pos = colorStyle.start_pos || [0.0, 0.5];
                 const end_pos = colorStyle.end_pos || [1.0, 0.5];
                 const bbox = res.ast.bounding_box;
@@ -1497,6 +1502,7 @@
             Array.from(els.exportFormat.options).find(o => o.value === 'jpg').disabled = els.bgTransparentCheck.checked;
             requestRender();
         });
+        els.hideHandlesCheck.addEventListener('change', () => { requestRender(); });
 
         els.btnZoomIn.onclick = () => { const r = els.canvasArea.getBoundingClientRect(); zoomAt(r.left+r.width/2, r.top+r.height/2, 1.2); };
         els.btnZoomOut.onclick = () => { const r = els.canvasArea.getBoundingClientRect(); zoomAt(r.left+r.width/2, r.top+r.height/2, 0.8); };
@@ -1543,6 +1549,7 @@
                     flowSpeed: els.flowSpeedRange ? els.flowSpeedRange.value : '0',
                     grid: els.gridCheck.checked,
                     transparent: els.bgTransparentCheck.checked,
+                    hideHandles: els.hideHandlesCheck.checked,
                     detail: els.detailRange.value,
                     minPath: els.minPathRange.value,
                     terms: els.termsRange.value,
@@ -1567,6 +1574,7 @@
                 if (settings.flowSpeed !== undefined && els.flowSpeedRange) els.flowSpeedRange.value = settings.flowSpeed;
                 if (settings.grid !== undefined) els.gridCheck.checked = settings.grid;
                 if (settings.transparent !== undefined) els.bgTransparentCheck.checked = settings.transparent;
+                if (settings.hideHandles !== undefined) els.hideHandlesCheck.checked = settings.hideHandles;
                 if (settings.detail !== undefined) els.detailRange.value = settings.detail;
                 if (settings.minPath !== undefined) els.minPathRange.value = settings.minPath;
                 if (settings.terms !== undefined) els.termsRange.value = settings.terms;
@@ -1584,7 +1592,7 @@
         }
 
         [
-            els.modeSelect, els.colorCheck, els.colorTypeSelect, els.flowSpeedRange, els.gridCheck, els.bgTransparentCheck,
+            els.modeSelect, els.colorCheck, els.colorTypeSelect, els.flowSpeedRange, els.gridCheck, els.bgTransparentCheck, els.hideHandlesCheck,
             els.detailRange, els.minPathRange, els.termsRange, els.chaikinRange, els.exportFormat, els.solidColorInput
         ].forEach(el => {
             if (el) {
