@@ -1479,23 +1479,78 @@
                         ctx.stroke();
                         ctx.setLineDash([]); // Reset
 
-                        // Start handle (Green)
+                        // Determine start and end reference colors from stops
+                        let startColor = '#2beb82';
+                        let endColor = '#ff4757';
+                        if (colorStyle.stops && colorStyle.stops.length > 0) {
+                            const sortedStops = [...colorStyle.stops].sort((a, b) => a[0] - b[0]);
+                            const firstStop = sortedStops[0];
+                            const lastStop = sortedStops[sortedStops.length - 1];
+                            startColor = rgbToHex(firstStop[1][0], firstStop[1][1], firstStop[1][2]);
+                            endColor = rgbToHex(lastStop[1][0], lastStop[1][1], lastStop[1][2]);
+                        }
+
+                        // Draw all Stops along the line
+                        if (colorStyle.stops) {
+                            colorStyle.stops.forEach(stop => {
+                                const offset = stop[0];
+                                const rgb = stop[1];
+                                const stopColor = rgbToHex(rgb[0], rgb[1], rgb[2]);
+                                const cx = x0 + offset * (x1 - x0);
+                                const cy = y0 + offset * (y1 - y0);
+
+                                // Stop node outer white circle
+                                ctx.beginPath();
+                                ctx.arc(cx, cy, 7.5 / visualScale, 0, Math.PI * 2);
+                                ctx.fillStyle = '#ffffff';
+                                ctx.fill();
+
+                                // Stop node inner color circle
+                                ctx.beginPath();
+                                ctx.arc(cx, cy, 5.0 / visualScale, 0, Math.PI * 2);
+                                ctx.fillStyle = stopColor;
+                                ctx.fill();
+
+                                // Outer dark stroke for visibility on light/dark backgrounds
+                                ctx.beginPath();
+                                ctx.arc(cx, cy, 7.5 / visualScale, 0, Math.PI * 2);
+                                ctx.strokeStyle = '#2d2416';
+                                ctx.lineWidth = 1.0 / visualScale;
+                                ctx.stroke();
+                            });
+                        }
+
+                        // Draw Start Handle (Green Outer Ring, White spacer, Start Color Inner)
                         ctx.beginPath();
-                        ctx.arc(x0, y0, 8 / visualScale, 0, Math.PI * 2);
+                        ctx.arc(x0, y0, 11 / visualScale, 0, Math.PI * 2);
                         ctx.fillStyle = '#2beb82';
                         ctx.fill();
-                        ctx.strokeStyle = '#ffffff';
-                        ctx.lineWidth = 2 / visualScale;
-                        ctx.stroke();
 
-                        // End handle (Red)
                         ctx.beginPath();
-                        ctx.arc(x1, y1, 8 / visualScale, 0, Math.PI * 2);
+                        ctx.arc(x0, y0, 9 / visualScale, 0, Math.PI * 2);
+                        ctx.fillStyle = '#ffffff';
+                        ctx.fill();
+
+                        ctx.beginPath();
+                        ctx.arc(x0, y0, 6.5 / visualScale, 0, Math.PI * 2);
+                        ctx.fillStyle = startColor;
+                        ctx.fill();
+
+                        // Draw End Handle (Red Outer Ring, White spacer, End Color Inner)
+                        ctx.beginPath();
+                        ctx.arc(x1, y1, 11 / visualScale, 0, Math.PI * 2);
                         ctx.fillStyle = '#ff4757';
                         ctx.fill();
-                        ctx.strokeStyle = '#ffffff';
-                        ctx.lineWidth = 2 / visualScale;
-                        ctx.stroke();
+
+                        ctx.beginPath();
+                        ctx.arc(x1, y1, 9 / visualScale, 0, Math.PI * 2);
+                        ctx.fillStyle = '#ffffff';
+                        ctx.fill();
+
+                        ctx.beginPath();
+                        ctx.arc(x1, y1, 6.5 / visualScale, 0, Math.PI * 2);
+                        ctx.fillStyle = endColor;
+                        ctx.fill();
                     }
                 }
             }
