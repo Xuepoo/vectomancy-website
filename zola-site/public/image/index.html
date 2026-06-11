@@ -83,6 +83,7 @@
         /* --- SIDEBAR --- */
         .sidebar {
             width: 320px;
+            flex-shrink: 0;
             background-color: var(--container-bg);
             border-right: 4px solid var(--text-color);
             padding: 20px;
@@ -91,6 +92,53 @@
             gap: 15px;
             z-index: 100;
             overflow-y: auto;
+        }
+
+        /* Enlarge retro text globally for readability */
+        .sidebar,
+        .sidebar label,
+        .sidebar input,
+        .sidebar select,
+        .sidebar textarea,
+        .sidebar button,
+        .sidebar span,
+        .sidebar p,
+        .top-bar,
+        .top-bar button,
+        .top-bar a,
+        .nes-dialog,
+        .nes-dialog p,
+        .nes-dialog button,
+        .nes-dialog div,
+        .overlay-stats,
+        .progress-overlay,
+        .progress-overlay p {
+            font-size: 11px !important;
+        }
+
+        /* Specific adjustments for clarity */
+        #helpBtn {
+            font-size: 14px !important;
+            font-weight: bold;
+        }
+
+        .canvas-controls .nes-btn {
+            font-size: 12px !important;
+        }
+
+        /* Floating Generate Button on Canvas bottom-left */
+        .canvas-generate-btn {
+            position: absolute;
+            bottom: 15px;
+            left: 15px;
+            z-index: 60;
+            box-shadow: 0 4px 0 rgba(0, 0, 0, 0.2);
+            font-family: "Press Start 2P", cursive;
+            font-size: 11px;
+            padding: 6px 12px;
+        }
+        body.focus-mode .canvas-generate-btn {
+            display: none !important;
         }
 
         .control-group { margin-bottom: 5px; }
@@ -375,7 +423,7 @@
                 <input type="range" id="chaikinRange" min="0" max="5" value="1" class="nes-range" aria-label="Chaikin Iterations">
             </div>
 
-            <button class="nes-btn is-primary" id="generateBtn" style="width: 100%; margin-top: 10px; font-size: 10px;" aria-label="Generate Image">GENERATE</button>
+            <!-- Generate Button removed from here (moved to canvas area) -->
             <div id="status-text" style="font-size: 8px; margin-top: 8px; text-align: center;">READY</div>
         </div>
 
@@ -412,12 +460,15 @@
                 <button class="nes-btn is-error" id="clearAllBtn" style="font-size: 8px;" aria-label="Clear All">Clear All</button>
                 <button class="nes-btn" id="themeToggleBtn" style="font-size: 8px;" aria-label="Toggle Theme">Theme</button>
                 <button class="nes-btn" id="resetViewBtn" style="font-size: 8px;" aria-label="Reset View">Reset View</button>
+                <button class="nes-btn is-error" id="resetSettingsBtn" style="font-size: 8px;" aria-label="Reset Settings">Reset Config</button>
             </div>
         </div>
 
         <div class="canvas-area" id="canvasArea">
             <canvas id="mainCanvas" aria-label="Main Drawing Canvas"></canvas>
             <div class="overlay-stats nes-container is-rounded" id="overlayStats" aria-live="polite">Waiting for input...</div>
+
+            <button class="nes-btn is-primary canvas-generate-btn" id="generateBtn" aria-label="Generate Image">GENERATE</button>
 
             <div class="canvas-controls">
                 <button class="nes-btn" id="btnZoomIn" title="Zoom In" aria-label="Zoom In">+</button>
@@ -533,7 +584,8 @@
             btnZoomIn: document.getElementById('btnZoomIn'),
             btnZoomOut: document.getElementById('btnZoomOut'),
             btnResetViewObj: document.getElementById('btnResetViewObj'),
-            btnFocus: document.getElementById('btnFocus')
+            btnFocus: document.getElementById('btnFocus'),
+            resetSettingsBtn: document.getElementById('resetSettingsBtn'),
         };
 
         const ctx = els.mainCanvas.getContext('2d');
@@ -586,6 +638,27 @@
             recacheViewportCanvas();
             requestRender();
             saveSettings();
+        });
+
+        if (els.resetSettingsBtn) {
+            els.resetSettingsBtn.addEventListener('click', () => {
+                localStorage.removeItem(STORAGE_KEY);
+                window.location.reload();
+            });
+        }
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                const isTextarea = e.target.tagName === 'TEXTAREA';
+                if (isTextarea) {
+                    if (!e.shiftKey) {
+                        e.preventDefault();
+                        els.generateBtn.click();
+                    }
+                } else if (e.target.tagName === 'INPUT' || e.target === document.body) {
+                    els.generateBtn.click();
+                }
+            }
         });
 
         function updateInputView() {
