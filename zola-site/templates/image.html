@@ -33,6 +33,7 @@
             --text-color: #1a2e45;
             --accent-color: #209cee;
             --grid-color: rgba(0,0,0,0.05);
+            --canvas-bg: #ffffff;
         }
 
         body.dark-theme {
@@ -41,6 +42,7 @@
             --text-color: #c8e0ff;
             --accent-color: #209cee;
             --grid-color: rgba(32,156,238,0.05);
+            --canvas-bg: #000000;
         }
 
         /* Dark mode: override NES.css defaults, keep same visual style */
@@ -120,7 +122,7 @@
             flex-grow: 1;
             overflow: hidden;
             position: relative;
-            background-color: var(--bg-color);
+            background-color: var(--canvas-bg);
             cursor: grab;
         }
         .canvas-area.show-grid {
@@ -728,7 +730,7 @@
             const size = 128;
             const off = document.createElement('canvas'); off.width = size; off.height = size;
             const oCtx = off.getContext('2d');
-            oCtx.fillStyle = document.body.classList.contains('dark-theme') ? '#1a1a1a' : '#fff';
+            oCtx.fillStyle = document.body.classList.contains('dark-theme') ? '#000000' : '#ffffff';
             oCtx.fillRect(0,0,size,size);
             const s = Math.min(size/result.width, size/result.height) * 0.9;
             oCtx.translate((size-result.width*s)/2, (size-result.height*s)/2); oCtx.scale(s,s);
@@ -848,7 +850,7 @@
             const h = activePreviewId === 'original' ? originalImageObj.height : previewDataStore.get(activePreviewId).height;
 
             if (!els.bgTransparentCheck.checked) {
-                ctx.fillStyle = document.body.classList.contains('dark-theme') ? '#1a1a1a' : '#f7f7f7';
+                ctx.fillStyle = document.body.classList.contains('dark-theme') ? '#000000' : '#ffffff';
                 ctx.fillRect(0, 0, w, h);
             }
 
@@ -1018,7 +1020,7 @@
             canvas.width = res.width; canvas.height = res.height;
             const eCtx = canvas.getContext('2d');
             if (!els.bgTransparentCheck.checked || format === 'jpg') {
-                eCtx.fillStyle = document.body.classList.contains('dark-theme') ? '#1a1a1a' : '#fff';
+                eCtx.fillStyle = document.body.classList.contains('dark-theme') ? '#000000' : '#ffffff';
                 eCtx.fillRect(0, 0, res.width, res.height);
             }
             if (isOriginal) eCtx.drawImage(originalImageObj, 0, 0);
