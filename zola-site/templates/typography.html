@@ -542,8 +542,8 @@
             data-filename="PressStart2P"
             style="
               font-family: &quot;Press Start 2P&quot;, sans-serif;
-              font-size: 8px;
-              padding: 4px 2px;
+              font-size: 11px;
+              padding: 4px;
             "
           >
             8-bit Pixel
@@ -554,8 +554,8 @@
             data-filename="Roboto"
             style="
               font-family: &quot;Roboto&quot;, sans-serif;
-              font-size: 10px;
-              padding: 4px 2px;
+              font-size: 11px;
+              padding: 4px;
             "
           >
             Roboto
@@ -566,8 +566,8 @@
             data-filename="Pacifico"
             style="
               font-family: &quot;Pacifico&quot;, cursive;
-              font-size: 10px;
-              padding: 4px 2px;
+              font-size: 11px;
+              padding: 4px;
             "
           >
             Brush Script
@@ -578,8 +578,8 @@
             data-filename="QingKeHuangYou"
             style="
               font-family: &quot;QingKeHuangYou&quot;, sans-serif;
-              font-size: 10px;
-              padding: 4px 2px;
+              font-size: 11px;
+              padding: 4px;
             "
           >
             简体中文(黄油)
@@ -590,8 +590,8 @@
             data-filename="MaShanZheng"
             style="
               font-family: &quot;MaShanZheng&quot;, sans-serif;
-              font-size: 10px;
-              padding: 4px 2px;
+              font-size: 11px;
+              padding: 4px;
             "
           >
             中文毛笔
@@ -602,8 +602,8 @@
             data-filename="LongCang"
             style="
               font-family: &quot;LongCang&quot;, sans-serif;
-              font-size: 10px;
-              padding: 4px 2px;
+              font-size: 11px;
+              padding: 4px;
             "
           >
             中文行书
@@ -614,8 +614,8 @@
             data-filename="SawarabiMincho"
             style="
               font-family: &quot;SawarabiMincho&quot;, serif;
-              font-size: 10px;
-              padding: 4px 2px;
+              font-size: 11px;
+              padding: 4px;
             "
           >
             日本語 (明朝)
@@ -626,8 +626,8 @@
             data-filename="DotGothic16"
             style="
               font-family: &quot;DotGothic16&quot;, sans-serif;
-              font-size: 10px;
-              padding: 4px 2px;
+              font-size: 11px;
+              padding: 4px;
             "
           >
             日本語 (像素)
@@ -844,6 +844,22 @@
           aria-label="Minimum Path Length"
         />
 
+        <label for="letterSpacingRange"
+          >Letter Spacing:
+          <span id="letterSpacingVal" style="color: var(--accent-color)"
+            >0</span
+          ></label
+        >
+        <input
+          type="range"
+          id="letterSpacingRange"
+          min="-20"
+          max="100"
+          value="0"
+          class="nes-range"
+          aria-label="Letter Spacing"
+        />
+
         <div id="fourier-controls" class="hidden">
           <label for="termsRange"
             >Terms:
@@ -1029,35 +1045,35 @@
             display: flex;
             flex-direction: column;
             gap: 8px;
-            font-size: 8px;
+            font-size: 10px;
           "
         >
           <a
             href="https://fonts.google.com"
             target="_blank"
             class="nes-btn"
-            style="font-size: 6px; padding: 2px"
+            style="font-size: 10px; padding: 4px"
             >Google Fonts</a
           >
           <a
             href="https://fontdasu.com"
             target="_blank"
             class="nes-btn"
-            style="font-size: 6px; padding: 2px"
+            style="font-size: 10px; padding: 4px"
             >FontDasu (JP)</a
           >
           <a
             href="https://fonts.adobe.com"
             target="_blank"
             class="nes-btn is-primary"
-            style="font-size: 6px; padding: 2px"
+            style="font-size: 10px; padding: 4px"
             >Adobe Fonts</a
           >
           <a
             href="https://www.freejapanesefont.com"
             target="_blank"
             class="nes-btn is-warning"
-            style="font-size: 6px; padding: 2px"
+            style="font-size: 10px; padding: 4px"
             >Free JP Fonts</a
           >
         </div>
@@ -1362,12 +1378,14 @@
         gridCheck: document.getElementById("gridCheck"),
         detailRange: document.getElementById("detailRange"),
         minPathRange: document.getElementById("minPathRange"),
+        letterSpacingRange: document.getElementById("letterSpacingRange"),
         termsRange: document.getElementById("termsRange"),
         chaikinRange: document.getElementById("chaikinRange"),
         fourierControls: document.getElementById("fourier-controls"),
         chaikinControls: document.getElementById("chaikin-controls"),
         detailVal: document.getElementById("detailVal"),
         minPathVal: document.getElementById("minPathVal"),
+        letterSpacingVal: document.getElementById("letterSpacingVal"),
         termsVal: document.getElementById("termsVal"),
         chaikinVal: document.getElementById("chaikinVal"),
         overlayStats: document.getElementById("overlayStats"),
@@ -1638,6 +1656,7 @@
       function updateLabels() {
         els.detailVal.innerText = els.detailRange.value;
         els.minPathVal.innerText = els.minPathRange.value;
+        els.letterSpacingVal.innerText = els.letterSpacingRange.value;
         els.termsVal.innerText = els.termsRange.value;
         els.chaikinVal.innerText = els.chaikinRange.value;
         if (els.flowSpeedVal && els.flowSpeedRange) {
@@ -1691,6 +1710,7 @@
       [
         els.detailRange,
         els.minPathRange,
+        els.letterSpacingRange,
         els.termsRange,
         els.chaikinRange,
         els.modeSelect,
@@ -2056,6 +2076,7 @@
               detail: parseInt(els.detailRange.value),
               min_path_len: parseInt(els.minPathRange.value),
               color_style: colorStyleVal,
+              letter_spacing: parseFloat(els.letterSpacingRange.value),
             };
 
             const result = process_text(
@@ -2979,6 +3000,7 @@
             hideHandles: els.hideHandlesCheck.checked,
             detail: els.detailRange.value,
             minPath: els.minPathRange.value,
+            letterSpacing: els.letterSpacingRange.value,
             terms: els.termsRange.value,
             chaikin: els.chaikinRange.value,
             exportFormat: els.exportFormat.value,
@@ -3021,6 +3043,8 @@
             els.detailRange.value = settings.detail;
           if (settings.minPath !== undefined)
             els.minPathRange.value = settings.minPath;
+          if (settings.letterSpacing !== undefined)
+            els.letterSpacingRange.value = settings.letterSpacing;
           if (settings.terms !== undefined)
             els.termsRange.value = settings.terms;
           if (settings.chaikin !== undefined)
@@ -3081,6 +3105,7 @@
         els.hideHandlesCheck,
         els.detailRange,
         els.minPathRange,
+        els.letterSpacingRange,
         els.termsRange,
         els.chaikinRange,
         els.exportFormat,
@@ -3096,6 +3121,13 @@
           el.addEventListener("change", saveSettings);
         }
       });
+      if (els.letterSpacingRange) {
+        els.letterSpacingRange.addEventListener("change", () => {
+          if (currentFontBytes && els.textInput.value) {
+            els.generateBtn.click();
+          }
+        });
+      }
       loadSettings();
       updateLabels();
       renderPalettePresets();
