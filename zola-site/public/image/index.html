@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Vectomancy Pro - Retro Lab</title>
+    <title>Vectomancy - Image Engine</title>
+    <meta name="description" content="Convert raster images into mathematical parametric equations, Fourier series, and Bezier splines using WebAssembly. Free online pixel math tool.">
 
     <!-- Performance Optimization: Preload -->
     <link rel="preload" href="/fonts/pressstart2p.woff2" as="font" type="font/woff2" crossorigin>
@@ -27,19 +28,19 @@
         }
 
         :root {
-            --bg-color: #e0e0e0;
+            --bg-color: #dce9f5;
             --container-bg: #ffffff;
-            --text-color: #212529;
+            --text-color: #1a2e45;
             --accent-color: #209cee;
             --grid-color: rgba(0,0,0,0.05);
         }
 
         body.dark-theme {
-            --bg-color: #212529;
-            --container-bg: #2d3436;
-            --text-color: #ffffff;
-            --accent-color: #f7d51d;
-            --grid-color: rgba(255,255,255,0.05);
+            --bg-color: #0d1b2a;
+            --container-bg: #152238;
+            --text-color: #c8e0ff;
+            --accent-color: #209cee;
+            --grid-color: rgba(32,156,238,0.05);
         }
 
         /* Dark mode: override NES.css defaults, keep same visual style */
@@ -287,7 +288,6 @@
                 <label><input type="radio" class="nes-radio" name="inputType" value="local" checked><span>Local</span></label>
                 <label><input type="radio" class="nes-radio" name="inputType" value="url"><span>URL</span></label>
                 <label><input type="radio" class="nes-radio" name="inputType" value="preset"><span>Preset</span></label>
-                <label><input type="radio" class="nes-radio" name="inputType" value="text"><span>Text</span></label>
             </div>
 
             <div id="localInputWrapper">
@@ -308,26 +308,6 @@
                     <img src="https://cdn.xuepoo.xyz/vectomancy/presets/vim.webp" class="preset-example" data-filename="vim.webp" alt="Vim Preset" style="width: 48px; height: 48px; cursor: pointer; border: 2px solid var(--text-color); object-fit: cover;">
                     <img src="https://cdn.xuepoo.xyz/vectomancy/presets/chiikawa.webp" class="preset-example" data-filename="chiikawa.webp" alt="Chiikawa Preset" style="width: 48px; height: 48px; cursor: pointer; border: 2px solid var(--text-color); object-fit: cover;">
                     <img src="https://cdn.xuepoo.xyz/vectomancy/presets/iris.webp" class="preset-example" data-filename="iris.webp" alt="Iris Preset" style="width: 48px; height: 48px; cursor: pointer; border: 2px solid var(--text-color); object-fit: cover;">
-                </div>
-            </div>
-            <div id="textInputWrapper" class="hidden">
-                <textarea id="textInput" class="nes-textarea" style="font-size: 8px; margin-bottom: 5px;" placeholder="Enter text..."></textarea>
-
-                <button class="nes-btn is-primary" id="btnAccessLocalFonts" style="width:100%; font-size: 8px; margin-bottom: 5px; padding: 6px;">Access System Fonts</button>
-                <div class="nes-select" id="localFontSelectWrapper" style="display:none; margin-bottom: 5px;">
-                    <select id="localFontSelect" style="font-size: 8px; padding: 4px;"></select>
-                </div>
-
-                <label class="nes-btn" style="width: 100%; display: block; text-align: center; padding: 6px; margin-top: 5px;">
-                    <span style="font-size: 8px;">Upload Custom Font (.ttf)</span>
-                    <input type="file" id="fontInput" accept=".ttf,.otf,.woff,.woff2" style="display:none;">
-                </label>
-
-                <p style="font-size: 8px; margin-top: 10px; margin-bottom: 5px;">Cloud Presets:</p>
-                <div style="display: flex; gap: 5px; overflow-x: auto; padding-bottom: 5px;">
-                    <button class="nes-btn font-preset-btn" data-url="https://cdn.xuepoo.xyz/vectomancy/fonts/PressStart2P-Regular.ttf" data-filename="PressStart2P" style="font-size: 6px; padding: 2px 4px; min-width: max-content;">8-bit</button>
-                    <button class="nes-btn font-preset-btn" data-url="https://cdn.xuepoo.xyz/vectomancy/fonts/Roboto-Regular.ttf" data-filename="Roboto" style="font-size: 6px; padding: 2px 4px; min-width: max-content;">Roboto</button>
-                    <button class="nes-btn font-preset-btn" data-url="https://cdn.xuepoo.xyz/vectomancy/fonts/Pacifico-Regular.ttf" data-filename="Pacifico" style="font-size: 6px; padding: 2px 4px; min-width: max-content;">Brush</button>
                 </div>
             </div>
             <div style="margin-top: 10px; text-align: center; border-top: 2px dashed #444; padding-top: 10px;">
@@ -624,41 +604,17 @@
         }
         [els.radioLocal, els.radioUrl, els.radioPreset, els.radioText].forEach(r => r.addEventListener('change', updateInputView));
 
-        // URL Plugin routing
-        const urlParams = new URLSearchParams(window.location.search);
-        const pluginMode = urlParams.get('plugin') || 'image';
-
-        // Dynamically load Partner Links/Ads based on context
+        // Image page: hardcode image partner links
         const partnerContent = document.getElementById('partnerContent');
-        if (pluginMode === 'text') {
-            partnerContent.innerHTML = `
-                <p style="margin-bottom: 8px; color: var(--accent-color);">Font Resources</p>
-                <div style="display: flex; flex-direction: column; gap: 8px;">
-                    <a href="https://fonts.google.com" target="_blank" class="nes-btn" style="font-size: 6px; padding: 2px;">Google Fonts</a>
-                    <a href="https://fontdasu.com" target="_blank" class="nes-btn" style="font-size: 6px; padding: 2px;">FontDasu (JP)</a>
-                </div>
-            `;
-            els.radioLocal.parentElement.style.display = 'none';
-            els.radioUrl.parentElement.style.display = 'none';
-            els.radioPreset.parentElement.style.display = 'none';
-            els.radioText.checked = true;
-            updateInputView();
-        } else {
-            // Image mode
-            partnerContent.innerHTML = `
-                <p style="margin-bottom: 8px; color: var(--accent-color);">Image Networks</p>
-                <div style="display: flex; flex-direction: column; gap: 8px;">
-                    <a href="https://www.pixiv.net" target="_blank" class="nes-btn" style="font-size: 6px; padding: 2px;">Pixiv</a>
-                    <a href="https://www.xiaohongshu.com" target="_blank" class="nes-btn is-error" style="font-size: 6px; padding: 2px;">Xiaohongshu</a>
-                    <a href="https://www.pinterest.com" target="_blank" class="nes-btn" style="font-size: 6px; padding: 2px;">Pinterest</a>
-                </div>
-            `;
-            els.radioText.parentElement.style.display = 'none';
-            if(els.radioText.checked) {
-                els.radioLocal.checked = true;
-            }
-            updateInputView();
-        }
+        partnerContent.innerHTML = `
+            <p style="margin-bottom: 8px; color: var(--accent-color);">Image Networks</p>
+            <div style="display: flex; flex-direction: column; gap: 8px;">
+                <a href="https://www.pixiv.net" target="_blank" class="nes-btn" style="font-size: 6px; padding: 2px;">Pixiv</a>
+                <a href="https://www.xiaohongshu.com" target="_blank" class="nes-btn is-error" style="font-size: 6px; padding: 2px;">Xiaohongshu</a>
+                <a href="https://www.pinterest.com" target="_blank" class="nes-btn" style="font-size: 6px; padding: 2px;">Pinterest</a>
+            </div>
+        `;
+        updateInputView();
 
         async function handleImageBytes(buffer, filename) {
             // Extension validation

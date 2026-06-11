@@ -287,6 +287,7 @@
                 <label><input type="radio" class="nes-radio" name="inputType" value="local" checked><span>Local</span></label>
                 <label><input type="radio" class="nes-radio" name="inputType" value="url"><span>URL</span></label>
                 <label><input type="radio" class="nes-radio" name="inputType" value="preset"><span>Preset</span></label>
+                <label><input type="radio" class="nes-radio" name="inputType" value="text"><span>Text</span></label>
             </div>
 
             <div id="localInputWrapper">
@@ -307,6 +308,26 @@
                     <img src="https://cdn.xuepoo.xyz/vectomancy/presets/vim.webp" class="preset-example" data-filename="vim.webp" alt="Vim Preset" style="width: 48px; height: 48px; cursor: pointer; border: 2px solid var(--text-color); object-fit: cover;">
                     <img src="https://cdn.xuepoo.xyz/vectomancy/presets/chiikawa.webp" class="preset-example" data-filename="chiikawa.webp" alt="Chiikawa Preset" style="width: 48px; height: 48px; cursor: pointer; border: 2px solid var(--text-color); object-fit: cover;">
                     <img src="https://cdn.xuepoo.xyz/vectomancy/presets/iris.webp" class="preset-example" data-filename="iris.webp" alt="Iris Preset" style="width: 48px; height: 48px; cursor: pointer; border: 2px solid var(--text-color); object-fit: cover;">
+                </div>
+            </div>
+            <div id="textInputWrapper" class="hidden">
+                <textarea id="textInput" class="nes-textarea" style="font-size: 8px; margin-bottom: 5px;" placeholder="Enter text..."></textarea>
+
+                <button class="nes-btn is-primary" id="btnAccessLocalFonts" style="width:100%; font-size: 8px; margin-bottom: 5px; padding: 6px;">Access System Fonts</button>
+                <div class="nes-select" id="localFontSelectWrapper" style="display:none; margin-bottom: 5px;">
+                    <select id="localFontSelect" style="font-size: 8px; padding: 4px;"></select>
+                </div>
+
+                <label class="nes-btn" style="width: 100%; display: block; text-align: center; padding: 6px; margin-top: 5px;">
+                    <span style="font-size: 8px;">Upload Custom Font (.ttf)</span>
+                    <input type="file" id="fontInput" accept=".ttf,.otf,.woff,.woff2" style="display:none;">
+                </label>
+
+                <p style="font-size: 8px; margin-top: 10px; margin-bottom: 5px;">Cloud Presets:</p>
+                <div style="display: flex; gap: 5px; overflow-x: auto; padding-bottom: 5px;">
+                    <button class="nes-btn font-preset-btn" data-url="https://cdn.xuepoo.xyz/vectomancy/fonts/PressStart2P-Regular.ttf" data-filename="PressStart2P" style="font-size: 6px; padding: 2px 4px; min-width: max-content;">8-bit</button>
+                    <button class="nes-btn font-preset-btn" data-url="https://cdn.xuepoo.xyz/vectomancy/fonts/Roboto-Regular.ttf" data-filename="Roboto" style="font-size: 6px; padding: 2px 4px; min-width: max-content;">Roboto</button>
+                    <button class="nes-btn font-preset-btn" data-url="https://cdn.xuepoo.xyz/vectomancy/fonts/Pacifico-Regular.ttf" data-filename="Pacifico" style="font-size: 6px; padding: 2px 4px; min-width: max-content;">Brush</button>
                 </div>
             </div>
             <div style="margin-top: 10px; text-align: center; border-top: 2px dashed #444; padding-top: 10px;">
@@ -388,6 +409,13 @@
             </div>
             <button class="nes-btn is-success" id="downloadBtn" style="width: 100%; font-size: 10px;" aria-label="Download File">DOWNLOAD</button>
         </div>
+
+        <div class="nes-container with-title control-group" id="partnerWidget" style="padding: 15px; text-align: center;">
+            <p class="title" style="font-size: 10px;">Partners</p>
+            <div id="partnerContent" style="font-size: 8px; line-height: 1.5;">
+                <!-- Dynamically Populated -->
+            </div>
+        </div>
     </div>
 
     <div class="viewport-wrapper">
@@ -457,11 +485,13 @@
     </dialog>
 
     <script type="module">
-        import init, { process_image } from "/wasm/wasm_engine.js";
+        import init, { process_image, process_text } from "/wasm/wasm_engine.js";
 
         let isWasmLoaded = false;
         let originalImageObj = null;
         let currentImageBytes = null;
+        let currentFontBytes = null;
+        let currentFontFilename = "";
         let currentFilename = "";
         let previewDataStore = new Map();
         let activePreviewId = null;
@@ -520,6 +550,12 @@
             radioLocal: document.querySelector('input[value="local"]'),
             radioUrl: document.querySelector('input[value="url"]'),
             radioPreset: document.querySelector('input[value="preset"]'),
+            radioText: document.querySelector('input[value="text"]'),
+            textInput: document.getElementById('textInput'),
+            fontInput: document.getElementById('fontInput'),
+            btnAccessLocalFonts: document.getElementById('btnAccessLocalFonts'),
+            localFontSelectWrapper: document.getElementById('localFontSelectWrapper'),
+            localFontSelect: document.getElementById('localFontSelect'),
             btnZoomIn: document.getElementById('btnZoomIn'),
             btnZoomOut: document.getElementById('btnZoomOut'),
             btnResetViewObj: document.getElementById('btnResetViewObj'),
@@ -542,14 +578,17 @@
             try {
                 await init();
                 isWasmLoaded = true;
-                els.statusText.innerText = "READY";
+                els.loaderOverlay.classList.add('hidden');
+                console.log("WASM Initialized!");
+
+                await restoreCachedFont();
             } catch (e) {
                 els.statusText.innerText = "ERR: LOAD";
                 console.error(e);
-            } finally {
-                els.loaderOverlay.classList.add('hidden');
             }
         }
+
+        run();
 
         function updateLabels() {
             els.detailVal.innerText = els.detailRange.value;
@@ -574,14 +613,52 @@
 
             recacheViewportCanvas();
             requestRender();
+            saveSettings();
         });
 
         function updateInputView() {
             document.getElementById('localInputWrapper').classList.toggle('hidden', !els.radioLocal.checked);
             document.getElementById('urlInputWrapper').classList.toggle('hidden', !els.radioUrl.checked);
             document.getElementById('presetInputWrapper').classList.toggle('hidden', !els.radioPreset.checked);
+            document.getElementById('textInputWrapper').classList.toggle('hidden', !els.radioText.checked);
         }
-        [els.radioLocal, els.radioUrl, els.radioPreset].forEach(r => r.addEventListener('change', updateInputView));
+        [els.radioLocal, els.radioUrl, els.radioPreset, els.radioText].forEach(r => r.addEventListener('change', updateInputView));
+
+        // URL Plugin routing
+        const urlParams = new URLSearchParams(window.location.search);
+        const pluginMode = urlParams.get('plugin') || 'image';
+
+        // Dynamically load Partner Links/Ads based on context
+        const partnerContent = document.getElementById('partnerContent');
+        if (pluginMode === 'text') {
+            partnerContent.innerHTML = `
+                <p style="margin-bottom: 8px; color: var(--accent-color);">Font Resources</p>
+                <div style="display: flex; flex-direction: column; gap: 8px;">
+                    <a href="https://fonts.google.com" target="_blank" class="nes-btn" style="font-size: 6px; padding: 2px;">Google Fonts</a>
+                    <a href="https://fontdasu.com" target="_blank" class="nes-btn" style="font-size: 6px; padding: 2px;">FontDasu (JP)</a>
+                </div>
+            `;
+            els.radioLocal.parentElement.style.display = 'none';
+            els.radioUrl.parentElement.style.display = 'none';
+            els.radioPreset.parentElement.style.display = 'none';
+            els.radioText.checked = true;
+            updateInputView();
+        } else {
+            // Image mode
+            partnerContent.innerHTML = `
+                <p style="margin-bottom: 8px; color: var(--accent-color);">Image Networks</p>
+                <div style="display: flex; flex-direction: column; gap: 8px;">
+                    <a href="https://www.pixiv.net" target="_blank" class="nes-btn" style="font-size: 6px; padding: 2px;">Pixiv</a>
+                    <a href="https://www.xiaohongshu.com" target="_blank" class="nes-btn is-error" style="font-size: 6px; padding: 2px;">Xiaohongshu</a>
+                    <a href="https://www.pinterest.com" target="_blank" class="nes-btn" style="font-size: 6px; padding: 2px;">Pinterest</a>
+                </div>
+            `;
+            els.radioText.parentElement.style.display = 'none';
+            if(els.radioText.checked) {
+                els.radioLocal.checked = true;
+            }
+            updateInputView();
+        }
 
         async function handleImageBytes(buffer, filename) {
             // Extension validation
@@ -619,13 +696,156 @@
             }
         });
 
+        // --- Font IndexedDB Cache ---
+        const DB_NAME = 'VectomancyFontDB';
+        const DB_VERSION = 1;
+        function openFontDB() {
+            return new Promise((resolve, reject) => {
+                const req = indexedDB.open(DB_NAME, DB_VERSION);
+                req.onupgradeneeded = e => {
+                    const db = e.target.result;
+                    if(!db.objectStoreNames.contains('fonts')) db.createObjectStore('fonts');
+                };
+                req.onsuccess = () => resolve(req.result);
+                req.onerror = () => reject(req.error);
+            });
+        }
+        async function saveFontCache(name, arrayBuffer) {
+            const db = await openFontDB();
+            return new Promise((resolve, reject) => {
+                const tx = db.transaction('fonts', 'readwrite');
+                tx.objectStore('fonts').put(arrayBuffer, name);
+                tx.oncomplete = () => resolve();
+                tx.onerror = () => reject(tx.error);
+            });
+        }
+        async function loadFontCache(name) {
+            const db = await openFontDB();
+            return new Promise((resolve, reject) => {
+                const tx = db.transaction('fonts', 'readonly');
+                const req = tx.objectStore('fonts').get(name);
+                req.onsuccess = () => resolve(req.result);
+                req.onerror = () => reject(tx.error);
+            });
+        }
+
+        async function restoreCachedFont() {
+            try {
+                const buffer = await loadFontCache('last_font_bytes');
+                const nameBuffer = await loadFontCache('last_font_name');
+                if (buffer && nameBuffer) {
+                    currentFontBytes = new Uint8Array(buffer);
+                    currentFontFilename = new TextDecoder().decode(nameBuffer);
+                    els.filenameDisplay.innerText = truncateMiddle(currentFontFilename, 20);
+                }
+            } catch(e) { console.error("No cached font found.", e); }
+        }
+
+        // --- Local Font Access API ---
+        let localFontsList = [];
+        els.btnAccessLocalFonts.addEventListener('click', async () => {
+            try {
+                if (!('queryLocalFonts' in window)) {
+                    throw new Error("Local Font Access API is not supported in your browser (try Chrome/Edge desktop).");
+                }
+                els.loaderOverlay.classList.remove('hidden');
+                els.loaderText.innerText = "Requesting Font Access...";
+                localFontsList = await window.queryLocalFonts();
+
+                els.localFontSelectWrapper.style.display = 'block';
+                els.btnAccessLocalFonts.style.display = 'none';
+                els.localFontSelect.innerHTML = '<option value="" disabled selected>Select system font...</option>';
+
+                const familyMap = new Map();
+                for (const f of localFontsList) {
+                    if (!familyMap.has(f.family)) familyMap.set(f.family, f);
+                }
+                Array.from(familyMap.keys()).sort().forEach(family => {
+                    const opt = document.createElement('option');
+                    opt.value = family;
+                    opt.textContent = family;
+                    els.localFontSelect.appendChild(opt);
+                });
+                els.loaderOverlay.classList.add('hidden');
+            } catch(err) {
+                els.loaderOverlay.classList.add('hidden');
+                showError(err.message || "Failed to access system fonts. Permission denied?");
+            }
+        });
+
+        els.localFontSelect.addEventListener('change', async () => {
+            const family = els.localFontSelect.value;
+            const fontObj = localFontsList.find(f => f.family === family);
+            if (!fontObj) return;
+
+            els.loaderOverlay.classList.remove('hidden');
+            els.loaderText.innerText = `Extracting ${family}...`;
+            try {
+                const blob = await fontObj.blob();
+                const b = await blob.arrayBuffer();
+                currentFontBytes = new Uint8Array(b);
+                currentFontFilename = family + " (System)";
+                els.filenameDisplay.innerText = truncateMiddle(currentFontFilename, 20);
+
+                await saveFontCache('last_font_bytes', b);
+                await saveFontCache('last_font_name', new TextEncoder().encode(currentFontFilename).buffer);
+            } catch(err) {
+                showError("Could not extract font data.");
+            }
+            els.loaderOverlay.classList.add('hidden');
+        });
+
+        els.fontInput.addEventListener('change', async (e) => {
+            if(e.target.files[0]) {
+                const b = await e.target.files[0].arrayBuffer();
+                currentFontBytes = new Uint8Array(b);
+                currentFontFilename = e.target.files[0].name;
+                els.filenameDisplay.innerText = truncateMiddle(currentFontFilename, 20);
+
+                // Save to cache
+                saveFontCache('last_font_bytes', b);
+                saveFontCache('last_font_name', new TextEncoder().encode(currentFontFilename).buffer);
+            }
+        });
+
+        document.querySelectorAll('.font-preset-btn').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                const url = e.target.dataset.url;
+                const filename = e.target.dataset.filename + " (Cloud)";
+
+                els.loaderOverlay.classList.remove('hidden');
+                els.loaderText.innerText = `Fetching ${filename}...`;
+                try {
+                    const proxyBase = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || window.location.protocol === 'file:')
+                        ? 'https://vectomancy.pages.dev/proxy'
+                        : '/proxy';
+                    const r = await fetch(proxyBase + '?url=' + encodeURIComponent(url));
+                    if (!r.ok) throw new Error("HTTP Error");
+                    const b = await r.arrayBuffer();
+
+                    currentFontBytes = new Uint8Array(b);
+                    currentFontFilename = filename;
+                    els.filenameDisplay.innerText = truncateMiddle(currentFontFilename, 20);
+
+                    await saveFontCache('last_font_bytes', b);
+                    await saveFontCache('last_font_name', new TextEncoder().encode(currentFontFilename).buffer);
+                } catch(err) {
+                    showError("Failed to fetch cloud font.\nPlease check your network.");
+                }
+                els.loaderOverlay.classList.add('hidden');
+            });
+        });
+
         els.fetchUrlBtn.addEventListener('click', async () => {
             const url = els.urlInput.value;
             if(!url) return;
             els.loaderOverlay.classList.remove('hidden');
             els.loaderText.innerText = "Fetching URL...";
             try {
-                const r = await fetch('/proxy?url=' + encodeURIComponent(url));
+                const proxyBase = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || window.location.protocol === 'file:')
+                    ? 'https://vectomancy.pages.dev/proxy'
+                    : '/proxy';
+                const r = await fetch(proxyBase + '?url=' + encodeURIComponent(url));
                 if (!r.ok) throw new Error("HTTP Error");
                 const b = await r.arrayBuffer();
                 handleImageBytes(b, url.split('/').pop().split('?')[0] || 'remote_image.png');
@@ -653,12 +873,17 @@
         document.querySelectorAll('.preset-example').forEach(img => {
             img.addEventListener('click', async (e) => {
                 els.loaderOverlay.classList.remove('hidden');
+                els.loaderText.innerText = "Loading Preset...";
                 try {
-                    const r = await fetch('/proxy?url=' + encodeURIComponent(e.target.src));
+                    // Use proxy to avoid CORS issues. Use production proxy if testing locally.
+                    const proxyBase = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || window.location.protocol === 'file:')
+                        ? 'https://vectomancy.pages.dev/proxy'
+                        : '/proxy';
+                    const r = await fetch(proxyBase + '?url=' + encodeURIComponent(e.target.src));
                     if (!r.ok) throw new Error("HTTP Error");
                     const b = await r.arrayBuffer();
                     handleImageBytes(b, e.target.dataset.filename);
-                } catch(e) {
+                } catch(err) {
                     showError("Failed to load preset.\nPlease check your network.");
                 }
                 els.loaderOverlay.classList.add('hidden');
@@ -666,7 +891,15 @@
         });
 
         els.generateBtn.addEventListener('click', () => {
-            if(!isWasmLoaded || !currentImageBytes) return showError("No Image!");
+            if(!isWasmLoaded) return;
+            const isTextMode = els.radioText.checked;
+            if (isTextMode) {
+                if(!currentFontBytes) return showError("No Font Selected!");
+                if(!els.textInput.value) return showError("No Text entered!");
+            } else {
+                if(!currentImageBytes) return showError("No Image!");
+            }
+
             els.progressContainer.classList.remove('hidden');
             let p = 0;
             const pInt = setInterval(() => { p += 20; if(p>=90) { p=90; clearInterval(pInt); } els.progressBar.value = p; }, 10);
@@ -674,10 +907,18 @@
             setTimeout(() => {
                 try {
                     const start = performance.now();
+                    // Optional style configs can be added here
                     const options = { format: 'jpg', color: els.colorCheck.checked, mode: els.modeSelect.value,
                                      chaikin_iters: parseInt(els.chaikinRange.value), terms: parseInt(els.termsRange.value),
                                      detail: parseInt(els.detailRange.value), min_path_len: parseInt(els.minPathRange.value) };
-                    const result = process_image(currentImageBytes, options);
+
+                    let result;
+                    if(isTextMode) {
+                        result = process_text(currentFontBytes, els.textInput.value, options);
+                    } else {
+                        result = process_image(currentImageBytes, options);
+                    }
+
                     snapshotCount++;
                     const id = `snap-${snapshotCount}`;
                     createSnapshot(id, result, `${options.mode.substring(0,3).toUpperCase()} D${options.detail}`, Math.round(performance.now()-start));
@@ -881,15 +1122,31 @@
             const depth = els.colorDepthSelect ? els.colorDepthSelect.value : '24';
             const space = els.colorSpaceSelect ? els.colorSpaceSelect.value : 'srgb';
 
-            function getStrokeStyle(colorRgb) {
-                if (!colorRgb || !extractColor) return defCol;
-                const finalRgb = processColor(colorRgb, depth, space);
-                return `rgb(${finalRgb.join(',')})`;
+            function getStrokeStyle(colorStyle, bbox) {
+                if (!colorStyle || !extractColor) return defCol;
+                if (Array.isArray(colorStyle)) {
+                    const finalRgb = processColor(colorStyle, depth, space);
+                    return `rgb(${finalRgb.join(',')})`;
+                } else if (colorStyle.LinearGradient) {
+                    const start = processColor(colorStyle.LinearGradient.start, depth, space);
+                    const end = processColor(colorStyle.LinearGradient.end, depth, space);
+                    const angle = colorStyle.LinearGradient.angle * Math.PI / 180.0;
+                    const w = bbox[2] - bbox[0], h = bbox[3] - bbox[1];
+                    const cx = bbox[0] + w/2, cy = bbox[1] + h/2;
+                    const r = Math.sqrt(w*w + h*h)/2;
+                    const x1 = cx - Math.cos(angle)*r, y1 = cy - Math.sin(angle)*r;
+                    const x2 = cx + Math.cos(angle)*r, y2 = cy + Math.sin(angle)*r;
+                    const grad = ctx.createLinearGradient(x1, y1, x2, y2);
+                    grad.addColorStop(0, `rgb(${start.join(',')})`);
+                    grad.addColorStop(1, `rgb(${end.join(',')})`);
+                    return grad;
+                }
+                return defCol;
             }
 
             if(ast.type==='Spline'||ast.type==='spline') {
                 ast.equations.forEach(path => {
-                    ctx.strokeStyle = getStrokeStyle(path.color_rgb);
+                    ctx.strokeStyle = getStrokeStyle(path.color_style || path.color_rgb, ast.bounding_box);
                     path.data.forEach(eq => {
                         ctx.beginPath(); let first=true;
                         for(let t=0; t<=1; t+=isThumb?0.2:0.05) {
@@ -902,7 +1159,7 @@
                 });
             } else if(ast.type==='Fourier'||ast.type==='fourier') {
                 ast.strokes.forEach(stroke => {
-                    ctx.strokeStyle = getStrokeStyle(stroke.color_rgb);
+                    ctx.strokeStyle = getStrokeStyle(stroke.color_style || stroke.color_rgb, ast.bounding_box);
                     ctx.beginPath(); let first=true;
                     const st = Math.min(stroke.data.length*4, isThumb?100:1000);
                     for(let i=0; i<=st; i++) {
@@ -914,7 +1171,7 @@
                 });
             } else if(ast.type==='Polyline'||ast.type==='polyline') {
                 ast.paths.forEach(path => {
-                    ctx.strokeStyle = getStrokeStyle(path.color_rgb);
+                    ctx.strokeStyle = getStrokeStyle(path.color_style || path.color_rgb, ast.bounding_box);
                     ctx.beginPath(); let first=true;
                     path.data.forEach(pt => { if(first) { ctx.moveTo(pt.x, pt.y); first=false; } else ctx.lineTo(pt.x, pt.y); });
                     ctx.stroke();
@@ -982,8 +1239,84 @@
             }
         });
 
-        // Initial state sync
+        // Settings persistence functions
+        const STORAGE_KEY = 'vectomancy_user_settings';
+        function saveSettings() {
+            try {
+                const settings = {
+                    mode: els.modeSelect.value,
+                    color: els.colorCheck.checked,
+                    colorDepth: els.colorDepthSelect.value,
+                    colorSpace: els.colorSpaceSelect.value,
+                    grid: els.gridCheck.checked,
+                    transparent: els.bgTransparentCheck.checked,
+                    detail: els.detailRange.value,
+                    minPath: els.minPathRange.value,
+                    terms: els.termsRange.value,
+                    chaikin: els.chaikinRange.value,
+                    exportFormat: els.exportFormat.value,
+                    theme: document.body.classList.contains('dark-theme') ? 'dark' : 'light'
+                };
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
+            } catch(e) {
+                console.error("Failed to save settings to localStorage:", e);
+            }
+        }
+
+        function loadSettings() {
+            try {
+                const stored = localStorage.getItem(STORAGE_KEY);
+                if (!stored) return;
+                const settings = JSON.parse(stored);
+                if (settings.mode !== undefined) els.modeSelect.value = settings.mode;
+                if (settings.color !== undefined) els.colorCheck.checked = settings.color;
+                if (settings.colorDepth !== undefined) els.colorDepthSelect.value = settings.colorDepth;
+                if (settings.colorSpace !== undefined) els.colorSpaceSelect.value = settings.colorSpace;
+                if (settings.grid !== undefined) els.gridCheck.checked = settings.grid;
+                if (settings.transparent !== undefined) els.bgTransparentCheck.checked = settings.transparent;
+                if (settings.detail !== undefined) els.detailRange.value = settings.detail;
+                if (settings.minPath !== undefined) els.minPathRange.value = settings.minPath;
+                if (settings.terms !== undefined) els.termsRange.value = settings.terms;
+                if (settings.chaikin !== undefined) els.chaikinRange.value = settings.chaikin;
+                if (settings.exportFormat !== undefined) els.exportFormat.value = settings.exportFormat;
+
+                if (settings.theme === 'dark') {
+                    document.body.classList.add('dark-theme');
+                    [els.deleteDialog, els.clearDialog, els.errorDialog, els.helpDialog].forEach(d => d.classList.add('is-dark'));
+                    document.querySelectorAll('.nes-input, .nes-checkbox, .nes-radio, .nes-select select, .nes-btn:not(.is-primary):not(.is-success):not(.is-error):not(.is-warning)').forEach(el => {
+                        el.classList.add('is-dark');
+                    });
+                } else if (settings.theme === 'light') {
+                    document.body.classList.remove('dark-theme');
+                    [els.deleteDialog, els.clearDialog, els.errorDialog, els.helpDialog].forEach(d => d.classList.remove('is-dark'));
+                    document.querySelectorAll('.nes-input, .nes-checkbox, .nes-radio, .nes-select select, .nes-btn:not(.is-primary):not(.is-success):not(.is-error):not(.is-warning)').forEach(el => {
+                        el.classList.remove('is-dark');
+                    });
+                }
+            } catch(e) {
+                console.error("Failed to load settings from localStorage:", e);
+            }
+        }
+
+        // Listen for setting updates to persist them
+        [
+            els.modeSelect, els.colorCheck, els.colorDepthSelect, els.colorSpaceSelect,
+            els.gridCheck, els.bgTransparentCheck, els.detailRange, els.minPathRange,
+            els.termsRange, els.chaikinRange, els.exportFormat
+        ].forEach(el => {
+            el.addEventListener('input', saveSettings);
+            el.addEventListener('change', saveSettings);
+        });
+
+        // Load settings and synchronize state
+        loadSettings();
+        updateLabels();
         document.getElementById('colorOptionsContainer').classList.toggle('hidden', !els.colorCheck.checked);
+
+        // Listen to changes to adjust visibility of color depth/space containers
+        els.colorCheck.addEventListener('change', () => {
+            document.getElementById('colorOptionsContainer').classList.toggle('hidden', !els.colorCheck.checked);
+        });
 
         run();
     </script>
