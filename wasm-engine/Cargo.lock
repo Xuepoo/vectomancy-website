@@ -2672,7 +2672,7 @@ checksum = "ba73ea9cf16a25df0c8caa16c51acb937d5712a8429db78a3ee29d5dcacd3a65"
 
 [[package]]
 name = "vectomancy"
-version = "5.0.0"
+version = "5.0.7"
 dependencies = [
  "base64 0.22.1",
  "directories",
@@ -2681,6 +2681,7 @@ dependencies = [
  "imageproc",
  "kiddo",
  "log",
+ "rayon",
  "rustfft",
  "serde",
  "serde_json",
@@ -2690,6 +2691,15 @@ dependencies = [
  "tracing",
  "usvg",
  "zip",
+]
+
+[[package]]
+name = "vectomancy-text"
+version = "5.0.7"
+dependencies = [
+ "ab_glyph",
+ "thiserror 1.0.69",
+ "vectomancy",
 ]
 
 [[package]]
@@ -2799,6 +2809,7 @@ dependencies = [
  "serde",
  "serde-wasm-bindgen",
  "vectomancy",
+ "vectomancy-text",
  "wasm-bindgen",
 ]
 

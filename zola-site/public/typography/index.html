@@ -1,0 +1,1983 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vectomancy - Typography Engine</title>
+    <meta name="description" content="Convert text and custom fonts into mathematical Bezier spline curves using WebAssembly. Supports CJK fonts, system fonts, and cloud font presets.">
+
+    <!-- Performance Optimization: Preload -->
+    <link rel="preload" href="/fonts/pressstart2p.woff2" as="font" type="font/woff2" crossorigin>
+    <link rel="preload" href="/css/nes.min.css" as="style">
+    <link rel="preload" href="/wasm/wasm_engine_bg.wasm" as="fetch" crossorigin>
+
+    <link rel="apple-touch-icon" sizes="180x180" href="/favicons/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicons/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicons/favicon-16x16.png">
+    <link rel="shortcut icon" href="/favicons/favicon.ico">
+    <link href="/css/nes.min.css" rel="stylesheet">
+    <style>
+        @font-face {
+            font-family: 'Press Start 2P';
+            font-style: normal;
+            font-weight: 400;
+            font-display: swap;
+            src: url(/fonts/pressstart2p.woff2) format('woff2');
+            unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+        }
+
+        @font-face {
+            font-family: 'Roboto';
+            src: url('https://fonts.gstatic.com/l/font?kit=KFOMCnqEu92Fr1ME7kSn66aGLdTylUAMQXC89YmC2DPNWubEbVmUiA4&skey=a0a0114a1dcab3ac&v=v51') format('truetype');
+        }
+        @font-face {
+            font-family: 'Pacifico';
+            src: url('https://raw.githubusercontent.com/google/fonts/main/ofl/pacifico/Pacifico-Regular.ttf') format('truetype');
+        }
+        @font-face {
+            font-family: 'QingKeHuangYou';
+            src: url('/fonts/QingKeHuangYou.ttf') format('truetype');
+        }
+        @font-face {
+            font-family: 'MaShanZheng';
+            src: url('/fonts/MaShanZheng.ttf') format('truetype');
+        }
+        @font-face {
+            font-family: 'LongCang';
+            src: url('/fonts/LongCang.ttf') format('truetype');
+        }
+        @font-face {
+            font-family: 'SawarabiMincho';
+            src: url('/fonts/SawarabiMincho.ttf') format('truetype');
+        }
+        @font-face {
+            font-family: 'DotGothic16';
+            src: url('/fonts/DotGothic16.ttf') format('truetype');
+        }
+
+        :root {
+            --bg-color: #f5f0e8;
+            --container-bg: #fffef5;
+            --text-color: #2d2416;
+            --accent-color: #e76e55;
+            --grid-color: rgba(100,60,0,0.06);
+            --canvas-bg: #ffffff;
+        }
+
+        body.dark-theme {
+            --bg-color: #1a1208;
+            --container-bg: #251c0d;
+            --text-color: #f5e8c8;
+            --accent-color: #f7b731;
+            --grid-color: rgba(247,183,49,0.05);
+            --canvas-bg: #000000;
+        }
+
+        /* Dark mode: override NES.css defaults */
+        body.dark-theme .nes-container {
+            color: var(--text-color);
+            background-color: transparent;
+            border-color: var(--text-color);
+        }
+        body.dark-theme .nes-container.with-title > .title {
+            color: var(--text-color);
+            background-color: var(--container-bg);
+        }
+        body.dark-theme label:not(.nes-btn) { color: var(--text-color); }
+        body.dark-theme .nes-checkbox + span,
+        body.dark-theme .nes-radio + span {
+            color: var(--text-color);
+        }
+        body.dark-theme #status-text { color: #aaa; }
+        body.dark-theme #filename-display { color: #aaa; }
+
+        /* Adjust radio button arrow alignment for 8px text */
+        .nes-radio+span::before {
+            top: -4px !important;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Press Start 2P', cursive;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+            transition: background-color 0.3s;
+        }
+
+        /* --- SIDEBAR --- */
+        .sidebar {
+            width: 320px;
+            background-color: var(--container-bg);
+            border-right: 4px solid var(--text-color);
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            z-index: 100;
+            overflow-y: auto;
+        }
+
+        .control-group { margin-bottom: 5px; }
+        .control-group label { display: block; font-size: 8px; margin-bottom: 8px; }
+        .hidden { display: none !important; }
+
+        /* --- VIEWPORT --- */
+        .viewport-wrapper {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            min-width: 0;
+        }
+
+        .top-bar {
+            height: 50px;
+            padding: 0 20px;
+            background: var(--container-bg);
+            border-bottom: 4px solid var(--text-color);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            z-index: 50;
+        }
+
+        .canvas-area {
+            flex-grow: 1;
+            overflow: hidden;
+            position: relative;
+            background-color: var(--canvas-bg);
+            cursor: grab;
+        }
+        .canvas-area.show-grid {
+            background-image: linear-gradient(var(--grid-color) 1px, transparent 1px),
+            linear-gradient(90deg, var(--grid-color) 1px, transparent 1px);
+            background-size: 50px 50px;
+        }
+        .canvas-area:active { cursor: grabbing; }
+
+        #mainCanvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+
+        /* --- GALLERY (SCROLLABLE) --- */
+        .gallery-container {
+            height: 130px;
+            background-color: var(--container-bg);
+            border-top: 4px solid var(--text-color);
+            padding: 10px 15px;
+            display: flex;
+            gap: 15px;
+            overflow-x: auto;
+            overflow-y: hidden;
+            align-items: center;
+            z-index: 10;
+        }
+
+        .gallery-item {
+            min-width: 90px;
+            width: 90px;
+            height: 90px;
+            flex-shrink: 0;
+            border: 4px solid transparent;
+            cursor: pointer;
+            position: relative;
+            background: #fff;
+            image-rendering: pixelated;
+            box-shadow: 0 4px 0 rgba(0,0,0,0.2);
+            transition: transform 0.1s, box-shadow 0.1s;
+        }
+        body.dark-theme .gallery-item { background: #333; }
+        .gallery-item:hover { border-color: #888; transform: translateY(-2px); }
+        .gallery-item.active { border-color: var(--accent-color); transform: translateY(2px); box-shadow: 0 2px 0 var(--accent-color); }
+        .gallery-item img { width: 100%; height: 100%; object-fit: contain; }
+
+        .gallery-label {
+            position: absolute;
+            bottom: 0; left: 0; right: 0;
+            background: rgba(0,0,0,0.7);
+            color: white;
+            font-size: 6px;
+            padding: 2px;
+            text-align: center;
+            pointer-events: none;
+        }
+        .gallery-delete {
+            position: absolute;
+            top: -8px; right: -8px;
+            background: #e76e55;
+            color: #fff;
+            border: 2px solid #000;
+            width: 18px; height: 18px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 8px; z-index: 5;
+        }
+
+        /* Overlay & Spinner */
+        .overlay-stats {
+            position: absolute;
+            top: 15px; left: 15px;
+            padding: 10px;
+            font-size: 8px;
+            line-height: 1.5;
+            pointer-events: none;
+            background: rgba(0,0,0,0.5) !important;
+            color: white !important;
+            border: 2px solid white;
+            z-index: 20;
+        }
+
+        .progress-overlay {
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            width: 300px;
+            background: var(--container-bg);
+            padding: 20px;
+            border: 4px solid var(--text-color);
+            z-index: 150;
+        }
+
+        .loader-overlay {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.6);
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            z-index: 200; color: white; backdrop-filter: blur(3px);
+        }
+        .pixel-spinner {
+            width: 48px; height: 48px;
+            border: 6px solid #fff; border-top: 6px solid var(--accent-color);
+            animation: spin 1s steps(8) infinite;
+        }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+
+        /* Canvas Controls */
+        .canvas-controls {
+            position: absolute;
+            bottom: 15px;
+            right: 15px;
+            display: flex;
+            gap: 10px;
+            z-index: 60;
+        }
+        .canvas-controls .nes-btn {
+            padding: 4px 10px;
+            font-size: 10px;
+            min-width: 36px;
+        }
+
+        /* Focus Mode */
+        body.focus-mode .sidebar,
+        body.focus-mode .top-bar,
+        body.focus-mode .gallery-container,
+        body.focus-mode .overlay-stats {
+            display: none !important;
+        }
+        body.focus-mode .viewport-wrapper {
+            width: 100vw;
+            height: 100vh;
+        }
+
+        dialog { font-family: 'Press Start 2P', cursive; border: 4px solid var(--text-color); background: var(--container-bg); color: var(--text-color); }
+        .truncate-text { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; display: inline-block; }
+
+        /* --- MOBILE RESPONSIVENESS --- */
+        @media (max-width: 768px) {
+            body { flex-direction: column; }
+            .sidebar { width: 100%; height: auto; border-right: none; border-bottom: 4px solid var(--text-color); padding: 10px; }
+            .viewport-wrapper { height: 60vh; }
+            .gallery-container { height: 110px; }
+            .gallery-item { min-width: 70px; width: 70px; height: 70px; }
+            .top-bar { height: 40px; padding: 0 10px; }
+            .top-bar .nes-btn { font-size: 6px !important; padding: 4px 6px; }
+            .canvas-controls { bottom: 5px; right: 5px; gap: 5px; }
+            .canvas-controls .nes-btn { font-size: 8px; min-width: 24px; padding: 2px 6px; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="sidebar">
+        <div class="nes-container with-title is-centered control-group" style="padding: 15px 10px;">
+            <a href="/" style="text-decoration: none; color: inherit;">
+                <p class="title" style="font-size: 12px; background: var(--container-bg);">VECTOMANCY</p>
+            </a>
+            <p style="font-size: 8px; margin:0; color: var(--accent-color);">Typography Engine</p>
+        </div>
+
+        <div class="nes-container with-title control-group" style="padding: 15px;">
+            <p class="title" style="font-size: 10px;">Text Input</p>
+            <textarea id="textInput" class="nes-textarea" style="font-family: sans-serif; font-size: 12px; margin-bottom: 10px; min-height: 60px;" placeholder="Enter text to render..."></textarea>
+            <div style="margin-top: 5px; text-align: center; border-top: 2px dashed #888; padding-top: 10px;">
+                <span id="filename-display" class="truncate-text" style="font-size: 8px; color: #aaa;">No font selected</span>
+            </div>
+        </div>
+
+        <div class="nes-container with-title control-group" style="padding: 15px;">
+            <p class="title" style="font-size: 10px;">Font Source</p>
+
+            <!-- 1: System Font Access API -->
+            <button class="nes-btn is-primary" id="btnAccessLocalFonts" style="width:100%; font-size: 8px; margin-bottom: 8px; padding: 6px;">
+                Access System Fonts
+            </button>
+            <div class="nes-select" id="localFontSelectWrapper" style="display:none; margin-bottom: 8px;">
+                <select id="localFontSelect" style="font-size: 8px; padding: 4px;" aria-label="System Font Select"></select>
+            </div>
+
+            <!-- 2: Upload -->
+            <label class="nes-btn" style="width: 100%; display: block; text-align: center; padding: 6px; margin-bottom: 8px;">
+                <span style="font-size: 8px;">Upload Font (.ttf/.otf)</span>
+                <input type="file" id="fontInput" accept=".ttf,.otf,.woff,.woff2" style="display:none;">
+            </label>
+
+            <!-- 3: Cloud Presets -->
+            <p style="font-size: 8px; margin-bottom: 5px; color: var(--accent-color);">▶ Cloud Presets</p>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px;">
+                <button class="nes-btn font-preset-btn" data-url="/fonts/font.ttf" data-filename="PressStart2P" style="font-family: 'Press Start 2P', sans-serif; font-size: 8px; padding: 4px 2px;">8-bit Pixel</button>
+                <button class="nes-btn font-preset-btn" data-url="https://fonts.gstatic.com/l/font?kit=KFOMCnqEu92Fr1ME7kSn66aGLdTylUAMQXC89YmC2DPNWubEbVmUiA4&skey=a0a0114a1dcab3ac&v=v51" data-filename="Roboto" style="font-family: 'Roboto', sans-serif; font-size: 10px; padding: 4px 2px;">Roboto</button>
+                <button class="nes-btn font-preset-btn is-success" data-url="https://raw.githubusercontent.com/google/fonts/main/ofl/pacifico/Pacifico-Regular.ttf" data-filename="Pacifico" style="font-family: 'Pacifico', cursive; font-size: 10px; padding: 4px 2px;">Brush Script</button>
+                <button class="nes-btn font-preset-btn is-warning" data-url="/fonts/QingKeHuangYou.ttf" data-filename="QingKeHuangYou" style="font-family: 'QingKeHuangYou', sans-serif; font-size: 10px; padding: 4px 2px;">简体中文(黄油)</button>
+                <button class="nes-btn font-preset-btn is-warning" data-url="/fonts/MaShanZheng.ttf" data-filename="MaShanZheng" style="font-family: 'MaShanZheng', sans-serif; font-size: 10px; padding: 4px 2px;">中文毛笔</button>
+                <button class="nes-btn font-preset-btn is-warning" data-url="/fonts/LongCang.ttf" data-filename="LongCang" style="font-family: 'LongCang', sans-serif; font-size: 10px; padding: 4px 2px;">中文行书</button>
+                <button class="nes-btn font-preset-btn is-primary" data-url="/fonts/SawarabiMincho.ttf" data-filename="SawarabiMincho" style="font-family: 'SawarabiMincho', serif; font-size: 10px; padding: 4px 2px;">日本語 (明朝)</button>
+                <button class="nes-btn font-preset-btn is-primary" data-url="/fonts/DotGothic16.ttf" data-filename="DotGothic16" style="font-family: 'DotGothic16', sans-serif; font-size: 10px; padding: 4px 2px;">日本語 (像素)</button>
+            </div>
+        </div>
+
+        <div class="nes-container with-title control-group" style="padding: 15px; flex-grow: 1;">
+            <p class="title" style="font-size: 10px;">Settings</p>
+            <label for="modeSelect">Mode</label>
+            <div class="nes-select" style="margin-bottom: 10px;">
+                <select id="modeSelect" style="font-size: 8px; padding: 6px;" aria-label="Mode Select">
+                    <option value="spline" selected>Spline (Bezier)</option>
+                    <option value="fourier">Fourier (Epicycle)</option>
+                    <option value="chaikin">Chaikin (Polyline)</option>
+                </select>
+            </div>
+
+            <div style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 10px;">
+                <label style="margin: 0;"><input type="checkbox" class="nes-checkbox" id="colorCheck" checked aria-label="Enable Colors"/><span>Colors</span></label>
+                <label style="margin: 0;"><input type="checkbox" class="nes-checkbox" id="gridCheck" aria-label="Show Grid"/><span>Show Grid</span></label>
+                <label style="margin: 0;"><input type="checkbox" class="nes-checkbox" id="bgTransparentCheck" aria-label="Transparent Background"/><span>Transparent</span></label>
+                <label style="margin: 0;"><input type="checkbox" class="nes-checkbox" id="hideHandlesCheck" aria-label="Hide Controls"/><span>Hide Controls</span></label>
+            </div>
+
+            <div id="colorStyleControls" style="margin-top: 10px; margin-bottom: 10px;">
+                <label for="colorTypeSelect">Color Type</label>
+                <div class="nes-select" style="margin-bottom: 10px;">
+                    <select id="colorTypeSelect" style="font-size: 8px; padding: 6px;" aria-label="Color Type Select">
+                        <option value="solid">Solid Color</option>
+                        <option value="gradient" selected>Linear Gradient</option>
+                    </select>
+                </div>
+
+                <div id="solidColorEditor" style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px;" class="hidden">
+                    <label for="solidColorInput" style="margin: 0; font-size: 8px;">Solid Color:</label>
+                    <input type="color" id="solidColorInput" value="#e76e55" style="padding: 0; border: none; width: 40px; height: 20px; cursor: pointer;">
+                </div>
+
+                <div id="paletteEditor" style="margin-top: 15px; border-top: 2px dashed var(--text-color); padding-top: 10px;">
+                    <p style="font-size: 8px; margin-bottom: 5px; color: var(--accent-color);">Preset Palettes</p>
+                    <div id="palettePresets" style="display: flex; gap: 6px; margin-bottom: 10px; flex-wrap: wrap;"></div>
+
+                    <p style="font-size: 8px; margin-bottom: 5px; color: var(--accent-color);">Custom Stops</p>
+                    <div id="customStopsContainer" style="display: flex; flex-direction: column; gap: 6px;"></div>
+                    <button class="nes-btn is-success" id="addStopBtn" style="font-size: 8px; padding: 4px 8px; margin-top: 6px; width: 100%;">Add Stop</button>
+                </div>
+
+                <div id="flow-controls">
+                    <label for="flowSpeedRange">Flow Speed: <span id="flowSpeedVal" style="color: var(--accent-color);">0</span></label>
+                    <input type="range" id="flowSpeedRange" min="0" max="10" value="0" class="nes-range" aria-label="Flow Speed">
+                </div>
+            </div>
+
+            <label for="detailRange">Detail Level: <span id="detailVal" style="color: var(--accent-color);">50</span></label>
+            <input type="range" id="detailRange" min="10" max="100" value="50" class="nes-range" aria-label="Detail Level">
+
+            <label for="minPathRange">Min Path Len: <span id="minPathVal" style="color: var(--accent-color);">5</span></label>
+            <input type="range" id="minPathRange" min="1" max="50" value="5" class="nes-range" aria-label="Minimum Path Length">
+
+            <div id="fourier-controls" class="hidden">
+                <label for="termsRange">Terms: <span id="termsVal" style="color: var(--accent-color);">50</span></label>
+                <input type="range" id="termsRange" min="5" max="200" value="50" class="nes-range" aria-label="Fourier Terms">
+            </div>
+            <div id="chaikin-controls" class="hidden">
+                <label for="chaikinRange">Iters: <span id="chaikinVal" style="color: var(--accent-color);">1</span></label>
+                <input type="range" id="chaikinRange" min="0" max="5" value="1" class="nes-range" aria-label="Chaikin Iterations">
+            </div>
+
+            <!-- Output Size Settings -->
+            <hr style="border: 1px dashed var(--text-color); margin: 12px 0;">
+            <p style="font-size: 8px; margin-bottom: 5px; color: var(--accent-color);">▶ Output Size</p>
+            <div class="nes-select" style="margin-bottom: 10px;">
+                <select id="sizeModeSelect" style="font-size: 8px; padding: 6px;" aria-label="Size Mode Select">
+                    <option value="auto" selected>Auto (Text Aspect Ratio)</option>
+                    <option value="custom">Custom Dimensions</option>
+                </select>
+            </div>
+
+            <div id="auto-size-controls" style="margin-bottom: 10px;">
+                <label for="resolutionScaleRange">Resolution Scale: <span id="resScaleVal" style="color: var(--accent-color);">2x</span></label>
+                <input type="range" id="resolutionScaleRange" min="1" max="8" value="2" class="nes-range" aria-label="Resolution Scale">
+            </div>
+
+            <div id="custom-size-controls" class="hidden" style="margin-bottom: 10px;">
+                <div style="display: flex; gap: 10px; margin-bottom: 8px;">
+                    <div style="flex: 1;">
+                        <label for="customWidthInput" style="font-size: 7px; margin-bottom: 2px;">Width (px)</label>
+                        <input type="number" id="customWidthInput" class="nes-input" style="font-size: 8px; padding: 4px; width: 100%;" value="1024">
+                    </div>
+                    <div style="flex: 1;">
+                        <label for="customHeightInput" style="font-size: 7px; margin-bottom: 2px;">Height (px)</label>
+                        <input type="number" id="customHeightInput" class="nes-input" style="font-size: 8px; padding: 4px; width: 100%;" value="256">
+                    </div>
+                </div>
+                <label style="margin: 0; font-size: 7px; display: flex; align-items: center; gap: 4px;">
+                    <input type="checkbox" class="nes-checkbox" id="keepAspectRatioCheck" checked aria-label="Keep Aspect Ratio"/>
+                    <span>Lock Ratio</span>
+                </label>
+            </div>
+
+            <div style="font-size: 7px; color: #aaa; margin-bottom: 10px;">
+                Target Size: <span id="targetSizeDisplay" style="color: var(--accent-color); font-weight: bold;">-</span>
+            </div>
+
+            <button class="nes-btn is-primary" id="generateBtn" style="width: 100%; margin-top: 10px; font-size: 10px;" aria-label="Generate">GENERATE</button>
+            <div id="status-text" style="font-size: 8px; margin-top: 8px; text-align: center;">READY</div>
+        </div>
+
+        <div class="nes-container with-title control-group" style="padding: 15px;">
+            <p class="title" style="font-size: 10px;">Export</p>
+            <div class="nes-select" style="width: 100%; margin-bottom: 10px;">
+                <select id="exportFormat" style="font-size: 8px;" aria-label="Export Format">
+                    <option value="png">PNG (Transparent OK)</option>
+                    <option value="jpg">JPG (Solid background)</option>
+                    <option value="json">JSON (AST Vector)</option>
+                </select>
+            </div>
+            <button class="nes-btn is-success" id="downloadBtn" style="width: 100%; font-size: 10px;" aria-label="Download File">DOWNLOAD</button>
+        </div>
+
+        <div class="nes-container with-title control-group" id="partnerWidget" style="padding: 15px; text-align: center;">
+            <p class="title" style="font-size: 10px;">Font Resources</p>
+            <div style="display: flex; flex-direction: column; gap: 8px; font-size: 8px;">
+                <a href="https://fonts.google.com" target="_blank" class="nes-btn" style="font-size: 6px; padding: 2px;">Google Fonts</a>
+                <a href="https://fontdasu.com" target="_blank" class="nes-btn" style="font-size: 6px; padding: 2px;">FontDasu (JP)</a>
+                <a href="https://fonts.adobe.com" target="_blank" class="nes-btn is-primary" style="font-size: 6px; padding: 2px;">Adobe Fonts</a>
+                <a href="https://www.freejapanesefont.com" target="_blank" class="nes-btn is-warning" style="font-size: 6px; padding: 2px;">Free JP Fonts</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="viewport-wrapper">
+        <div class="top-bar">
+            <div style="flex-grow: 1; display: flex; align-items: center; gap: 10px;">
+                <a href="/" style="color: inherit; text-decoration: none; font-size: 8px;">← Home</a>
+                <a href="/image" style="color: var(--accent-color); text-decoration: none; font-size: 7px;">Image Engine</a>
+            </div>
+            <div style="display: flex; gap: 10px;">
+                <button class="nes-btn is-warning" id="helpBtn" style="font-size: 8px;" aria-label="Help">?</button>
+                <button class="nes-btn is-error" id="clearAllBtn" style="font-size: 8px;" aria-label="Clear All">Clear All</button>
+                <button class="nes-btn" id="themeToggleBtn" style="font-size: 8px;" aria-label="Toggle Theme">Theme</button>
+                <button class="nes-btn" id="resetViewBtn" style="font-size: 8px;" aria-label="Reset View">Reset View</button>
+            </div>
+        </div>
+
+        <div class="canvas-area" id="canvasArea">
+            <canvas id="mainCanvas" aria-label="Main Drawing Canvas"></canvas>
+            <div class="overlay-stats nes-container is-rounded" id="overlayStats" aria-live="polite">Waiting for input...</div>
+
+            <div class="canvas-controls">
+                <button class="nes-btn" id="btnZoomIn" title="Zoom In" aria-label="Zoom In">+</button>
+                <button class="nes-btn" id="btnZoomOut" title="Zoom Out" aria-label="Zoom Out">-</button>
+                <button class="nes-btn" id="btnResetViewObj" title="Fit Screen" aria-label="Fit Screen">▣</button>
+                <button class="nes-btn is-primary" id="btnFocus" title="Focus Mode" aria-label="Focus Mode">F</button>
+            </div>
+
+            <div id="progressContainer" class="progress-overlay hidden">
+                <p id="progressText" style="font-size: 8px; color: var(--accent-color);">COMPUTING...</p>
+                <progress class="nes-progress is-primary" value="0" max="100" id="progressBar" style="height: 15px;"></progress>
+            </div>
+        </div>
+
+        <div class="gallery-container" id="gallery"></div>
+
+        <div id="loaderOverlay" class="loader-overlay"><div class="pixel-spinner"></div><p id="loaderText">Loading Engine...</p></div>
+    </div>
+
+    <!-- DIALOGS -->
+    <dialog class="nes-dialog" id="delete-dialog"><form method="dialog"><p class="title">Confirm Delete</p><p style="font-size: 8px;">Erase snapshot?</p><menu class="dialog-menu"><button class="nes-btn" value="cancel">No</button><button class="nes-btn is-error" id="confirmDeleteBtn" value="confirm">Yes</button></menu></form></dialog>
+    <dialog class="nes-dialog" id="clear-dialog"><form method="dialog"><p class="title">Clear All</p><p style="font-size: 8px;">Erase all?</p><menu class="dialog-menu"><button class="nes-btn" value="cancel">No</button><button class="nes-btn is-error" value="confirm">Yes</button></menu></form></dialog>
+    <dialog class="nes-dialog" id="error-dialog"><form method="dialog"><p class="title">ERROR</p><p id="error-message" style="font-size: 8px;"></p><menu class="dialog-menu"><button class="nes-btn is-primary">OK</button></menu></form></dialog>
+
+    <dialog class="nes-dialog" id="help-dialog" style="width: 90vw; max-width: 600px;">
+        <form method="dialog">
+            <p class="title" style="color: var(--accent-color); font-size: 10px;">Typography Engine Guide</p>
+            <div style="font-size: 8px; line-height: 1.8; text-align: left; max-height: 60vh; overflow-y: auto; padding: 5px;">
+                <p><strong>Font Sources:</strong><br>
+                - <b>System Fonts</b>: Chrome/Edge only. Instantly loads ALL fonts installed on your OS (including CJK).<br>
+                - <b>Upload Font</b>: Drag any .ttf/.otf file from your computer.<br>
+                - <b>Cloud Presets</b>: Curated small-size fonts fetched instantly from our CDN.<br>
+                - <b>IndexedDB Cache</b>: Your last font is remembered across sessions automatically.</p>
+
+                <p><strong>Algorithms:</strong><br>
+                - <b>Spline</b>: Precise Bezier curves per glyph contour.<br>
+                - <b>Fourier</b>: Continuous epicycle loops for each character path.<br>
+                - <b>Chaikin</b>: Smooth polyline corner-cutting per contour.</p>
+
+                <p><strong>Tips:</strong><br>
+                - For CJK text, use "System Fonts" API (Chrome) or upload a Noto CJK font.<br>
+                - Large CJK fonts (10-30MB) are cached in IndexedDB after first load.<br>
+                - Use transparent background + PNG for best overlay results.</p>
+            </div>
+            <menu class="dialog-menu" style="margin-top: 10px;"><button class="nes-btn is-primary">OK</button></menu>
+        </form>
+    </dialog>
+
+    <script type="module">
+        import init, { process_text } from "/wasm/wasm_engine.js";
+
+        let isWasmLoaded = false;
+        let currentFontBytes = null;
+        let currentFontFilename = "";
+        let previewDataStore = new Map();
+        let activePreviewId = null;
+        let cachedViewportCanvas = null;
+
+        let currentGradient = {
+            stops: [
+                [0.0, [1.0, 0.1, 0.1]], // Reddish
+                [0.5, [0.1, 1.0, 0.1]], // Greenish
+                [1.0, [0.1, 0.1, 1.0]]  // Blueish
+            ],
+            start_pos: [0.1, 0.5],
+            end_pos: [0.9, 0.5]
+        };
+        let snapshotCount = 0;
+        let pendingDeleteId = null;
+
+        window.__debug = {
+            get currentFontBytes() { return currentFontBytes; },
+            set currentFontBytes(val) { currentFontBytes = val; },
+            get isWasmLoaded() { return isWasmLoaded; },
+            get currentFontFilename() { return currentFontFilename; },
+            process_text: process_text,
+            get previewDataStore() { return previewDataStore; },
+            saveSettings: () => saveSettings(),
+            loadSettings: () => loadSettings(),
+            get currentGradient() { return currentGradient; }
+        };
+
+        let scale = 1, offsetX = 0, offsetY = 0;
+        let isDragging = false, dragStart = { x: 0, y: 0 };
+        let renderRequested = false;
+
+        const els = {
+            textInput: document.getElementById('textInput'),
+            fontInput: document.getElementById('fontInput'),
+            filenameDisplay: document.getElementById('filename-display'),
+            statusText: document.getElementById('status-text'),
+            generateBtn: document.getElementById('generateBtn'),
+            mainCanvas: document.getElementById('mainCanvas'),
+            canvasArea: document.getElementById('canvasArea'),
+            gallery: document.getElementById('gallery'),
+            resetViewBtn: document.getElementById('resetViewBtn'),
+            clearAllBtn: document.getElementById('clearAllBtn'),
+            themeToggleBtn: document.getElementById('themeToggleBtn'),
+            helpBtn: document.getElementById('helpBtn'),
+            helpDialog: document.getElementById('help-dialog'),
+            modeSelect: document.getElementById('modeSelect'),
+            colorCheck: document.getElementById('colorCheck'),
+            colorTypeSelect: document.getElementById('colorTypeSelect'),
+            solidColorInput: document.getElementById('solidColorInput'),
+            solidColorEditor: document.getElementById('solidColorEditor'),
+            paletteEditor: document.getElementById('paletteEditor'),
+            palettePresets: document.getElementById('palettePresets'),
+            customStopsContainer: document.getElementById('customStopsContainer'),
+            addStopBtn: document.getElementById('addStopBtn'),
+            flowSpeedRange: document.getElementById('flowSpeedRange'),
+            flowSpeedVal: document.getElementById('flowSpeedVal'),
+            colorStyleControls: document.getElementById('colorStyleControls'),
+            gridCheck: document.getElementById('gridCheck'),
+            detailRange: document.getElementById('detailRange'),
+            minPathRange: document.getElementById('minPathRange'),
+            termsRange: document.getElementById('termsRange'),
+            chaikinRange: document.getElementById('chaikinRange'),
+            fourierControls: document.getElementById('fourier-controls'),
+            chaikinControls: document.getElementById('chaikin-controls'),
+            detailVal: document.getElementById('detailVal'),
+            minPathVal: document.getElementById('minPathVal'),
+            termsVal: document.getElementById('termsVal'),
+            chaikinVal: document.getElementById('chaikinVal'),
+            overlayStats: document.getElementById('overlayStats'),
+            exportFormat: document.getElementById('exportFormat'),
+            bgTransparentCheck: document.getElementById('bgTransparentCheck'),
+            hideHandlesCheck: document.getElementById('hideHandlesCheck'),
+            downloadBtn: document.getElementById('downloadBtn'),
+            loaderOverlay: document.getElementById('loaderOverlay'),
+            loaderText: document.getElementById('loaderText'),
+            progressContainer: document.getElementById('progressContainer'),
+            progressBar: document.getElementById('progressBar'),
+            deleteDialog: document.getElementById('delete-dialog'),
+            clearDialog: document.getElementById('clear-dialog'),
+            errorDialog: document.getElementById('error-dialog'),
+            errorMessage: document.getElementById('error-message'),
+            btnAccessLocalFonts: document.getElementById('btnAccessLocalFonts'),
+            localFontSelectWrapper: document.getElementById('localFontSelectWrapper'),
+            localFontSelect: document.getElementById('localFontSelect'),
+            btnZoomIn: document.getElementById('btnZoomIn'),
+            btnZoomOut: document.getElementById('btnZoomOut'),
+            btnResetViewObj: document.getElementById('btnResetViewObj'),
+            btnFocus: document.getElementById('btnFocus'),
+            sizeModeSelect: document.getElementById('sizeModeSelect'),
+            resolutionScaleRange: document.getElementById('resolutionScaleRange'),
+            autoSizeControls: document.getElementById('auto-size-controls'),
+            customSizeControls: document.getElementById('custom-size-controls'),
+            customWidthInput: document.getElementById('customWidthInput'),
+            customHeightInput: document.getElementById('customHeightInput'),
+            keepAspectRatioCheck: document.getElementById('keepAspectRatioCheck'),
+            targetSizeDisplay: document.getElementById('targetSizeDisplay'),
+            resScaleVal: document.getElementById('resScaleVal')
+        };
+
+        const ctx = els.mainCanvas.getContext('2d');
+
+        function showError(msg) {
+            els.errorMessage.innerText = msg;
+            els.errorDialog.showModal();
+        }
+
+        function truncateMiddle(str, maxLength) {
+            if (str.length <= maxLength) return str;
+            return str.substr(0, Math.ceil(maxLength/2)) + '...' + str.substr(str.length - Math.floor(maxLength/2));
+        }
+
+        async function run() {
+            try {
+                await init();
+                isWasmLoaded = true;
+                els.loaderOverlay.classList.add('hidden');
+                console.log("WASM Initialized!");
+                await restoreCachedFont();
+
+                // Set default input text if empty
+                if (!els.textInput.value) {
+                    els.textInput.value = "VECTOMANCY";
+                }
+
+                // If no font cached, trigger click on default "PressStart2P"
+                if (!currentFontBytes) {
+                    const defaultPreset = document.querySelector('.font-preset-btn[data-filename="PressStart2P"]');
+                    if (defaultPreset) {
+                        defaultPreset.click();
+                    }
+                } else {
+                    // Trigger render immediately
+                    els.generateBtn.click();
+                }
+            } catch (e) {
+                els.statusText.innerText = "ERR: LOAD";
+                console.error(e);
+            }
+        }
+
+        run();
+
+
+        function hexToRgb(hex) {
+            const r = parseInt(hex.slice(1, 3), 16) / 255.0;
+            const g = parseInt(hex.slice(3, 5), 16) / 255.0;
+            const b = parseInt(hex.slice(5, 7), 16) / 255.0;
+            return [r, g, b];
+        }
+
+        function rgbToHex(r, g, b) {
+            const hexR = Math.min(255, Math.max(0, Math.round(r * 255))).toString(16).padStart(2, '0');
+            const hexG = Math.min(255, Math.max(0, Math.round(g * 255))).toString(16).padStart(2, '0');
+            const hexB = Math.min(255, Math.max(0, Math.round(b * 255))).toString(16).padStart(2, '0');
+            return `#${hexR}${hexG}${hexB}`;
+        }
+
+        const premiumPresets = [
+            {
+                name: "Sunset",
+                stops: [
+                    [0.0, [1.0, 0.35, 0.11]],
+                    [0.5, [0.93, 0.11, 0.4]],
+                    [1.0, [0.47, 0.1, 0.61]]
+                ]
+            },
+            {
+                name: "Ocean",
+                stops: [
+                    [0.0, [0.0, 0.73, 0.83]],
+                    [0.5, [0.0, 0.47, 0.8]],
+                    [1.0, [0.01, 0.18, 0.36]]
+                ]
+            },
+            {
+                name: "Neon",
+                stops: [
+                    [0.0, [1.0, 0.0, 0.5]],
+                    [0.5, [0.5, 0.0, 1.0]],
+                    [1.0, [0.0, 1.0, 1.0]]
+                ]
+            },
+            {
+                name: "Retro",
+                stops: [
+                    [0.0, [0.95, 0.77, 0.06]],
+                    [0.5, [0.91, 0.3, 0.24]],
+                    [1.0, [0.17, 0.45, 0.34]]
+                ]
+            }
+        ];
+
+        function renderPalettePresets() {
+            if (!els.palettePresets) return;
+            els.palettePresets.innerHTML = '';
+            premiumPresets.forEach(preset => {
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'nes-btn';
+                btn.style.fontSize = '8px';
+                btn.style.padding = '4px 6px';
+                btn.innerText = preset.name;
+                btn.onclick = () => {
+                    currentGradient.stops = preset.stops.map(s => [s[0], [...s[1]]]);
+                    updateColorStyleOnAst();
+                    renderStopsEditor();
+                };
+                els.palettePresets.appendChild(btn);
+            });
+        }
+
+        function renderStopsEditor() {
+            if (!els.customStopsContainer) return;
+            els.customStopsContainer.innerHTML = '';
+            currentGradient.stops.forEach((stop, index) => {
+                const offset = stop[0];
+                const color = stop[1];
+                const hexColor = rgbToHex(color[0], color[1], color[2]);
+
+                const stopRow = document.createElement('div');
+                stopRow.style.display = 'flex';
+                stopRow.style.alignItems = 'center';
+                stopRow.style.gap = '8px';
+
+                // Color picker input
+                const colorInput = document.createElement('input');
+                colorInput.type = 'color';
+                colorInput.value = hexColor;
+                colorInput.style.padding = '0';
+                colorInput.style.border = 'none';
+                colorInput.style.width = '30px';
+                colorInput.style.height = '20px';
+                colorInput.style.cursor = 'pointer';
+                colorInput.onchange = (e) => {
+                    const rgb = hexToRgb(e.target.value);
+                    currentGradient.stops[index][1] = rgb;
+                    updateColorStyleOnAst();
+                };
+
+                // Offset slider
+                const offsetInput = document.createElement('input');
+                offsetInput.type = 'range';
+                offsetInput.min = '0';
+                offsetInput.max = '100';
+                offsetInput.value = Math.round(offset * 100);
+                offsetInput.style.flex = '1';
+                offsetInput.className = 'nes-range';
+                offsetInput.oninput = (e) => {
+                    currentGradient.stops[index][0] = parseFloat(e.target.value) / 100.0;
+                    updateColorStyleOnAst();
+                };
+
+                // Delete button
+                const delBtn = document.createElement('button');
+                delBtn.type = 'button';
+                delBtn.className = 'nes-btn is-error';
+                delBtn.style.fontSize = '8px';
+                delBtn.style.padding = '2px 6px';
+                delBtn.innerText = 'X';
+                delBtn.onclick = () => {
+                    currentGradient.stops.splice(index, 1);
+                    updateColorStyleOnAst();
+                    renderStopsEditor();
+                };
+
+                stopRow.appendChild(colorInput);
+                stopRow.appendChild(offsetInput);
+                if (currentGradient.stops.length > 2) {
+                    stopRow.appendChild(delBtn);
+                }
+                els.customStopsContainer.appendChild(stopRow);
+            });
+        }
+
+        if (els.addStopBtn) {
+            els.addStopBtn.onclick = () => {
+                if (currentGradient.stops.length >= 2) {
+                    const lastStop = currentGradient.stops[currentGradient.stops.length - 1];
+                    const newOffset = Math.min(1.0, lastStop[0] + 0.1);
+                    const newColor = [...lastStop[1]];
+                    currentGradient.stops.push([newOffset, newColor]);
+                    currentGradient.stops.sort((a, b) => a[0] - b[0]);
+                    updateColorStyleOnAst();
+                    renderStopsEditor();
+                }
+            };
+        }
+
+        if (els.solidColorInput) {
+            els.solidColorInput.addEventListener('change', updateColorStyleOnAst);
+            els.solidColorInput.addEventListener('input', updateColorStyleOnAst);
+
+
+        function getActiveAspectRatio() {
+            if (activePreviewId) {
+                const res = previewDataStore.get(activePreviewId);
+                if (res && res.width > 0 && res.height > 0) {
+                    return res.width / res.height;
+                }
+            }
+            return 6.0;
+        }
+
+        function getTargetDimensions(baseWidth, baseHeight) {
+            const sizeMode = els.sizeModeSelect.value;
+            if (sizeMode === 'auto') {
+                const scale = parseInt(els.resolutionScaleRange.value) || 2;
+                return {
+                    width: Math.round(baseWidth * scale),
+                    height: Math.round(baseHeight * scale)
+                };
+            } else {
+                const w = parseInt(els.customWidthInput.value) || 1024;
+                const h = parseInt(els.customHeightInput.value) || 256;
+                return { width: w, height: h };
+            }
+
+        }
+
+        function updateLabels() {
+            els.detailVal.innerText = els.detailRange.value;
+            els.minPathVal.innerText = els.minPathRange.value;
+            els.termsVal.innerText = els.termsRange.value;
+            els.chaikinVal.innerText = els.chaikinRange.value;
+            if (els.flowSpeedVal && els.flowSpeedRange) {
+                els.flowSpeedVal.innerText = els.flowSpeedRange.value;
+            }
+            const mode = els.modeSelect.value;
+            els.fourierControls.classList.toggle('hidden', mode !== 'fourier');
+            els.chaikinControls.classList.toggle('hidden', mode !== 'chaikin');
+
+
+            const hasColor = els.colorCheck.checked;
+            if (els.colorStyleControls) {
+                els.colorStyleControls.classList.toggle('hidden', !hasColor);
+            }
+            const colorType = els.colorTypeSelect ? els.colorTypeSelect.value : 'gradient';
+            if (els.solidColorEditor) {
+                els.solidColorEditor.classList.toggle('hidden', colorType !== 'solid' || !hasColor);
+            }
+            if (els.paletteEditor) {
+                els.paletteEditor.classList.toggle('hidden', colorType !== 'gradient' || !hasColor);
+            }
+            const flowControls = document.getElementById('flow-controls');
+            if (flowControls) {
+                flowControls.classList.toggle('hidden', colorType !== 'gradient' || !hasColor);
+            }
+
+            els.resScaleVal.innerText = `${els.resolutionScaleRange.value}x`;
+            if (activePreviewId) {
+                const res = previewDataStore.get(activePreviewId);
+                if (res) {
+                    const dims = getTargetDimensions(res.width, res.height);
+                    els.targetSizeDisplay.innerText = `${dims.width} x ${dims.height} px`;
+                } else {
+                    els.targetSizeDisplay.innerText = "-";
+                }
+            } else {
+                els.targetSizeDisplay.innerText = "Waiting for render...";
+
+            }
+        }
+
+        [
+            els.detailRange, els.minPathRange, els.termsRange, els.chaikinRange, els.modeSelect,
+            els.colorCheck, els.colorTypeSelect, els.flowSpeedRange
+        ].forEach(el => {
+            if (el) el.addEventListener('input', updateLabels);
+        });
+
+        function updateColorStyleOnAst() {
+            saveSettings();
+            if (!activePreviewId) return;
+            const res = previewDataStore.get(activePreviewId);
+            if (!res || !res.ast) return;
+
+            const colorStyleVal = els.colorCheck.checked ? (
+                els.colorTypeSelect.value === 'gradient' ? {
+                    stops: currentGradient.stops.map(s => [s[0], s[1]]),
+                    start_pos: currentGradient.start_pos,
+                    end_pos: currentGradient.end_pos
+                } : hexToRgb(els.solidColorInput.value)
+            ) : null;
+
+            const paths = res.ast.equations || res.ast.strokes || res.ast.paths || [];
+            paths.forEach(path => {
+                path.color_style = colorStyleVal;
+                path.color_rgb = colorStyleVal;
+            });
+
+            res.cachedPaths = null; // Invalidate cache so it rebuilds!
+            recacheViewportCanvas();
+            requestRender();
+        }
+
+        if (els.colorCheck) els.colorCheck.addEventListener('change', updateColorStyleOnAst);
+        if (els.colorTypeSelect) els.colorTypeSelect.addEventListener('change', updateColorStyleOnAst);
+
+        els.sizeModeSelect.addEventListener('change', () => {
+            const mode = els.sizeModeSelect.value;
+            els.autoSizeControls.classList.toggle('hidden', mode !== 'auto');
+            els.customSizeControls.classList.toggle('hidden', mode !== 'custom');
+            updateLabels();
+            recacheViewportCanvas();
+            requestRender();
+        });
+
+        els.resolutionScaleRange.addEventListener('input', () => {
+            updateLabels();
+            recacheViewportCanvas();
+            requestRender();
+        });
+
+        els.customWidthInput.addEventListener('input', () => {
+            if (els.keepAspectRatioCheck.checked) {
+                const ratio = getActiveAspectRatio();
+                if (ratio > 0) {
+                    const w = parseInt(els.customWidthInput.value) || 0;
+                    els.customHeightInput.value = Math.max(1, Math.round(w / ratio));
+                }
+            }
+            updateLabels();
+            recacheViewportCanvas();
+            requestRender();
+        });
+
+        els.customHeightInput.addEventListener('input', () => {
+            if (els.keepAspectRatioCheck.checked) {
+                const ratio = getActiveAspectRatio();
+                if (ratio > 0) {
+                    const h = parseInt(els.customHeightInput.value) || 0;
+                    els.customWidthInput.value = Math.max(1, Math.round(h * ratio));
+                }
+            }
+            updateLabels();
+            recacheViewportCanvas();
+            requestRender();
+        });
+
+        els.keepAspectRatioCheck.addEventListener('change', () => {
+            if (els.keepAspectRatioCheck.checked) {
+                const ratio = getActiveAspectRatio();
+                if (ratio > 0) {
+                    const w = parseInt(els.customWidthInput.value) || 1024;
+                    els.customHeightInput.value = Math.max(1, Math.round(w / ratio));
+                }
+            }
+            updateLabels();
+            recacheViewportCanvas();
+            requestRender();
+        });
+
+        els.themeToggleBtn.addEventListener('click', () => {
+            document.body.classList.toggle('dark-theme');
+            [els.deleteDialog, els.clearDialog, els.errorDialog, els.helpDialog].forEach(d => d.classList.toggle('is-dark'));
+            document.querySelectorAll('.nes-input, .nes-checkbox, .nes-radio, .nes-select select, .nes-btn:not(.is-primary):not(.is-success):not(.is-error):not(.is-warning)').forEach(el => {
+                el.classList.toggle('is-dark');
+            });
+            recacheViewportCanvas();
+            requestRender();
+            saveSettings();
+        });
+
+        // --- Font IndexedDB Cache ---
+        const DB_NAME = 'VectomancyFontDB';
+        const DB_VERSION = 1;
+        function openFontDB() {
+            return new Promise((resolve, reject) => {
+                const req = indexedDB.open(DB_NAME, DB_VERSION);
+                req.onupgradeneeded = e => {
+                    const db = e.target.result;
+                    if(!db.objectStoreNames.contains('fonts')) db.createObjectStore('fonts');
+                };
+                req.onsuccess = () => resolve(req.result);
+                req.onerror = () => reject(req.error);
+            });
+        }
+        async function saveFontCache(name, arrayBuffer) {
+            const db = await openFontDB();
+            return new Promise((resolve, reject) => {
+                const tx = db.transaction('fonts', 'readwrite');
+                tx.objectStore('fonts').put(arrayBuffer, name);
+                tx.oncomplete = () => resolve();
+                tx.onerror = () => reject(tx.error);
+            });
+        }
+        async function loadFontCache(name) {
+            const db = await openFontDB();
+            return new Promise((resolve, reject) => {
+                const tx = db.transaction('fonts', 'readonly');
+                const req = tx.objectStore('fonts').get(name);
+                req.onsuccess = () => resolve(req.result);
+                req.onerror = () => reject(tx.error);
+            });
+        }
+
+        async function restoreCachedFont() {
+            try {
+                const buffer = await loadFontCache('last_font_bytes');
+                const nameBuffer = await loadFontCache('last_font_name');
+                if (buffer && nameBuffer) {
+                    currentFontBytes = new Uint8Array(buffer);
+                    currentFontFilename = new TextDecoder().decode(nameBuffer);
+                    els.filenameDisplay.innerText = truncateMiddle(currentFontFilename, 20);
+                }
+            } catch(e) { console.error("No cached font found.", e); }
+        }
+
+        // --- Local Font Access API ---
+        let localFontsList = [];
+        els.btnAccessLocalFonts.addEventListener('click', async () => {
+            try {
+                if (!('queryLocalFonts' in window)) {
+                    throw new Error("Local Font Access API is not supported in your browser (try Chrome/Edge desktop).");
+                }
+                els.loaderOverlay.classList.remove('hidden');
+                els.loaderText.innerText = "Requesting Font Access...";
+                localFontsList = await window.queryLocalFonts();
+
+                els.localFontSelectWrapper.style.display = 'block';
+                els.btnAccessLocalFonts.style.display = 'none';
+                els.localFontSelect.innerHTML = '<option value="" disabled selected>Select system font...</option>';
+
+                const familyMap = new Map();
+                for (const f of localFontsList) {
+                    if (!familyMap.has(f.family)) familyMap.set(f.family, f);
+                }
+                Array.from(familyMap.keys()).sort().forEach(family => {
+                    const opt = document.createElement('option');
+                    opt.value = family;
+                    opt.textContent = family;
+                    els.localFontSelect.appendChild(opt);
+                });
+                els.loaderOverlay.classList.add('hidden');
+            } catch(err) {
+                els.loaderOverlay.classList.add('hidden');
+                showError(err.message || "Failed to access system fonts. Permission denied?");
+            }
+        });
+
+        els.localFontSelect.addEventListener('change', async () => {
+            const family = els.localFontSelect.value;
+            const fontObj = localFontsList.find(f => f.family === family);
+            if (!fontObj) return;
+
+            els.loaderOverlay.classList.remove('hidden');
+            els.loaderText.innerText = `Extracting ${family}...`;
+            try {
+                const blob = await fontObj.blob();
+                const b = await blob.arrayBuffer();
+                currentFontBytes = new Uint8Array(b);
+                currentFontFilename = family + " (System)";
+                els.filenameDisplay.innerText = truncateMiddle(currentFontFilename, 20);
+                await saveFontCache('last_font_bytes', b);
+                await saveFontCache('last_font_name', new TextEncoder().encode(currentFontFilename).buffer);
+            } catch(err) {
+                showError("Could not extract font data.");
+            }
+            els.loaderOverlay.classList.add('hidden');
+        });
+
+        els.fontInput.addEventListener('change', async (e) => {
+            if(e.target.files[0]) {
+                const b = await e.target.files[0].arrayBuffer();
+                currentFontBytes = new Uint8Array(b);
+                currentFontFilename = e.target.files[0].name;
+                els.filenameDisplay.innerText = truncateMiddle(currentFontFilename, 20);
+                saveFontCache('last_font_bytes', b);
+                saveFontCache('last_font_name', new TextEncoder().encode(currentFontFilename).buffer);
+            }
+        });
+
+        document.querySelectorAll('.font-preset-btn').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                const url = e.target.dataset.url;
+                const isLocal = url.startsWith('/');
+                const filename = e.target.dataset.filename + (isLocal ? " (Local)" : " (Cloud)");
+
+                els.loaderOverlay.classList.remove('hidden');
+                els.loaderText.innerText = `Fetching ${filename}...`;
+                try {
+                    let r;
+                    if (isLocal) {
+                        r = await fetch(url);
+                    } else {
+                        const proxyBase = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || window.location.protocol === 'file:')
+                            ? 'https://vectomancy.pages.dev/proxy'
+                            : '/proxy';
+                        r = await fetch(proxyBase + '?url=' + encodeURIComponent(url));
+                    }
+                    if (!r.ok) throw new Error("HTTP Error");
+                    const b = await r.arrayBuffer();
+                    currentFontBytes = new Uint8Array(b);
+                    currentFontFilename = filename;
+                    els.filenameDisplay.innerText = truncateMiddle(currentFontFilename, 20);
+                    await saveFontCache('last_font_bytes', b);
+                    await saveFontCache('last_font_name', new TextEncoder().encode(currentFontFilename).buffer);
+                } catch(err) {
+                    showError("Failed to fetch font.\nPlease check your network.");
+                }
+                els.loaderOverlay.classList.add('hidden');
+                if (previewDataStore.size === 0 && els.textInput.value) {
+                    els.generateBtn.click();
+                }
+            });
+        });
+
+        els.generateBtn.addEventListener('click', () => {
+            if(!isWasmLoaded) return;
+            if(!currentFontBytes) return showError("No Font Selected!\nUse System Fonts, Upload, or Cloud Presets.");
+            if(!els.textInput.value) return showError("No Text entered!");
+
+            els.progressContainer.classList.remove('hidden');
+            let p = 0;
+            const pInt = setInterval(() => { p += 20; if(p>=90) { p=90; clearInterval(pInt); } els.progressBar.value = p; }, 10);
+
+            setTimeout(() => {
+                try {
+                    const start = performance.now();
+                    const colorStyleVal = els.colorCheck.checked ? (
+                        els.colorTypeSelect.value === 'gradient' ? {
+                            stops: currentGradient.stops.map(s => [s[0], s[1]]),
+                            start_pos: currentGradient.start_pos,
+                            end_pos: currentGradient.end_pos
+                        } : [1.0, 0.45, 0.0] // Solid orange
+                    ) : null;
+
+                    const options = {
+                        format: 'jpg',
+                        color: els.colorCheck.checked,
+                        mode: els.modeSelect.value,
+                        chaikin_iters: parseInt(els.chaikinRange.value),
+                        terms: parseInt(els.termsRange.value),
+                        detail: parseInt(els.detailRange.value),
+                        min_path_len: parseInt(els.minPathRange.value),
+                        color_style: colorStyleVal
+                    };
+
+                    const result = process_text(currentFontBytes, els.textInput.value, options);
+
+                    snapshotCount++;
+                    const id = `snap-${snapshotCount}`;
+                    createSnapshot(id, result, `${options.mode.substring(0,3).toUpperCase()} D${options.detail}`, Math.round(performance.now()-start));
+                } catch(e) { console.error(e); showError("Render failed: " + (e.message || e.toString() || e)); }
+                clearInterval(pInt); els.progressBar.value = 100;
+                setTimeout(() => els.progressContainer.classList.add('hidden'), 200);
+            }, 50);
+        });
+
+        function createSnapshot(id, result, label, time) {
+            const size = 128;
+            const off = document.createElement('canvas'); off.width = size; off.height = size;
+            const oCtx = off.getContext('2d');
+            oCtx.fillStyle = document.body.classList.contains('dark-theme') ? '#000000' : '#ffffff';
+            oCtx.fillRect(0,0,size,size);
+            const s = Math.min(size/result.width, size/result.height) * 0.9;
+            oCtx.translate((size-result.width*s)/2, (size-result.height*s)/2); oCtx.scale(s,s);
+            drawAST(oCtx, result.ast, true, document.body.classList.contains('dark-theme'));
+            result.computeTime = time;
+            previewDataStore.set(id, result);
+            addGalleryItem(id, off.toDataURL(), label);
+            setActivePreview(id);
+        }
+
+        function addGalleryItem(id, src, label) {
+            const div = document.createElement('div');
+            div.className = 'gallery-item'; div.id = `gallery-${id}`;
+            div.innerHTML = `<img src="${src}"><div class="gallery-label">${label}</div><div class="gallery-delete">X</div>`;
+            div.onclick = (e) => {
+                if(e.target.classList.contains('gallery-delete')) {
+                    e.stopPropagation(); pendingDeleteId = id; els.deleteDialog.showModal();
+                } else setActivePreview(id);
+            };
+            els.gallery.prepend(div);
+        }
+
+        els.deleteDialog.addEventListener('close', () => {
+            if(els.deleteDialog.returnValue === 'confirm' && pendingDeleteId) {
+                previewDataStore.delete(pendingDeleteId);
+                document.getElementById(`gallery-${pendingDeleteId}`).remove();
+                if(activePreviewId === pendingDeleteId) setActivePreview(null);
+            }
+        });
+
+        els.clearAllBtn.addEventListener('click', () => { if(previewDataStore.size>0) els.clearDialog.showModal(); });
+        els.clearDialog.addEventListener('close', () => {
+            if(els.clearDialog.returnValue === 'confirm') {
+                for(let k of previewDataStore.keys()) document.getElementById(`gallery-${k}`).remove();
+                previewDataStore.clear(); setActivePreview(null);
+            }
+        });
+
+        els.helpBtn.addEventListener('click', () => { els.helpDialog.showModal(); });
+
+        function buildPath2DCache(ast) {
+            if (!ast) return [];
+            const cache = [];
+
+            if (ast.type === 'Spline' || ast.type === 'spline') {
+                ast.equations.forEach(path => {
+                    const path2d = new Path2D();
+                    path.data.forEach(eq => {
+                        let first = true;
+                        for (let t = 0; t <= 1; t += 0.05) {
+                            let x = eq.x_poly[0] + eq.x_poly[1]*t + eq.x_poly[2]*t*t + eq.x_poly[3]*t*t*t;
+                            let y = eq.y_poly[0] + eq.y_poly[1]*t + eq.y_poly[2]*t*t + eq.y_poly[3]*t*t*t;
+                            if (first) {
+                                path2d.moveTo(x, y);
+                                first = false;
+                            } else {
+                                path2d.lineTo(x, y);
+                            }
+                        }
+                    });
+                    cache.push({
+                        path2d: path2d,
+                        colorStyle: path.color_style || path.color_rgb
+                    });
+                });
+            } else if (ast.type === 'Fourier' || ast.type === 'fourier') {
+                ast.strokes.forEach(stroke => {
+                    const path2d = new Path2D();
+                    let first = true;
+                    const st = 1000;
+                    for (let i = 0; i <= st; i++) {
+                        let t = (i/st)*Math.PI*2, x=0, y=0;
+                        stroke.data.forEach(term => {
+                            x += term.amplitude * Math.cos(term.frequency*t + term.phase);
+                            y += term.amplitude * Math.sin(term.frequency*t + term.phase);
+                        });
+                        if (first) {
+                            path2d.moveTo(x, y);
+                            first = false;
+                        } else {
+                            path2d.lineTo(x, y);
+                        }
+                    }
+                    cache.push({
+                        path2d: path2d,
+                        colorStyle: stroke.color_style || stroke.color_rgb
+                    });
+                });
+            } else if (ast.type === 'Polyline' || ast.type === 'polyline') {
+                ast.paths.forEach(path => {
+                    const path2d = new Path2D();
+                    let first = true;
+                    path.data.forEach(pt => {
+                        if (first) {
+                            path2d.moveTo(pt.x, pt.y);
+                            first = false;
+                        } else {
+                            path2d.lineTo(pt.x, pt.y);
+                        }
+                    });
+                    cache.push({
+                        path2d: path2d,
+                        colorStyle: path.color_style || path.color_rgb
+                    });
+                });
+            }
+            return cache;
+        }
+
+        function getStrokeStyle(ctx, colorStyle, bbox, isThumb, isDark, isExport) {
+            const defCol = isDark ? '#f7b731' : '#2d2416';
+            const extractColor = els.colorCheck.checked || isThumb || isExport;
+
+            if (!bbox || bbox.some(val => !isFinite(val))) {
+                bbox = [0, 0, 100, 100];
+            }
+            if (!colorStyle || !extractColor) return defCol;
+            if (Array.isArray(colorStyle)) {
+                const r = Math.round(colorStyle[0] * 255);
+                const g = Math.round(colorStyle[1] * 255);
+                const b = Math.round(colorStyle[2] * 255);
+                return `rgb(${r},${g},${b})`;
+            }
+            if (colorStyle.stops) {
+                const start_pos = colorStyle.start_pos || [0.0, 0.5];
+                const end_pos = colorStyle.end_pos || [1.0, 0.5];
+                const w = bbox[2] - bbox[0];
+                const h = bbox[3] - bbox[1];
+                const b0 = bbox[0];
+                const b1 = bbox[1];
+
+                let sx = parseFloat(start_pos[0]);
+                let sy = parseFloat(start_pos[1]);
+                let ex = parseFloat(end_pos[0]);
+                let ey = parseFloat(end_pos[1]);
+
+                if (isNaN(sx) || !isFinite(sx)) sx = 0.0;
+                if (isNaN(sy) || !isFinite(sy)) sy = 0.5;
+                if (isNaN(ex) || !isFinite(ex)) ex = 1.0;
+                if (isNaN(ey) || !isFinite(ey)) ey = 0.5;
+
+                const x0 = b0 + sx * w;
+                const y0 = b1 + sy * h;
+                const x1 = b0 + ex * w;
+                const y1 = b1 + ey * h;
+
+                if (!isFinite(x0) || !isFinite(y0) || !isFinite(x1) || !isFinite(y1)) {
+                    return defCol;
+                }
+
+                const grad = ctx.createLinearGradient(x0, y0, x1, y1);
+                colorStyle.stops.forEach(stop => {
+                    let offset = parseFloat(stop[0]);
+                    if (isNaN(offset) || !isFinite(offset)) {
+                        offset = 0.0;
+                    }
+                    offset = Math.max(0.0, Math.min(1.0, offset));
+
+                    const colorVal = stop[1];
+                    const r = Math.round(colorVal[0] * 255);
+                    const g = Math.round(colorVal[1] * 255);
+                    const b = Math.round(colorVal[2] * 255);
+                    grad.addColorStop(offset, `rgb(${r},${g},${b})`);
+                });
+                return grad;
+            }
+            if (colorStyle.LinearGradient) {
+                const startColor = `rgb(${Math.round(colorStyle.LinearGradient.start[0]*255)},${Math.round(colorStyle.LinearGradient.start[1]*255)},${Math.round(colorStyle.LinearGradient.start[2]*255)})`;
+                const endColor = `rgb(${Math.round(colorStyle.LinearGradient.end[0]*255)},${Math.round(colorStyle.LinearGradient.end[1]*255)},${Math.round(colorStyle.LinearGradient.end[2]*255)})`;
+                const grad = ctx.createLinearGradient(0, 0, 0, 100);
+                grad.addColorStop(0, startColor);
+                grad.addColorStop(1, endColor);
+                return grad;
+            }
+            return defCol;
+        }
+
+        function drawCachedPaths(ctx, cache, ast, isThumb, isDark, isExport) {
+            ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+            const visualScale = (scale > 0 && isFinite(scale)) ? scale : 1.0;
+            ctx.lineWidth = isThumb ? 3 : (isExport ? 1.5 : 1.5 / visualScale);
+
+            cache.forEach(item => {
+                ctx.strokeStyle = getStrokeStyle(ctx, item.colorStyle, ast.bounding_box, isThumb, isDark, isExport);
+                ctx.stroke(item.path2d);
+            });
+        }
+
+        function recacheViewportCanvas() {
+            if (activePreviewId) {
+                const res = previewDataStore.get(activePreviewId);
+                if (!res) return;
+                if (!cachedViewportCanvas) {
+                    cachedViewportCanvas = document.createElement('canvas');
+                }
+                const dims = getTargetDimensions(res.width, res.height);
+                cachedViewportCanvas.width = dims.width;
+                cachedViewportCanvas.height = dims.height;
+                const cCtx = cachedViewportCanvas.getContext('2d');
+
+                cCtx.clearRect(0, 0, dims.width, dims.height);
+
+                cCtx.save();
+                const scaleX = dims.width / res.width;
+                const scaleY = dims.height / res.height;
+                const scale = Math.min(scaleX, scaleY);
+                const offsetX = (dims.width - res.width * scale) / 2;
+                const offsetY = (dims.height - res.height * scale) / 2;
+                cCtx.translate(offsetX, offsetY);
+                cCtx.scale(scale, scale);
+
+                if (!res.cachedPaths) {
+                    res.cachedPaths = buildPath2DCache(res.ast);
+                }
+
+                drawCachedPaths(cCtx, res.cachedPaths, res.ast, false, document.body.classList.contains('dark-theme'), true);
+                cCtx.restore();
+            }
+        }
+
+        function setActivePreview(id) {
+            activePreviewId = id;
+            document.querySelectorAll('.gallery-item').forEach(el => el.classList.remove('active'));
+            const item = id ? document.getElementById(`gallery-${id}`) : null;
+            if(item) { item.classList.add('active'); item.scrollIntoView({ behavior:'smooth', inline:'center' }); }
+
+            if(id) {
+                const res = previewDataStore.get(id);
+                if (els.keepAspectRatioCheck.checked && res.width > 0 && res.height > 0) {
+                    const ratio = res.width / res.height;
+                    const w = parseInt(els.customWidthInput.value) || 1024;
+                    els.customHeightInput.value = Math.max(1, Math.round(w / ratio));
+                }
+                recacheViewportCanvas();
+                let stats = `RENDER STATS\nSIZE: ${res.width}x${res.height}\nTIME: ${res.computeTime}ms`;
+                if(res.ast.type === 'Spline' || res.ast.type === 'spline') stats += `\nPATHS: ${res.ast.equations.length}`;
+                els.overlayStats.innerText = stats;
+            } else {
+                cachedViewportCanvas = null;
+                els.overlayStats.innerText = "Waiting for input...";
+            }
+            updateLabels();
+            resetViewport(); requestRender();
+        }
+
+        function resetViewport() {
+            if(!activePreviewId) return;
+            const res = previewDataStore.get(activePreviewId);
+            if (!res) return;
+            const r = els.canvasArea.getBoundingClientRect();
+            scale = Math.min((r.width*0.8)/res.width, (r.height*0.8)/res.height);
+            offsetX = (r.width - res.width*scale)/2;
+            offsetY = (r.height - res.height*scale)/2;
+        }
+
+        let isDraggingHandle = false;
+        let activeHandleType = null; // 'start', 'end', or number (stop index)
+
+        els.canvasArea.addEventListener('mousedown', (e) => {
+            if (activePreviewId && !els.hideHandlesCheck.checked) {
+                const res = previewDataStore.get(activePreviewId);
+                if (res && res.ast) {
+                    const paths = res.ast.equations || res.ast.strokes || res.ast.paths || [];
+                    const firstPath = paths[0];
+                    const colorStyle = firstPath ? (firstPath.color_style || firstPath.color_rgb) : null;
+                    if (colorStyle && colorStyle.stops) {
+                        const start_pos = colorStyle.start_pos || [0.0, 0.5];
+                        const end_pos = colorStyle.end_pos || [1.0, 0.5];
+                        const bbox = res.ast.bounding_box;
+                        if (bbox) {
+                            const w = bbox[2] - bbox[0];
+                            const h = bbox[3] - bbox[1];
+                            if (w > 0 && h > 0) {
+                                const x0 = bbox[0] + start_pos[0] * w;
+                                const y0 = bbox[1] + start_pos[1] * h;
+                                const x1 = bbox[0] + end_pos[0] * w;
+                                const y1 = bbox[1] + end_pos[1] * h;
+
+                                // Convert to screen coords
+                                const screenX0 = offsetX + x0 * scale;
+                                const screenY0 = offsetY + y0 * scale;
+                                const screenX1 = offsetX + x1 * scale;
+                                const screenY1 = offsetY + y1 * scale;
+
+                                // Mouse position relative to canvas
+                                const rect = els.canvasArea.getBoundingClientRect();
+                                const screenX = e.clientX - rect.left;
+                                const screenY = e.clientY - rect.top;
+
+                                let bestDist = 15;
+                                let bestHandle = null;
+
+                                const dist0 = Math.hypot(screenX - screenX0, screenY - screenY0);
+                                if (dist0 < bestDist) {
+                                    bestDist = dist0;
+                                    bestHandle = 'start';
+                                }
+
+                                const dist1 = Math.hypot(screenX - screenX1, screenY - screenY1);
+                                if (dist1 < bestDist) {
+                                    bestDist = dist1;
+                                    bestHandle = 'end';
+                                }
+
+                                for (let i = 0; i < colorStyle.stops.length; i++) {
+                                    const offset = colorStyle.stops[i][0];
+                                    const screenCX = screenX0 + offset * (screenX1 - screenX0);
+                                    const screenCY = screenY0 + offset * (screenY1 - screenY0);
+                                    const distStop = Math.hypot(screenX - screenCX, screenY - screenCY);
+                                    if (distStop < bestDist) {
+                                        bestDist = distStop;
+                                        bestHandle = i;
+                                    }
+                                }
+
+                                if (bestHandle !== null) {
+                                    isDraggingHandle = true;
+                                    activeHandleType = bestHandle;
+                                    return; // Don't trigger pan dragging
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            // Fall back to viewport pan
+            isDragging = true;
+            dragStart = { x: e.clientX-offsetX, y: e.clientY-offsetY };
+        });
+
+        window.addEventListener('mousemove', (e) => {
+            if (scale <= 0 || !isFinite(scale)) return;
+            if (isDraggingHandle && activePreviewId) {
+                const res = previewDataStore.get(activePreviewId);
+                if (res && res.ast) {
+                    const bbox = res.ast.bounding_box;
+                    if (bbox) {
+                        const w = bbox[2] - bbox[0];
+                        const h = bbox[3] - bbox[1];
+                        if (w > 0 && h > 0) {
+                            const rect = els.canvasArea.getBoundingClientRect();
+                            const screenX = e.clientX - rect.left;
+                            const screenY = e.clientY - rect.top;
+
+                            // Convert to AST space
+                            const astX = (screenX - offsetX) / scale;
+                            const astY = (screenY - offsetY) / scale;
+
+                            // Relative position in bbox
+                            let relX = (astX - bbox[0]) / w;
+                            let relY = (astY - bbox[1]) / h;
+
+                            if (!Number.isFinite(relX)) relX = 0.0;
+                            if (!Number.isFinite(relY)) relY = 0.5;
+                            relX = Math.min(1.0, Math.max(0.0, relX));
+                            relY = Math.min(1.0, Math.max(0.0, relY));
+
+                            // Update all path color styles in the AST
+                            const paths = res.ast.equations || res.ast.strokes || res.ast.paths || [];
+                            paths.forEach(path => {
+                                const style = path.color_style || path.color_rgb;
+                                if (style && style.stops) {
+                                    if (activeHandleType === 'start') {
+                                        style.start_pos = [relX, relY];
+                                        currentGradient.start_pos = [relX, relY];
+                                    } else if (activeHandleType === 'end') {
+                                        style.end_pos = [relX, relY];
+                                        currentGradient.end_pos = [relX, relY];
+                                    } else if (typeof activeHandleType === 'number') {
+                                        const start_pos = style.start_pos || [0.0, 0.5];
+                                        const end_pos = style.end_pos || [1.0, 0.5];
+                                        const ab_x = end_pos[0] - start_pos[0];
+                                        const ab_y = end_pos[1] - start_pos[1];
+                                        const ap_x = relX - start_pos[0];
+                                        const ap_y = relY - start_pos[1];
+
+                                        const ab_len_sq = ab_x * ab_x + ab_y * ab_y;
+                                        let t = 0.0;
+                                        if (ab_len_sq > 1e-6) {
+                                            t = (ap_x * ab_x + ap_y * ab_y) / ab_len_sq;
+                                        }
+                                        t = Math.min(1.0, Math.max(0.0, t));
+
+                                        style.stops[activeHandleType][0] = t;
+                                        currentGradient.stops[activeHandleType][0] = t;
+
+                                        // Update range slider in the sidebar UI directly to sync in real-time
+                                        const sliders = els.customStopsContainer ? els.customStopsContainer.querySelectorAll('input[type="range"]') : [];
+                                        if (sliders[activeHandleType]) {
+                                            sliders[activeHandleType].value = Math.round(t * 100);
+                                        }
+                                    }
+                                }
+                            });
+
+                            recacheViewportCanvas();
+                            requestRender();
+                        }
+                    }
+                }
+            } else if (isDragging) {
+                offsetX = e.clientX-dragStart.x;
+                offsetY = e.clientY-dragStart.y;
+                requestRender();
+            }
+        });
+
+        window.addEventListener('mouseup', () => {
+            if (isDraggingHandle && typeof activeHandleType === 'number' && activePreviewId) {
+                currentGradient.stops.sort((a, b) => a[0] - b[0]);
+                updateColorStyleOnAst();
+                renderStopsEditor();
+            } else if (isDraggingHandle && (activeHandleType === 'start' || activeHandleType === 'end')) {
+                updateColorStyleOnAst();
+            }
+            isDragging = false;
+            isDraggingHandle = false;
+            activeHandleType = null;
+        });
+        els.canvasArea.addEventListener('wheel', (e) => {
+            e.preventDefault(); const factor = Math.exp((e.deltaY<0?1:-1)*0.1);
+            zoomAt(e.clientX, e.clientY, factor);
+        });
+
+        function zoomAt(clientX, clientY, factor) {
+            const r = els.canvasArea.getBoundingClientRect();
+            const mx = clientX-r.left, my = clientY-r.top;
+            offsetX = mx - (mx-offsetX)*factor; offsetY = my - (my-offsetY)*factor;
+            scale *= factor; requestRender();
+        }
+
+        function requestRender() { if(!renderRequested) { renderRequested=true; requestAnimationFrame(renderViewport); } }
+
+        function renderViewport() {
+            renderRequested = false;
+            const r = els.canvasArea.getBoundingClientRect();
+            els.mainCanvas.width = r.width; els.mainCanvas.height = r.height;
+            ctx.clearRect(0,0,r.width,r.height);
+            if(!activePreviewId || !cachedViewportCanvas) return;
+
+            ctx.save();
+            ctx.translate(offsetX, offsetY);
+            ctx.scale(scale, scale);
+
+            const res = previewDataStore.get(activePreviewId);
+            if (!res) { ctx.restore(); return; }
+            const w = res.width, h = res.height;
+
+            if (!els.bgTransparentCheck.checked) {
+                ctx.fillStyle = document.body.classList.contains('dark-theme') ? '#000000' : '#ffffff';
+                ctx.fillRect(0, 0, w, h);
+            }
+
+            ctx.drawImage(cachedViewportCanvas, 0, 0, w, h);
+
+            // Add constant physical size handle rendering
+            const paths = res.ast.equations || res.ast.strokes || res.ast.paths || [];
+            const firstPath = paths[0];
+            const colorStyle = firstPath ? (firstPath.color_style || firstPath.color_rgb) : null;
+            if (!els.hideHandlesCheck.checked && colorStyle && colorStyle.stops) {
+                const start_pos = colorStyle.start_pos || [0.0, 0.5];
+                const end_pos = colorStyle.end_pos || [1.0, 0.5];
+                const bbox = res.ast.bounding_box;
+                if (bbox) {
+                    const bw = bbox[2] - bbox[0];
+                    const bh = bbox[3] - bbox[1];
+                    if (bw > 0 && bh > 0) {
+                        const x0 = bbox[0] + start_pos[0] * bw;
+                        const y0 = bbox[1] + start_pos[1] * bh;
+                        const x1 = bbox[0] + end_pos[0] * bw;
+                        const y1 = bbox[1] + end_pos[1] * bh;
+
+                        const visualScale = (scale > 0 && isFinite(scale)) ? scale : 1.0;
+
+                        // Thin dashed line connecting them
+                        ctx.beginPath();
+                        ctx.moveTo(x0, y0);
+                        ctx.lineTo(x1, y1);
+                        ctx.strokeStyle = '#e76e55';
+                        ctx.lineWidth = 1.5 / visualScale;
+                        ctx.setLineDash([4 / visualScale, 4 / visualScale]);
+                        ctx.stroke();
+                        ctx.setLineDash([]); // Reset
+
+                        // Determine start and end reference colors from stops
+                        let startColor = '#2beb82';
+                        let endColor = '#ff4757';
+                        if (colorStyle.stops && colorStyle.stops.length > 0) {
+                            const sortedStops = [...colorStyle.stops].sort((a, b) => a[0] - b[0]);
+                            const firstStop = sortedStops[0];
+                            const lastStop = sortedStops[sortedStops.length - 1];
+                            startColor = rgbToHex(firstStop[1][0], firstStop[1][1], firstStop[1][2]);
+                            endColor = rgbToHex(lastStop[1][0], lastStop[1][1], lastStop[1][2]);
+                        }
+
+                        // Draw all Stops along the line
+                        if (colorStyle.stops) {
+                            colorStyle.stops.forEach(stop => {
+                                const offset = stop[0];
+                                const rgb = stop[1];
+                                const stopColor = rgbToHex(rgb[0], rgb[1], rgb[2]);
+                                const cx = x0 + offset * (x1 - x0);
+                                const cy = y0 + offset * (y1 - y0);
+
+                                // Stop node outer white circle
+                                ctx.beginPath();
+                                ctx.arc(cx, cy, 7.5 / visualScale, 0, Math.PI * 2);
+                                ctx.fillStyle = '#ffffff';
+                                ctx.fill();
+
+                                // Stop node inner color circle
+                                ctx.beginPath();
+                                ctx.arc(cx, cy, 5.0 / visualScale, 0, Math.PI * 2);
+                                ctx.fillStyle = stopColor;
+                                ctx.fill();
+
+                                // Outer dark stroke for visibility on light/dark backgrounds
+                                ctx.beginPath();
+                                ctx.arc(cx, cy, 7.5 / visualScale, 0, Math.PI * 2);
+                                ctx.strokeStyle = '#2d2416';
+                                ctx.lineWidth = 1.0 / visualScale;
+                                ctx.stroke();
+                            });
+                        }
+
+                        // Draw Start Handle (Green Outer Ring, White spacer, Start Color Inner)
+                        ctx.beginPath();
+                        ctx.arc(x0, y0, 11 / visualScale, 0, Math.PI * 2);
+                        ctx.fillStyle = '#2beb82';
+                        ctx.fill();
+
+                        ctx.beginPath();
+                        ctx.arc(x0, y0, 9 / visualScale, 0, Math.PI * 2);
+                        ctx.fillStyle = '#ffffff';
+                        ctx.fill();
+
+                        ctx.beginPath();
+                        ctx.arc(x0, y0, 6.5 / visualScale, 0, Math.PI * 2);
+                        ctx.fillStyle = startColor;
+                        ctx.fill();
+
+                        // Draw End Handle (Red Outer Ring, White spacer, End Color Inner)
+                        ctx.beginPath();
+                        ctx.arc(x1, y1, 11 / visualScale, 0, Math.PI * 2);
+                        ctx.fillStyle = '#ff4757';
+                        ctx.fill();
+
+                        ctx.beginPath();
+                        ctx.arc(x1, y1, 9 / visualScale, 0, Math.PI * 2);
+                        ctx.fillStyle = '#ffffff';
+                        ctx.fill();
+
+                        ctx.beginPath();
+                        ctx.arc(x1, y1, 6.5 / visualScale, 0, Math.PI * 2);
+                        ctx.fillStyle = endColor;
+                        ctx.fill();
+                    }
+                }
+            }
+            ctx.restore();
+        }
+
+        function drawAST(ctx, ast, isThumb, isDark, isExport) {
+            ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+            const visualScale = (scale > 0 && isFinite(scale)) ? scale : 1.0;
+            ctx.lineWidth = isThumb ? 3 : (isExport ? 1.5 : 1.5 / visualScale);
+
+            if(ast.type==='Spline'||ast.type==='spline') {
+                ast.equations.forEach(path => {
+                    ctx.strokeStyle = getStrokeStyle(ctx, path.color_style || path.color_rgb, ast.bounding_box, isThumb, isDark, isExport);
+                    path.data.forEach(eq => {
+                        ctx.beginPath(); let first=true;
+                        for(let t=0; t<=1; t+=isThumb?0.2:0.05) {
+                            let x = eq.x_poly[0] + eq.x_poly[1]*t + eq.x_poly[2]*t*t + eq.x_poly[3]*t*t*t;
+                            let y = eq.y_poly[0] + eq.y_poly[1]*t + eq.y_poly[2]*t*t + eq.y_poly[3]*t*t*t;
+                            if(first) { ctx.moveTo(x,y); first=false; } else ctx.lineTo(x,y);
+                        }
+                        ctx.stroke();
+                    });
+                });
+            } else if(ast.type==='Fourier'||ast.type==='fourier') {
+                ast.strokes.forEach(stroke => {
+                    ctx.strokeStyle = getStrokeStyle(ctx, stroke.color_style || stroke.color_rgb, ast.bounding_box, isThumb, isDark, isExport);
+                    ctx.beginPath(); let first=true;
+                    const st = Math.min(stroke.data.length*4, isThumb?100:1000);
+                    for(let i=0; i<=st; i++) {
+                        let t = (i/st)*Math.PI*2, x=0, y=0;
+                        stroke.data.forEach(term => { x+=term.amplitude*Math.cos(term.frequency*t+term.phase); y+=term.amplitude*Math.sin(term.frequency*t+term.phase); });
+                        if(first) { ctx.moveTo(x,y); first=false; } else ctx.lineTo(x,y);
+                    }
+                    ctx.stroke();
+                });
+            } else if(ast.type==='Polyline'||ast.type==='polyline') {
+                ast.paths.forEach(path => {
+                    ctx.strokeStyle = getStrokeStyle(ctx, path.color_style || path.color_rgb, ast.bounding_box, isThumb, isDark, isExport);
+                    ctx.beginPath(); let first=true;
+                    path.data.forEach(pt => { if(first) { ctx.moveTo(pt.x, pt.y); first=false; } else ctx.lineTo(pt.x, pt.y); });
+                    ctx.stroke();
+                });
+            }
+        }
+
+        els.resetViewBtn.addEventListener('click', () => { resetViewport(); requestRender(); });
+        els.gridCheck.addEventListener('change', () => { els.canvasArea.classList.toggle('show-grid', els.gridCheck.checked); });
+        els.bgTransparentCheck.addEventListener('change', () => {
+            if (els.bgTransparentCheck.checked && els.exportFormat.value === 'jpg') els.exportFormat.value = 'png';
+            Array.from(els.exportFormat.options).find(o => o.value === 'jpg').disabled = els.bgTransparentCheck.checked;
+            requestRender();
+        });
+        els.hideHandlesCheck.addEventListener('change', () => { requestRender(); });
+
+        els.btnZoomIn.onclick = () => { const r = els.canvasArea.getBoundingClientRect(); zoomAt(r.left+r.width/2, r.top+r.height/2, 1.2); };
+        els.btnZoomOut.onclick = () => { const r = els.canvasArea.getBoundingClientRect(); zoomAt(r.left+r.width/2, r.top+r.height/2, 0.8); };
+        els.btnResetViewObj.onclick = () => { resetViewport(); requestRender(); };
+        els.btnFocus.onclick = () => {
+            document.body.classList.toggle('focus-mode');
+            els.btnFocus.innerText = document.body.classList.contains('focus-mode') ? 'X' : 'F';
+            setTimeout(() => { resetViewport(); requestRender(); }, 100);
+        };
+
+        els.downloadBtn.addEventListener('click', () => {
+            if (!activePreviewId) return showError("No render selected!");
+            const format = els.exportFormat.value;
+            const res = previewDataStore.get(activePreviewId);
+            const dims = getTargetDimensions(res.width, res.height);
+            const canvas = document.createElement('canvas');
+            canvas.width = dims.width; canvas.height = dims.height;
+            const eCtx = canvas.getContext('2d');
+            if (!els.bgTransparentCheck.checked || format === 'jpg') {
+                eCtx.fillStyle = document.body.classList.contains('dark-theme') ? '#000000' : '#ffffff';
+                eCtx.fillRect(0, 0, dims.width, dims.height);
+            }
+            eCtx.save();
+            const scaleX = dims.width / res.width;
+            const scaleY = dims.height / res.height;
+            const scale = Math.min(scaleX, scaleY);
+            const offsetX = (dims.width - res.width * scale) / 2;
+            const offsetY = (dims.height - res.height * scale) / 2;
+            eCtx.translate(offsetX, offsetY);
+            eCtx.scale(scale, scale);
+            drawAST(eCtx, res.ast, false, document.body.classList.contains('dark-theme'), true);
+            eCtx.restore();
+            const baseName = els.textInput.value.substring(0, 12).replace(/\s+/g, '_') || "text_render";
+            let finalFilename = `${baseName}_vecto_${els.modeSelect.value.toUpperCase()}_D${els.detailRange.value}`;
+            if (format === 'json') {
+                const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(res.ast));
+                const link = document.createElement('a'); link.download = `${finalFilename}.json`; link.href = dataStr; link.click();
+            } else {
+                const link = document.createElement('a'); link.download = `${finalFilename}.${format}`;
+                link.href = canvas.toDataURL(format === 'jpg' ? 'image/jpeg' : 'image/png'); link.click();
+            }
+        });
+
+        // Settings persistence
+        const STORAGE_KEY = 'vectomancy_typo_settings';
+        function saveSettings() {
+            try {
+                const settings = {
+                    mode: els.modeSelect.value,
+                    color: els.colorCheck.checked,
+                    colorType: els.colorTypeSelect ? els.colorTypeSelect.value : 'solid',
+                    solidColor: els.solidColorInput ? els.solidColorInput.value : '#e76e55',
+                    gradient: currentGradient,
+                    flowSpeed: els.flowSpeedRange ? els.flowSpeedRange.value : '0',
+                    grid: els.gridCheck.checked,
+                    transparent: els.bgTransparentCheck.checked,
+                    hideHandles: els.hideHandlesCheck.checked,
+                    detail: els.detailRange.value,
+                    minPath: els.minPathRange.value,
+                    terms: els.termsRange.value,
+                    chaikin: els.chaikinRange.value,
+                    exportFormat: els.exportFormat.value,
+                    sizeMode: els.sizeModeSelect.value,
+                    resScale: els.resolutionScaleRange.value,
+                    customWidth: els.customWidthInput.value,
+                    customHeight: els.customHeightInput.value,
+                    keepRatio: els.keepAspectRatioCheck.checked,
+                    theme: document.body.classList.contains('dark-theme') ? 'dark' : 'light'
+                };
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
+            } catch(e) {}
+        }
+
+        function loadSettings() {
+            try {
+                const stored = localStorage.getItem(STORAGE_KEY);
+                if (!stored) return;
+                const settings = JSON.parse(stored);
+                if (settings.mode !== undefined) els.modeSelect.value = settings.mode;
+                if (settings.color !== undefined) els.colorCheck.checked = settings.color;
+                if (settings.colorType !== undefined && els.colorTypeSelect) els.colorTypeSelect.value = settings.colorType;
+                if (settings.solidColor !== undefined && els.solidColorInput) els.solidColorInput.value = settings.solidColor;
+                if (settings.gradient !== undefined) currentGradient = settings.gradient;
+                if (settings.flowSpeed !== undefined && els.flowSpeedRange) els.flowSpeedRange.value = settings.flowSpeed;
+                if (settings.grid !== undefined) els.gridCheck.checked = settings.grid;
+                if (settings.transparent !== undefined) els.bgTransparentCheck.checked = settings.transparent;
+                if (settings.hideHandles !== undefined) els.hideHandlesCheck.checked = settings.hideHandles;
+                if (settings.detail !== undefined) els.detailRange.value = settings.detail;
+                if (settings.minPath !== undefined) els.minPathRange.value = settings.minPath;
+                if (settings.terms !== undefined) els.termsRange.value = settings.terms;
+                if (settings.chaikin !== undefined) els.chaikinRange.value = settings.chaikin;
+                if (settings.exportFormat !== undefined) els.exportFormat.value = settings.exportFormat;
+
+                if (settings.sizeMode !== undefined) {
+                    els.sizeModeSelect.value = settings.sizeMode;
+                    els.autoSizeControls.classList.toggle('hidden', settings.sizeMode !== 'auto');
+                    els.customSizeControls.classList.toggle('hidden', settings.sizeMode !== 'custom');
+                }
+                if (settings.resScale !== undefined) els.resolutionScaleRange.value = settings.resScale;
+                if (settings.customWidth !== undefined) els.customWidthInput.value = settings.customWidth;
+                if (settings.customHeight !== undefined) els.customHeightInput.value = settings.customHeight;
+                if (settings.keepRatio !== undefined) els.keepAspectRatioCheck.checked = settings.keepRatio;
+
+                if (settings.theme === 'dark') {
+                    document.body.classList.add('dark-theme');
+                    [els.deleteDialog, els.clearDialog, els.errorDialog, els.helpDialog].forEach(d => d.classList.add('is-dark'));
+                    document.querySelectorAll('.nes-input, .nes-checkbox, .nes-radio, .nes-select select, .nes-btn:not(.is-primary):not(.is-success):not(.is-error):not(.is-warning)').forEach(el => el.classList.add('is-dark'));
+                } else if (settings.theme === 'light') {
+                    document.body.classList.remove('dark-theme');
+                    document.querySelectorAll('.nes-input, .nes-checkbox, .nes-radio, .nes-select select, .nes-btn:not(.is-primary):not(.is-success):not(.is-error):not(.is-warning)').forEach(el => el.classList.remove('is-dark'));
+                }
+            } catch(e) {}
+        }
+        [
+            els.modeSelect, els.colorCheck, els.colorTypeSelect, els.flowSpeedRange, els.gridCheck, els.bgTransparentCheck, els.hideHandlesCheck,
+            els.detailRange, els.minPathRange, els.termsRange, els.chaikinRange, els.exportFormat, els.solidColorInput,
+            els.sizeModeSelect, els.resolutionScaleRange, els.customWidthInput, els.customHeightInput,
+            els.keepAspectRatioCheck
+        ].forEach(el => {
+            if (el) {
+                el.addEventListener('input', saveSettings);
+                el.addEventListener('change', saveSettings);
+            }
+        });
+        loadSettings();
+        updateLabels();
+        renderPalettePresets();
+        renderStopsEditor();
+
+        // 4. Add flow animation loop
+        let lastAnimTime = performance.now();
+        function animationLoop(timestamp) {
+            requestAnimationFrame(animationLoop);
+
+            const elapsed = (timestamp - lastAnimTime) / 1000.0; // in seconds
+            lastAnimTime = timestamp;
+
+            if (!activePreviewId) return;
+            const res = previewDataStore.get(activePreviewId);
+            if (!res || !res.ast) return;
+
+            const speed = (els.flowSpeedRange ? parseFloat(els.flowSpeedRange.value) : 0) * 0.05;
+            if (speed > 0 && els.colorCheck.checked) {
+                // Shift stops offset values dynamically over time
+                const paths = res.ast.equations || res.ast.strokes || res.ast.paths || [];
+                let changed = false;
+                paths.forEach(path => {
+                    const style = path.color_style || path.color_rgb;
+                    if (style && style.stops) {
+                        style.stops = style.stops.map(stop => {
+                            let offset = stop[0];
+                            offset = (offset + speed * elapsed) % 1.0;
+                            if (offset < 0) offset += 1.0;
+                            return [offset, stop[1]];
+                        });
+                        changed = true;
+                    }
+                });
+
+                if (changed) {
+                    recacheViewportCanvas();
+                    requestRender();
+                }
+            }
+        }
+        requestAnimationFrame(animationLoop);
+    </script>
+</body>
+</html>
