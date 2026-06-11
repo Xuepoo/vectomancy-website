@@ -126,6 +126,15 @@
             font-size: 12px !important;
         }
 
+        /* Dropdown overflow prevention */
+        .nes-select select {
+            max-width: 100% !important;
+            text-overflow: ellipsis !important;
+            white-space: nowrap !important;
+            overflow: hidden !important;
+            padding-right: 32px !important;
+        }
+
         /* Floating Generate Button on Canvas bottom-left */
         .canvas-generate-btn {
             position: absolute;

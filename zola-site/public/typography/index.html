@@ -199,6 +199,15 @@
         font-size: 12px !important;
       }
 
+      /* Dropdown overflow prevention */
+      .nes-select select {
+        max-width: 100% !important;
+        text-overflow: ellipsis !important;
+        white-space: nowrap !important;
+        overflow: hidden !important;
+        padding-right: 32px !important;
+      }
+
       /* Floating Generate Button on Canvas bottom-left */
       .canvas-generate-btn {
         position: absolute;
@@ -984,11 +993,11 @@
           class="hidden"
           style="margin-bottom: 10px"
         >
-          <div style="display: flex; gap: 10px; margin-bottom: 8px">
-            <div style="flex: 1">
+          <div style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 8px">
+            <div>
               <label
                 for="customWidthInput"
-                style="font-size: 7px; margin-bottom: 2px"
+                style="font-size: 8px; margin-bottom: 2px; display: block"
                 >Width (px)</label
               >
               <input
@@ -999,10 +1008,10 @@
                 value="1024"
               />
             </div>
-            <div style="flex: 1">
+            <div>
               <label
                 for="customHeightInput"
-                style="font-size: 7px; margin-bottom: 2px"
+                style="font-size: 8px; margin-bottom: 2px; display: block"
                 >Height (px)</label
               >
               <input
@@ -2019,8 +2028,19 @@
               const opt = document.createElement("option");
               opt.value = family;
               opt.textContent = family;
+              opt.style.fontFamily = `"${family}", sans-serif`;
               els.localFontSelect.appendChild(opt);
             });
+
+          // Restore selection if currently loaded font is a system font
+          if (currentFontFilename && currentFontFilename.endsWith(" (System)")) {
+            const family = currentFontFilename.replace(" (System)", "");
+            if (familyMap.has(family)) {
+              els.localFontSelect.value = family;
+              els.localFontSelect.style.fontFamily = `"${family}", sans-serif`;
+            }
+          }
+
           els.loaderOverlay.classList.add("hidden");
         } catch (err) {
           els.loaderOverlay.classList.add("hidden");
@@ -2032,6 +2052,7 @@
 
       els.localFontSelect.addEventListener("change", async () => {
         const family = els.localFontSelect.value;
+        els.localFontSelect.style.fontFamily = `"${family}", sans-serif`;
         const fontObj = localFontsList.find((f) => f.family === family);
         if (!fontObj) return;
 
