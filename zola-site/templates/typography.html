@@ -26,6 +26,35 @@
             unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
         }
 
+        @font-face {
+            font-family: 'Roboto';
+            src: url('https://fonts.gstatic.com/l/font?kit=KFOMCnqEu92Fr1ME7kSn66aGLdTylUAMQXC89YmC2DPNWubEbVmUiA4&skey=a0a0114a1dcab3ac&v=v51') format('truetype');
+        }
+        @font-face {
+            font-family: 'Pacifico';
+            src: url('https://raw.githubusercontent.com/google/fonts/main/ofl/pacifico/Pacifico-Regular.ttf') format('truetype');
+        }
+        @font-face {
+            font-family: 'QingKeHuangYou';
+            src: url('/fonts/QingKeHuangYou.ttf') format('truetype');
+        }
+        @font-face {
+            font-family: 'MaShanZheng';
+            src: url('/fonts/MaShanZheng.ttf') format('truetype');
+        }
+        @font-face {
+            font-family: 'LongCang';
+            src: url('/fonts/LongCang.ttf') format('truetype');
+        }
+        @font-face {
+            font-family: 'SawarabiMincho';
+            src: url('/fonts/SawarabiMincho.ttf') format('truetype');
+        }
+        @font-face {
+            font-family: 'DotGothic16';
+            src: url('/fonts/DotGothic16.ttf') format('truetype');
+        }
+
         :root {
             --bg-color: #f5f0e8;
             --container-bg: #fffef5;
@@ -285,7 +314,7 @@
 
         <div class="nes-container with-title control-group" style="padding: 15px;">
             <p class="title" style="font-size: 10px;">Text Input</p>
-            <textarea id="textInput" class="nes-textarea" style="font-size: 8px; margin-bottom: 10px; min-height: 60px;" placeholder="Enter text to render..."></textarea>
+            <textarea id="textInput" class="nes-textarea" style="font-family: sans-serif; font-size: 12px; margin-bottom: 10px; min-height: 60px;" placeholder="Enter text to render..."></textarea>
             <div style="margin-top: 5px; text-align: center; border-top: 2px dashed #888; padding-top: 10px;">
                 <span id="filename-display" class="truncate-text" style="font-size: 8px; color: #aaa;">No font selected</span>
             </div>
@@ -311,14 +340,14 @@
             <!-- 3: Cloud Presets -->
             <p style="font-size: 8px; margin-bottom: 5px; color: var(--accent-color);">▶ Cloud Presets</p>
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px;">
-                <button class="nes-btn font-preset-btn" data-url="/fonts/font.ttf" data-filename="PressStart2P" style="font-size: 6px; padding: 4px;">8-bit Pixel</button>
-                <button class="nes-btn font-preset-btn" data-url="https://fonts.gstatic.com/l/font?kit=KFOMCnqEu92Fr1ME7kSn66aGLdTylUAMQXC89YmC2DPNWubEbVmUiA4&skey=a0a0114a1dcab3ac&v=v51" data-filename="Roboto" style="font-size: 6px; padding: 4px;">Roboto</button>
-                <button class="nes-btn font-preset-btn is-success" data-url="https://raw.githubusercontent.com/google/fonts/main/ofl/pacifico/Pacifico-Regular.ttf" data-filename="Pacifico" style="font-size: 6px; padding: 4px;">Brush Script</button>
-                <button class="nes-btn font-preset-btn is-warning" data-url="/fonts/QingKeHuangYou.ttf" data-filename="QingKeHuangYou" style="font-size: 6px; padding: 4px;">简体中文(黄油)</button>
-                <button class="nes-btn font-preset-btn is-warning" data-url="/fonts/MaShanZheng.ttf" data-filename="MaShanZheng" style="font-size: 6px; padding: 4px;">中文毛笔</button>
-                <button class="nes-btn font-preset-btn is-warning" data-url="/fonts/LongCang.ttf" data-filename="LongCang" style="font-size: 6px; padding: 4px;">中文行书</button>
-                <button class="nes-btn font-preset-btn is-primary" data-url="/fonts/SawarabiMincho.ttf" data-filename="SawarabiMincho" style="font-size: 6px; padding: 4px;">日本語 (明朝)</button>
-                <button class="nes-btn font-preset-btn is-primary" data-url="/fonts/DotGothic16.ttf" data-filename="DotGothic16" style="font-size: 6px; padding: 4px;">日本語 (像素)</button>
+                <button class="nes-btn font-preset-btn" data-url="/fonts/font.ttf" data-filename="PressStart2P" style="font-family: 'Press Start 2P', sans-serif; font-size: 6px; padding: 4px;">8-bit Pixel</button>
+                <button class="nes-btn font-preset-btn" data-url="https://fonts.gstatic.com/l/font?kit=KFOMCnqEu92Fr1ME7kSn66aGLdTylUAMQXC89YmC2DPNWubEbVmUiA4&skey=a0a0114a1dcab3ac&v=v51" data-filename="Roboto" style="font-family: 'Roboto', sans-serif; font-size: 6px; padding: 4px;">Roboto</button>
+                <button class="nes-btn font-preset-btn is-success" data-url="https://raw.githubusercontent.com/google/fonts/main/ofl/pacifico/Pacifico-Regular.ttf" data-filename="Pacifico" style="font-family: 'Pacifico', cursive; font-size: 6px; padding: 4px;">Brush Script</button>
+                <button class="nes-btn font-preset-btn is-warning" data-url="/fonts/QingKeHuangYou.ttf" data-filename="QingKeHuangYou" style="font-family: 'QingKeHuangYou', sans-serif; font-size: 6px; padding: 4px;">简体中文(黄油)</button>
+                <button class="nes-btn font-preset-btn is-warning" data-url="/fonts/MaShanZheng.ttf" data-filename="MaShanZheng" style="font-family: 'MaShanZheng', sans-serif; font-size: 6px; padding: 4px;">中文毛笔</button>
+                <button class="nes-btn font-preset-btn is-warning" data-url="/fonts/LongCang.ttf" data-filename="LongCang" style="font-family: 'LongCang', sans-serif; font-size: 6px; padding: 4px;">中文行书</button>
+                <button class="nes-btn font-preset-btn is-primary" data-url="/fonts/SawarabiMincho.ttf" data-filename="SawarabiMincho" style="font-family: 'SawarabiMincho', serif; font-size: 6px; padding: 4px;">日本語 (明朝)</button>
+                <button class="nes-btn font-preset-btn is-primary" data-url="/fonts/DotGothic16.ttf" data-filename="DotGothic16" style="font-family: 'DotGothic16', sans-serif; font-size: 6px; padding: 4px;">日本語 (像素)</button>
             </div>
         </div>
 
@@ -592,6 +621,22 @@
                 els.loaderOverlay.classList.add('hidden');
                 console.log("WASM Initialized!");
                 await restoreCachedFont();
+
+                // Set default input text if empty
+                if (!els.textInput.value) {
+                    els.textInput.value = "VECTOMANCY";
+                }
+
+                // If no font cached, trigger click on default "PressStart2P"
+                if (!currentFontBytes) {
+                    const defaultPreset = document.querySelector('.font-preset-btn[data-filename="PressStart2P"]');
+                    if (defaultPreset) {
+                        defaultPreset.click();
+                    }
+                } else {
+                    // Trigger render immediately
+                    els.generateBtn.click();
+                }
             } catch (e) {
                 els.statusText.innerText = "ERR: LOAD";
                 console.error(e);
@@ -963,6 +1008,9 @@
                     showError("Failed to fetch font.\nPlease check your network.");
                 }
                 els.loaderOverlay.classList.add('hidden');
+                if (previewDataStore.size === 0 && els.textInput.value) {
+                    els.generateBtn.click();
+                }
             });
         });
 
