@@ -2347,8 +2347,9 @@
             els.loaderText.innerText = "Fetching stylesheet...";
             const response = await fetch(cssUrl);
             if (!response.ok) {
+              const statusText = response.statusText || `HTTP ${response.status}`;
               throw new Error(
-                `Failed to fetch CSS stylesheet: ${response.statusText}`,
+                `Failed to fetch CSS stylesheet: ${statusText}`,
               );
             }
             const cssText = await response.text();
@@ -2512,9 +2513,11 @@
             els.generateBtn.click();
           }
         } catch (err) {
-          showError(
-            "Font import failed: " + (err.message || err.toString() || err),
-          );
+          let msg = err.message || err.toString() || err;
+          if (msg.includes("Failed to fetch")) {
+            msg += " (This is likely due to CORS restrictions on the font host. Please upload the font file directly instead.)";
+          }
+          showError("Font import failed: " + msg);
           els.fontImportUrl.value = "";
         } finally {
           els.loaderOverlay.classList.add("hidden");
