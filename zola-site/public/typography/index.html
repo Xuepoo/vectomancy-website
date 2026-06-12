@@ -584,11 +584,11 @@
             margin-bottom: 8px;
           "
         >
-          <span style="font-size: 8px">Upload Font (.ttf/.otf)</span>
+          <span style="font-size: 8px">Upload Font (.ttf/.otf/.zip)</span>
           <input
             type="file"
             id="fontInput"
-            accept=".ttf,.otf,.woff,.woff2"
+            accept=".ttf,.otf,.woff,.woff2,.zip"
             style="display: none"
           />
         </label>
@@ -1388,6 +1388,7 @@
       };
       let snapshotCount = 0;
       let pendingDeleteId = null;
+      let zipFonts = [];
 
       window.__debug = {
         get currentFontBytes() {
@@ -1472,6 +1473,8 @@
         clearDialog: document.getElementById("clear-dialog"),
         errorDialog: document.getElementById("error-dialog"),
         errorMessage: document.getElementById("error-message"),
+        zipFontDialog: document.getElementById("zipFontDialog"),
+        zipFontSelect: document.getElementById("zipFontSelect"),
         btnAccessLocalFonts: document.getElementById("btnAccessLocalFonts"),
         localFontSelectWrapper: document.getElementById(
           "localFontSelectWrapper",
@@ -1970,14 +1973,20 @@
       // Returns true if the ArrayBuffer starts with a known TTF/OTF magic number.
       // ab_glyph only understands raw TTF/OTF — woff/woff2 will cause "InvalidFont".
       function isValidFontBuffer(buffer) {
-        if (!buffer || buffer.byteLength < 4) return false;
-        const view = new DataView(buffer);
+        if (!buffer) return false;
+        let buf = buffer;
+        if (buffer.buffer instanceof ArrayBuffer) {
+          buf = buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength);
+        }
+        if (buf.byteLength < 4) return false;
+        const view = new DataView(buf);
         const magic = view.getUint32(0, false); // big-endian
         return (
           magic === 0x00010000 || // TrueType
           magic === 0x4f54544f || // 'OTTO' - CFF/OpenType
           magic === 0x74727565 || // 'true' - macOS TrueType
-          magic === 0x74797031 // 'typ1' - old PostScript
+          magic === 0x74797031 || // 'typ1' - old PostScript
+          magic === 0x774f4632    // 'wOF2' - WOFF2
         );
       }
 
@@ -2086,19 +2095,107 @@
       });
 
       els.fontInput.addEventListener("change", async (e) => {
-        if (e.target.files[0]) {
-          const b = await e.target.files[0].arrayBuffer();
-          currentFontBytes = new Uint8Array(b);
-          currentFontFilename = e.target.files[0].name;
-          els.filenameDisplay.innerText = truncateMiddle(
-            currentFontFilename,
-            20,
-          );
-          saveFontCache("last_font_bytes", b);
-          saveFontCache(
-            "last_font_name",
-            new TextEncoder().encode(currentFontFilename).buffer,
-          );
+        const file = e.target.files[0];
+        if (!file) return;
+
+        if (file.name.toLowerCase().endsWith(".zip")) {
+          els.loaderOverlay.classList.remove("hidden");
+          els.loaderText.innerText = "Decompressing ZIP...";
+          try {
+            const arrayBuffer = await file.arrayBuffer();
+            const zipBytes = new Uint8Array(arrayBuffer);
+            const unzipped = fflate.unzipSync(zipBytes);
+
+            const fontFiles = [];
+            for (const [filepath, bytes] of Object.entries(unzipped)) {
+              if (filepath.endsWith("/")) continue;
+
+              const parts = filepath.split("/");
+              if (parts.some(part => part.startsWith("._") || part === "__MACOSX")) {
+                continue;
+              }
+
+              const lowerPath = filepath.toLowerCase();
+              const hasFontExt = lowerPath.endsWith(".ttf") ||
+                                 lowerPath.endsWith(".otf") ||
+                                 lowerPath.endsWith(".woff") ||
+                                 lowerPath.endsWith(".woff2");
+              if (hasFontExt && isValidFontBuffer(bytes)) {
+                fontFiles.push({
+                  name: parts[parts.length - 1],
+                  path: filepath,
+                  bytes: bytes
+                });
+              }
+            }
+
+            if (fontFiles.length === 0) {
+              showError("No valid TTF/OTF/WOFF2 font files found in the ZIP archive.");
+              els.fontInput.value = "";
+            } else if (fontFiles.length === 1) {
+              const selectedFont = fontFiles[0];
+              const b = selectedFont.bytes.buffer.slice(
+                selectedFont.bytes.byteOffset,
+                selectedFont.bytes.byteOffset + selectedFont.bytes.byteLength
+              );
+              currentFontBytes = new Uint8Array(b);
+              currentFontFilename = selectedFont.name;
+              els.filenameDisplay.innerText = truncateMiddle(
+                currentFontFilename,
+                20,
+              );
+              saveFontCache("last_font_bytes", b);
+              saveFontCache(
+                "last_font_name",
+                new TextEncoder().encode(currentFontFilename).buffer,
+              );
+              els.fontInput.value = "";
+              if (previewDataStore.size === 0 && els.textInput.value) {
+                els.generateBtn.click();
+              }
+            } else {
+              zipFonts = fontFiles;
+              els.zipFontSelect.innerHTML = "";
+              zipFonts.forEach((font, idx) => {
+                const opt = document.createElement("option");
+                opt.value = idx.toString();
+                opt.textContent = font.name;
+                els.zipFontSelect.appendChild(opt);
+              });
+              els.zipFontDialog.showModal();
+            }
+          } catch (err) {
+            showError("Could not extract ZIP archive: " + (err.message || err));
+            els.fontInput.value = "";
+          } finally {
+            els.loaderOverlay.classList.add("hidden");
+          }
+        } else {
+          try {
+            const b = await file.arrayBuffer();
+            if (!isValidFontBuffer(b)) {
+              showError("Failed to load font: Invalid font file format.");
+              els.fontInput.value = "";
+              return;
+            }
+            currentFontBytes = new Uint8Array(b);
+            currentFontFilename = file.name;
+            els.filenameDisplay.innerText = truncateMiddle(
+              currentFontFilename,
+              20,
+            );
+            saveFontCache("last_font_bytes", b);
+            saveFontCache(
+              "last_font_name",
+              new TextEncoder().encode(currentFontFilename).buffer,
+            );
+            if (previewDataStore.size === 0 && els.textInput.value) {
+              els.generateBtn.click();
+            }
+          } catch (err) {
+            showError("Could not read font file: " + (err.message || err));
+            els.fontInput.value = "";
+          }
         }
       });
 
@@ -2276,6 +2373,35 @@
 
       els.helpBtn.addEventListener("click", () => {
         els.helpDialog.showModal();
+      });
+
+      els.zipFontDialog.addEventListener("close", () => {
+        if (els.zipFontDialog.returnValue === "confirm") {
+          const idx = parseInt(els.zipFontSelect.value, 10);
+          const selectedFont = zipFonts[idx];
+          if (selectedFont) {
+            const b = selectedFont.bytes.buffer.slice(
+              selectedFont.bytes.byteOffset,
+              selectedFont.bytes.byteOffset + selectedFont.bytes.byteLength
+            );
+            currentFontBytes = new Uint8Array(b);
+            currentFontFilename = selectedFont.name;
+            els.filenameDisplay.innerText = truncateMiddle(
+              currentFontFilename,
+              20,
+            );
+            saveFontCache("last_font_bytes", b);
+            saveFontCache(
+              "last_font_name",
+              new TextEncoder().encode(currentFontFilename).buffer,
+            );
+            if (previewDataStore.size === 0 && els.textInput.value) {
+              els.generateBtn.click();
+            }
+          }
+        }
+        zipFonts = [];
+        els.fontInput.value = "";
       });
 
       function buildPath2DCache(ast) {
@@ -3282,5 +3408,21 @@
       }
       requestAnimationFrame(animationLoop);
     </script>
+
+    <dialog class="nes-dialog" id="zipFontDialog" style="width: 90vw; max-width: 450px;">
+      <form method="dialog">
+        <p class="title" style="font-size: 10px; color: var(--accent-color)">Select Font</p>
+        <p style="font-size: 8px">Multiple fonts found in ZIP. Please choose one:</p>
+        <div class="nes-select" style="margin-bottom: 12px;">
+          <select id="zipFontSelect" style="font-size: 8px; padding: 4px;" aria-label="Select Font from ZIP">
+            <!-- Dynamically populated -->
+          </select>
+        </div>
+        <menu class="dialog-menu" style="display: flex; justify-content: flex-end; gap: 8px;">
+          <button class="nes-btn" value="cancel" style="font-size: 8px;">Cancel</button>
+          <button class="nes-btn is-primary" value="confirm" style="font-size: 8px;">Load</button>
+        </menu>
+      </form>
+    </dialog>
   </body>
 </html>
