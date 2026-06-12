@@ -231,6 +231,17 @@ async function startExport(data) {
           });
 
           const keyFrame = (processedFrames % 30 === 0);
+          if (isCancelled || !activeEncoder) {
+            if (newFrame) {
+              newFrame.close();
+              newFrame = null;
+            }
+            if (bitmap) {
+              bitmap.close();
+              bitmap = null;
+            }
+            break;
+          }
           activeEncoder.encode(newFrame, { keyFrame });
 
           newFrame.close();

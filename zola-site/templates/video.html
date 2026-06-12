@@ -151,6 +151,28 @@
             0%, 100% { opacity: 0.1; }
             50% { opacity: 0.8; }
         }
+        @media (max-width: 768px) {
+            .container-fluid {
+                flex-direction: column !important;
+                height: auto !important;
+                overflow-y: auto !important;
+                width: 100% !important;
+            }
+            .sidebar {
+                width: 100% !important;
+                max-height: none !important;
+                overflow-y: visible !important;
+            }
+            .workspace {
+                width: 100% !important;
+                height: auto !important;
+                min-height: 300px;
+            }
+            #preview-canvas {
+                width: 100% !important;
+                height: auto !important;
+            }
+        }
     </style>
 </head>
 <body>
@@ -166,8 +188,8 @@
 
             <!-- Drag and Drop Zone -->
             <div id="drop-zone" class="nes-container is-rounded" tabindex="0" role="button" aria-label="Upload Video" style="border: 2px dashed var(--accent-color); padding: 10px; text-align: center; cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 80px;">
-                <p style="font-size: 8px; margin: 0;">Drag & Drop Video or Click to Upload</p>
-                <input type="file" id="video-input" accept="video/mp4,video/webm,video/quicktime" aria-label="Video File Upload" style="display: none;" />
+                <p style="font-size: 8px; margin: 0;">Drag & Drop MP4/MOV Video or Click to Upload</p>
+                <input type="file" id="video-input" accept="video/mp4,video/quicktime" aria-label="Video File Upload" style="display: none;" />
             </div>
 
             <div id="video-info" style="font-size: 8px; display: none;">

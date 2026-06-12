@@ -87,6 +87,13 @@ document.addEventListener('DOMContentLoaded', () => {
       videoInput.click();
     });
 
+    dropZone.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        videoInput.click();
+      }
+    });
+
     dropZone.addEventListener('dragover', (e) => {
       e.preventDefault();
       dropZone.style.borderColor = '#ffffff';
@@ -111,9 +118,46 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  // Reset UI elements when video load fails
+  function resetUI() {
+    if (exportBtn) {
+      exportBtn.disabled = true;
+      exportBtn.classList.add('is-disabled');
+    }
+    if (timelineControls) {
+      timelineControls.style.display = 'none';
+    }
+    if (videoInfo) {
+      videoInfo.style.display = 'none';
+    }
+    if (playBtn) {
+      playBtn.textContent = 'Play';
+    }
+    if (previewCanvas) {
+      const ctx = previewCanvas.getContext('2d');
+      ctx.clearRect(0, 0, previewCanvas.width, previewCanvas.height);
+    }
+    isPlaying = false;
+    if (animationFrameId) {
+      cancelAnimationFrame(animationFrameId);
+      animationFrameId = null;
+    }
+  }
+
   // Handle Video File loading
   function handleVideoFile(file) {
     if (!file) return;
+
+    // Check file extension/MIME type (Only MP4 and MOV allowed)
+    const fileName = file.name.toLowerCase();
+    const isMp4OrMov = fileName.endsWith('.mp4') || fileName.endsWith('.mov');
+    const isMimeMp4OrQuicktime = file.type === 'video/mp4' || file.type === 'video/quicktime' || file.type === 'video/mov';
+
+    if (!isMp4OrMov && !isMimeMp4OrQuicktime) {
+      alert('Invalid file format. Please upload an MP4 or MOV video file.');
+      return;
+    }
+
     currentVideoFile = file;
 
     // Cleanup previous video element & object url
@@ -140,6 +184,13 @@ document.addEventListener('DOMContentLoaded', () => {
     hiddenVideo.style.display = 'none';
     hiddenVideo.muted = true;
     hiddenVideo.playsInline = true;
+
+    // Add error event listener
+    hiddenVideo.addEventListener('error', () => {
+      alert('Error loading video. The file may be corrupt or unsupported.');
+      resetUI();
+    });
+
     hiddenVideo.src = videoUrl;
     document.body.appendChild(hiddenVideo);
 
