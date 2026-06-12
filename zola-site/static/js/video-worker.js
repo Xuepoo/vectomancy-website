@@ -74,8 +74,8 @@ async function startExport(data) {
   // Initialize Muxer
   let target;
   if (format === 'webm') {
-    target = new WebMMuxer.ArrayBufferTarget();
-    activeMuxer = new WebMMuxer.Muxer({
+    target = new self.WebMMuxer.ArrayBufferTarget();
+    activeMuxer = new self.WebMMuxer.Muxer({
       target,
       video: {
         codec: 'V_VP9',
@@ -85,8 +85,8 @@ async function startExport(data) {
       }
     });
   } else {
-    target = new Mp4Muxer.ArrayBufferTarget();
-    activeMuxer = new Mp4Muxer.Muxer({
+    target = new self.Mp4Muxer.ArrayBufferTarget();
+    activeMuxer = new self.Mp4Muxer.Muxer({
       target,
       video: {
         codec: 'avc',
@@ -260,7 +260,7 @@ async function startExport(data) {
   }
 
   // Demux MP4/MOV files using MP4Box.createFile()
-  const mp4boxfile = MP4Box.createFile();
+  const mp4boxfile = self.MP4Box.createFile();
 
   const decoderPromise = new Promise((resolve, reject) => {
     mp4boxfile.onReady = (info) => {
@@ -346,7 +346,7 @@ function getTrackDescription(mp4boxfile, trackId) {
   if (!entry) return null;
   const box = entry.avcC || entry.hvcC || entry.vpcC || entry.av1C;
   if (box) {
-    const stream = new MP4Box.DataStream(undefined, 0, MP4Box.DataStream.BIG_ENDIAN);
+    const stream = new self.MP4Box.DataStream(undefined, 0, self.MP4Box.DataStream.BIG_ENDIAN);
     box.write(stream);
     return new Uint8Array(stream.buffer, 8); // Skip box size and type header
   }
