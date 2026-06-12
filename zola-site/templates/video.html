@@ -26,8 +26,8 @@
             --bg-color: #1a0a2e;
             --container-bg: #2d1b4e;
             --text-color: #e8d5ff;
-            --accent-color: #9b59b6;
-            --glow: rgba(155, 89, 182, 0.4);
+            --accent-color: #d494fa;
+            --glow: rgba(212, 148, 250, 0.4);
         }
         body {
             margin: 0;
@@ -35,13 +35,9 @@
             font-family: 'Press Start 2P', cursive;
             background-color: var(--bg-color);
             color: var(--text-color);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
             min-height: 100vh;
-            text-align: center;
             overflow: hidden;
+            text-align: left;
         }
 
         /* Scanline effect */
@@ -161,47 +157,103 @@
     <!-- Stars BG -->
     <div class="stars" id="stars"></div>
 
-    <div class="container">
-        <div class="logo-area">
-            <a href="/" style="color: var(--accent-color); text-decoration: none; font-size: 8px;">← Back to Home</a>
+    <div class="container-fluid" style="display: flex; flex-direction: row; width: 100vw; height: 100vh; overflow: hidden; padding: 10px; box-sizing: border-box; gap: 10px; z-index: 1;">
+        <!-- Left Control Panel -->
+        <div class="sidebar nes-container is-rounded with-title" style="width: 300px; display: flex; flex-direction: column; overflow-y: auto; gap: 12px; padding: 12px; background: rgba(45, 27, 78, 0.9); border-color: var(--accent-color) !important;">
+            <a href="/" class="nes-btn" style="font-size: 8px; align-self: flex-start;">← Home</a>
+            <p class="title" style="font-size: 10px; color: var(--accent-color); margin: 0;">Video Settings</p>
+
+            <!-- Drag and Drop Zone -->
+            <div id="drop-zone" class="nes-container is-rounded" tabindex="0" role="button" aria-label="Upload Video" style="border: 2px dashed var(--accent-color); padding: 10px; text-align: center; cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 80px;">
+                <p style="font-size: 8px; margin: 0;">Drag & Drop Video or Click to Upload</p>
+                <input type="file" id="video-input" accept="video/mp4,video/webm,video/quicktime" aria-label="Video File Upload" style="display: none;" />
+            </div>
+
+            <div id="video-info" style="font-size: 8px; display: none;">
+                <span class="nes-text is-success" id="info-name">File: None</span><br>
+                <span id="info-resolution">Resolution: -</span><br>
+                <span id="info-fps">FPS: -</span><br>
+                <span id="info-frames">Frames: -</span>
+            </div>
+
+            <!-- Parameter Configs -->
+            <div class="nes-field" style="margin: 0;">
+                <label for="mode-select" style="font-size: 8px;">Mode Select</label>
+                <div class="nes-select" style="margin-bottom: 8px;">
+                    <select id="mode-select" style="font-size: 8px; padding: 4px;">
+                        <option value="spline">Spline (Bezier)</option>
+                        <option value="fourier">Fourier (Epicycle)</option>
+                        <option value="chaikin">Chaikin (Polyline)</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="nes-field" style="margin: 0;">
+                <label for="detail-slider" style="font-size: 8px;">Detail Level (<span id="detail-val">50</span>)</label>
+                <input type="range" id="detail-slider" class="nes-slider" min="10" max="100" value="50" style="height: 12px;" />
+            </div>
+
+            <div class="nes-field" style="margin: 0;">
+                <label for="min-path-slider" style="font-size: 8px;">Min Path Length (<span id="min-path-val">5</span>)</label>
+                <input type="range" id="min-path-slider" class="nes-slider" min="1" max="30" value="5" style="height: 12px;" />
+            </div>
+
+            <!-- Color Control -->
+            <div class="nes-field" style="margin: 0;">
+                <label style="font-size: 8px; display: block; margin-bottom: 4px;">Colors</label>
+                <label style="font-size: 8px; display: flex; align-items: center; gap: 6px; cursor: pointer;">
+                    <input type="checkbox" class="nes-checkbox" id="color-checkbox" checked />
+                    <span>Enable Colors</span>
+                </label>
+            </div>
+
+            <!-- Output Muxer settings -->
+            <div class="nes-field" style="margin: 0;">
+                <label for="export-format" style="font-size: 8px;">Export Format</label>
+                <div class="nes-select" style="margin-bottom: 8px;">
+                    <select id="export-format" style="font-size: 8px; padding: 4px;">
+                        <option value="webm">WebM (VP9)</option>
+                        <option value="mp4">MP4 (H.264)</option>
+                    </select>
+                </div>
+            </div>
+
+            <button type="button" id="export-btn" class="nes-btn is-primary is-disabled" style="font-size: 8px; width: 100%; margin-top: auto;" disabled>Export Video</button>
         </div>
 
-        <span class="film-icon">🎬</span>
-        <h1>VIDEO ENGINE</h1>
-        <p class="subtitle">
-            Frame-by-frame parametric decomposition.<br>
-            Each frame converted to mathematical curves.<br>
-            Coming when it's ready.
-        </p>
+        <!-- Right Workspace -->
+        <div class="workspace" style="flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; position: relative;">
+            <div class="nes-container is-rounded" style="padding: 6px; background: rgba(0, 0, 0, 0.4); display: flex; justify-content: center; align-items: center; border-color: var(--accent-color) !important;">
+                <canvas id="preview-canvas" style="max-width: 100%; max-height: calc(100vh - 120px); width: 640px; height: 360px; background: #000;"></canvas>
+            </div>
 
-        <div class="nes-container with-title" style="text-align: left;">
-            <p class="title" style="font-size: 8px;">Planned Features</p>
-            <ul class="feature-list">
-                <li>Frame-by-frame Bezier spline extraction</li>
-                <li>Fourier epicycle animation export</li>
-                <li>WebM / GIF / MP4 output</li>
-                <li>FFmpeg WASM backend (zero server)</li>
-                <li>Per-frame color palette reduction</li>
-                <li>Real-time preview at 60fps</li>
-            </ul>
-        </div>
-
-        <div class="nes-container with-title" style="text-align: left;">
-            <p class="title" style="font-size: 8px;">Development Status</p>
-            <p style="font-size: 8px; margin-bottom: 8px; color: #aaa;">FFmpeg WASM Integration</p>
-            <progress class="nes-progress is-primary" value="5" max="100" style="height: 12px;"></progress>
-            <p style="font-size: 8px; margin-top: 10px; margin-bottom: 8px; color: #aaa;">Frame Rendering Pipeline</p>
-            <progress class="nes-progress is-warning" value="0" max="100" style="height: 12px;"></progress>
-            <p style="font-size: 8px; margin-top: 10px; margin-bottom: 8px; color: #aaa;">WASM Memory Management</p>
-            <progress class="nes-progress is-error" value="0" max="100" style="height: 12px;"></progress>
-        </div>
-
-        <div class="btn-group">
-            <a href="/image" class="nes-btn is-primary" style="font-size: 8px;">Image Engine</a>
-            <a href="/typography" class="nes-btn is-success" style="font-size: 8px;">Typography</a>
-            <a href="https://github.com/Xuepoo/vectomancy" target="_blank" class="nes-btn" style="font-size: 8px;">Follow on GitHub</a>
+            <!-- Video Timeline controller -->
+            <div id="timeline-controls" style="width: 100%; max-width: 650px; display: flex; flex-direction: column; margin-top: 10px; gap: 6px; display: none;">
+                <div style="display: flex; align-items: center; width: 100%; gap: 10px;">
+                    <button id="play-btn" type="button" class="nes-btn" style="font-size: 8px; padding: 4px 8px;">Play</button>
+                    <input type="range" id="timeline-slider" class="nes-slider" min="0" max="100" value="0" aria-label="Video Timeline" style="flex: 1; height: 12px;" />
+                </div>
+                <div style="display: flex; justify-content: space-between; font-size: 8px;">
+                    <span id="time-display">00:00 / 00:00</span>
+                    <span id="frame-display">Frame 0 / 0</span>
+                </div>
+            </div>
         </div>
     </div>
+
+    <!-- Export Progress Dialog -->
+    <dialog class="nes-dialog is-dark" id="progress-dialog" style="width: 90vw; max-width: 450px; border-color: var(--accent-color) !important; background: var(--container-bg);">
+        <form method="dialog">
+            <p class="title" style="font-size: 10px; color: var(--accent-color)">Generating Video</p>
+            <p id="progress-status" style="font-size: 8px; color: #ccc;">Initializing Web Worker...</p>
+            <div style="margin-bottom: 12px;">
+                <progress id="export-progress" class="nes-progress is-primary" value="0" max="100" style="height: 12px;"></progress>
+            </div>
+            <menu class="dialog-menu" style="display: flex; justify-content: flex-end;">
+                <button id="cancel-export-btn" class="nes-btn is-error" style="font-size: 8px;">Cancel</button>
+            </menu>
+        </form>
+    </dialog>
 
     <script>
         // Generate twinkling stars
