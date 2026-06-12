@@ -1,3 +1,8 @@
+import initWasm, { process_image } from '/wasm/wasm_engine.js';
+import '/js/webm-muxer.min.js';
+import '/js/mp4-muxer.min.js';
+import '/js/mp4box.all.min.js';
+
 let wasmInitialized = false;
 let isCancelled = false;
 let activeMuxer = null;
@@ -14,36 +19,12 @@ let processingPromise = null;
 let tempCanvas = null;
 let tempCtx = null;
 
-// Load dependencies if they are not already globally defined
-try {
-  if (typeof WebMMuxer === 'undefined') importScripts('webm-muxer.min.js');
-} catch (e) {
-  try {
-    if (typeof WebMMuxer === 'undefined') importScripts('/js/webm-muxer.min.js');
-  } catch (err) {}
-}
-try {
-  if (typeof Mp4Muxer === 'undefined') importScripts('mp4-muxer.min.js');
-} catch (e) {
-  try {
-    if (typeof Mp4Muxer === 'undefined') importScripts('/js/mp4-muxer.min.js');
-  } catch (err) {}
-}
-try {
-  if (typeof MP4Box === 'undefined') importScripts('mp4box.all.min.js');
-} catch (e) {
-  try {
-    if (typeof MP4Box === 'undefined') importScripts('/js/mp4box.all.min.js');
-  } catch (err) {}
-}
-
 self.onmessage = async function(e) {
   const { type, data } = e.data;
 
   if (type === 'INIT') {
     try {
-      importScripts(data.wasmJsUrl);
-      await wasm_bindgen(data.wasmWasmUrl);
+      await initWasm(data.wasmWasmUrl);
       wasmInitialized = true;
       self.postMessage({ type: 'INIT_DONE' });
     } catch (err) {
@@ -381,7 +362,7 @@ async function process_image_buffer(imageData, options) {
   const blob = await tempCanvas.convertToBlob({ type: 'image/png' });
   const arrayBuffer = await blob.arrayBuffer();
   const bytes = new Uint8Array(arrayBuffer);
-  return wasm_bindgen.process_image(bytes, options);
+  return process_image(bytes, options);
 }
 
 function cleanup() {

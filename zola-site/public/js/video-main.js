@@ -24,7 +24,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // 2. Setup Web Worker
   let worker = null;
   try {
-    worker = new Worker('/js/video-worker.js');
+    worker = new Worker('/js/video-worker.js', { type: 'module' });
     worker.postMessage({
       type: 'INIT',
       data: {
