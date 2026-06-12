@@ -11,6 +11,8 @@ let decodedCount = 0;
 let decoderFlushed = false;
 let resolveProcessing = null;
 let processingPromise = null;
+let tempCanvas = null;
+let tempCtx = null;
 
 // Load dependencies if they are not already globally defined
 try {
@@ -48,6 +50,10 @@ self.onmessage = async function(e) {
       self.postMessage({ type: 'ERROR', error: 'Failed to init WASM: ' + err.toString() });
     }
   } else if (type === 'START_EXPORT') {
+    if (activeDecoder || activeEncoder) {
+      self.postMessage({ type: 'ERROR', error: 'Export already in progress' });
+      return;
+    }
     isCancelled = false;
     try {
       if (!wasmInitialized) {
@@ -55,7 +61,9 @@ self.onmessage = async function(e) {
       }
       await startExport(data);
     } catch (err) {
-      self.postMessage({ type: 'ERROR', error: err.toString() });
+      if (!isCancelled) {
+        self.postMessage({ type: 'ERROR', error: err.toString() });
+      }
       cleanup();
     }
   } else if (type === 'CANCEL') {
@@ -117,7 +125,9 @@ async function startExport(data) {
       }
     },
     error: (err) => {
-      self.postMessage({ type: 'ERROR', error: 'VideoEncoder error: ' + err.message });
+      if (!isCancelled) {
+        self.postMessage({ type: 'ERROR', error: 'VideoEncoder error: ' + err.message });
+      }
     }
   });
 
@@ -156,7 +166,9 @@ async function startExport(data) {
       processQueue();
     },
     error: (err) => {
-      self.postMessage({ type: 'ERROR', error: 'VideoDecoder error: ' + err.message });
+      if (!isCancelled) {
+        self.postMessage({ type: 'ERROR', error: 'VideoDecoder error: ' + err.message });
+      }
     }
   });
 
@@ -236,7 +248,9 @@ async function startExport(data) {
           });
 
         } catch (err) {
-          self.postMessage({ type: 'ERROR', error: 'Frame processing error: ' + err.toString() });
+          if (!isCancelled) {
+            self.postMessage({ type: 'ERROR', error: 'Frame processing error: ' + err.toString() });
+          }
           processedFrames++;
         } finally {
           try { frame.close(); } catch (e) {}
@@ -348,8 +362,10 @@ function getTrackDescription(mp4boxfile, trackId) {
 }
 
 async function process_image_buffer(imageData, options) {
-  const tempCanvas = new OffscreenCanvas(imageData.width, imageData.height);
-  const tempCtx = tempCanvas.getContext('2d');
+  if (!tempCanvas || tempCanvas.width !== imageData.width || tempCanvas.height !== imageData.height) {
+    tempCanvas = new OffscreenCanvas(imageData.width, imageData.height);
+    tempCtx = tempCanvas.getContext('2d');
+  }
   tempCtx.putImageData(imageData, 0, 0);
   const blob = await tempCanvas.convertToBlob({ type: 'image/png' });
   const arrayBuffer = await blob.arrayBuffer();
@@ -374,10 +390,15 @@ function cleanup() {
       try { f.close(); } catch(e){}
     }
   }
+
+  if (resolveProcessing) {
+    try { resolveProcessing(); } catch(e){}
+    resolveProcessing = null;
+  }
 }
 
 function processColor(colorRgb, bitDepth, colorSpace) {
-  if (!colorRgb) return null;
+  if (!colorRgb) return [0, 0, 0];
   let [r, g, b] = colorRgb;
 
   // Scale from [0.0, 1.0] to [0.0, 255.0] if necessary
@@ -578,6 +599,7 @@ function drawAST(ctx, ast, options) {
     });
   } else if (ast.type === "Fourier" || ast.type === "fourier") {
     ast.strokes.forEach((stroke) => {
+      if (!stroke.data || stroke.data.length === 0) return;
       ctx.strokeStyle = getStrokeStyle(
         stroke.color_style || stroke.color_rgb,
         ast.bounding_box,
