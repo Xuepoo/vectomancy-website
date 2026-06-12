@@ -593,6 +593,17 @@
           />
         </label>
 
+        <!-- 2.5: Web Font URL Import -->
+        <div style="margin-bottom: 8px">
+          <input
+            type="text"
+            id="fontImportUrl"
+            class="nes-input"
+            style="font-size: 8px; padding: 4px; width: 100%"
+            placeholder="Import CSS/Web Font URL..."
+          />
+        </div>
+
         <!-- 3: Cloud Presets -->
         <p
           style="font-size: 8px; margin-bottom: 5px; color: var(--accent-color)"
@@ -1389,6 +1400,8 @@
       let snapshotCount = 0;
       let pendingDeleteId = null;
       let zipFonts = [];
+      let importedFontFamily = null;
+      let importedFontBytes = null;
 
       window.__debug = {
         get currentFontBytes() {
@@ -1424,6 +1437,7 @@
       const els = {
         textInput: document.getElementById("textInput"),
         fontInput: document.getElementById("fontInput"),
+        fontImportUrl: document.getElementById("fontImportUrl"),
         filenameDisplay: document.getElementById("filename-display"),
         statusText: document.getElementById("status-text"),
         generateBtn: document.getElementById("generateBtn"),
@@ -2010,6 +2024,31 @@
               currentFontFilename,
               20,
             );
+            if (currentFontFilename.endsWith(" (Web)")) {
+              const cleanFamilyName = currentFontFilename.replace(" (Web)", "");
+              try {
+                const fontFace = new FontFace(cleanFamilyName, buffer);
+                const loadedFace = await fontFace.load();
+                document.fonts.add(loadedFace);
+
+                importedFontFamily = cleanFamilyName;
+                importedFontBytes = currentFontBytes;
+
+                els.localFontSelectWrapper.style.display = "block";
+                els.btnAccessLocalFonts.style.display = "none";
+
+                const opt = document.createElement("option");
+                opt.value = cleanFamilyName;
+                opt.textContent = cleanFamilyName + " (Web)";
+                opt.style.fontFamily = `"${cleanFamilyName}", sans-serif`;
+                els.localFontSelect.appendChild(opt);
+
+                els.localFontSelect.value = cleanFamilyName;
+                els.localFontSelect.style.fontFamily = `"${cleanFamilyName}", sans-serif`;
+              } catch (err) {
+                console.error("Failed to register cached web font:", err);
+              }
+            }
           }
         } catch (e) {
           console.error("No cached font found.", e);
@@ -2069,6 +2108,25 @@
       els.localFontSelect.addEventListener("change", async () => {
         const family = els.localFontSelect.value;
         els.localFontSelect.style.fontFamily = `"${family}", sans-serif`;
+
+        if (family === importedFontFamily && importedFontBytes) {
+          currentFontBytes = importedFontBytes;
+          currentFontFilename = family + " (Web)";
+          els.filenameDisplay.innerText = truncateMiddle(
+            currentFontFilename,
+            20,
+          );
+          await saveFontCache("last_font_bytes", importedFontBytes.buffer);
+          await saveFontCache(
+            "last_font_name",
+            new TextEncoder().encode(currentFontFilename).buffer,
+          );
+          if (previewDataStore.size === 0 && els.textInput.value) {
+            els.generateBtn.click();
+          }
+          return;
+        }
+
         const fontObj = localFontsList.find((f) => f.family === family);
         if (!fontObj) return;
 
@@ -2196,6 +2254,207 @@
             showError("Could not read font file: " + (err.message || err));
             els.fontInput.value = "";
           }
+        }
+      });
+
+      els.fontImportUrl.addEventListener("change", async (e) => {
+        const inputValue = e.target.value.trim();
+        if (!inputValue) return;
+
+        els.loaderOverlay.classList.remove("hidden");
+        els.loaderText.innerText = "Parsing font import...";
+
+        try {
+          let cssUrl = null;
+          let fontUrl = null;
+
+          // 3. Implement HTML parser logic
+          if (inputValue.includes("<") && inputValue.includes(">")) {
+            try {
+              const parser = new DOMParser();
+              const doc = parser.parseFromString(inputValue, "text/html");
+              const linkTags = doc.querySelectorAll('link[rel="stylesheet"]');
+              if (linkTags.length > 0) {
+                cssUrl = linkTags[0].getAttribute("href");
+              } else {
+                const anyLink = doc.querySelector('link[href]');
+                if (anyLink) {
+                  cssUrl = anyLink.getAttribute("href");
+                }
+              }
+            } catch (err) {
+              console.error("DOMParser error:", err);
+            }
+          }
+
+          // Fallback to regex matching for @import statements or raw URLs
+          if (!cssUrl) {
+            const importRegex = /@import\s+(?:url\s*\(\s*['"]?([^'")]+)['"]?\s*\)|['"]([^'"]+)['"])/i;
+            const match = inputValue.match(importRegex);
+            if (match) {
+              cssUrl = match[1] || match[2];
+            }
+          }
+
+          if (!cssUrl && !fontUrl && !inputValue.includes("<") && !inputValue.includes(">")) {
+            const cleanUrl = inputValue.replace(/['"\s]/g, "");
+            if (cleanUrl.toLowerCase().match(/\.(ttf|otf|woff|woff2)(?:\?.*)?$/)) {
+              fontUrl = cleanUrl;
+            } else {
+              cssUrl = cleanUrl;
+            }
+          }
+
+          if (!cssUrl && !fontUrl) {
+            throw new Error("Could not find a valid CSS URL or font file URL in the input.");
+          }
+
+          let cleanFamilyName = "";
+          let absoluteFontUrl = "";
+
+          if (cssUrl) {
+            // 4. Call fetch(cssUrl) to retrieve CSS stylesheet
+            els.loaderText.innerText = "Fetching stylesheet...";
+            const response = await fetch(cssUrl);
+            if (!response.ok) {
+              throw new Error(`Failed to fetch CSS stylesheet: ${response.statusText}`);
+            }
+            const cssText = await response.text();
+
+            // 5. Parse @font-face rule blocks from the CSS
+            const fontFaceBlocks = [];
+            let pos = 0;
+            while (true) {
+              const index = cssText.indexOf("@font-face", pos);
+              if (index === -1) break;
+
+              const openBrace = cssText.indexOf("{", index);
+              if (openBrace === -1) {
+                pos = index + 10;
+                continue;
+              }
+
+              const closeBrace = cssText.indexOf("}", openBrace);
+              if (closeBrace === -1) {
+                pos = openBrace + 1;
+                continue;
+              }
+
+              const blockContent = cssText.slice(openBrace + 1, closeBrace);
+              const precedingText = cssText.slice(Math.max(0, index - 150), index);
+
+              fontFaceBlocks.push({
+                precedingText,
+                content: blockContent
+              });
+
+              pos = closeBrace + 1;
+            }
+
+            const parsedBlocks = fontFaceBlocks.map(block => {
+              const familyMatch = block.content.match(/font-family\s*:\s*(['"]?)(.*?)\1\s*(?:;|$)/i);
+              const srcMatch = block.content.match(/src\s*:\s*[^;]*url\s*\(\s*(['"]?)(.*?)\1\s*\)/i);
+
+              const familyName = familyMatch ? familyMatch[2].trim() : null;
+              const fontSrcUrl = srcMatch ? srcMatch[2].trim() : null;
+
+              const hasLatinComment = block.precedingText.toLowerCase().includes("latin") || block.content.toLowerCase().includes("latin");
+              const hasLatinUnicodeRange = block.content.includes("U+0000-00FF") || block.content.includes("U+0000-00ff") || block.content.includes("u+0000-00ff");
+
+              const isLatin = hasLatinComment || hasLatinUnicodeRange;
+
+              return {
+                familyName,
+                fontSrcUrl,
+                isLatin
+              };
+            }).filter(b => b.familyName && b.fontSrcUrl);
+
+            if (parsedBlocks.length === 0) {
+              throw new Error("No valid @font-face rules found in the fetched CSS.");
+            }
+
+            // Prioritize the rule block that matches the latin subset
+            parsedBlocks.sort((a, b) => {
+              if (a.isLatin && !b.isLatin) return -1;
+              if (!a.isLatin && b.isLatin) return 1;
+              return 0;
+            });
+
+            const selectedBlock = parsedBlocks[0];
+            // Clean quotes from the parsed font-family name
+            cleanFamilyName = selectedBlock.familyName.replace(/['"]/g, '').trim();
+            fontUrl = selectedBlock.fontSrcUrl;
+
+            // 6. Convert relative font source URLs into absolute URLs via new URL(relativeUrl, cssUrl).href
+            absoluteFontUrl = new URL(fontUrl, cssUrl).href;
+          } else {
+            // Raw font URL
+            absoluteFontUrl = new URL(fontUrl, window.location.href).href;
+            const urlParts = absoluteFontUrl.split("/");
+            let fileName = urlParts[urlParts.length - 1].split("?")[0];
+            cleanFamilyName = fileName.replace(/\.(ttf|otf|woff|woff2)$/i, "").trim() || "ImportedFont";
+          }
+
+          // 7. Download the font binary once as an ArrayBuffer
+          els.loaderText.innerText = "Downloading font binary...";
+          const fontResponse = await fetch(absoluteFontUrl);
+          if (!fontResponse.ok) {
+            throw new Error(`Failed to fetch font binary: ${fontResponse.statusText}`);
+          }
+          const arrayBuffer = await fontResponse.arrayBuffer();
+
+          if (!isValidFontBuffer(arrayBuffer)) {
+            throw new Error("Invalid font binary format. Must be TTF/OTF/WOFF/WOFF2.");
+          }
+
+          // Register it using new FontFace in the document
+          els.loaderText.innerText = "Registering font...";
+          const fontFace = new FontFace(cleanFamilyName, arrayBuffer);
+          const loadedFace = await fontFace.load();
+          document.fonts.add(loadedFace);
+
+          // 8. Bridge bytes to currentFontBytes and cache it in IndexedDB
+          currentFontBytes = new Uint8Array(arrayBuffer);
+          currentFontFilename = cleanFamilyName + " (Web)";
+          els.filenameDisplay.innerText = truncateMiddle(currentFontFilename, 20);
+
+          await saveFontCache("last_font_bytes", arrayBuffer);
+          await saveFontCache(
+            "last_font_name",
+            new TextEncoder().encode(currentFontFilename).buffer
+          );
+
+          importedFontFamily = cleanFamilyName;
+          importedFontBytes = currentFontBytes;
+
+          // 9. Append the new font name to the #localFontSelect dropdown menu as the active selection
+          els.localFontSelectWrapper.style.display = "block";
+          els.btnAccessLocalFonts.style.display = "none";
+
+          let existingOption = Array.from(els.localFontSelect.options).find(opt => opt.value === cleanFamilyName);
+          if (!existingOption) {
+            const opt = document.createElement("option");
+            opt.value = cleanFamilyName;
+            opt.textContent = cleanFamilyName + " (Web)";
+            opt.style.fontFamily = `"${cleanFamilyName}", sans-serif`;
+            els.localFontSelect.appendChild(opt);
+          }
+
+          els.localFontSelect.value = cleanFamilyName;
+          els.localFontSelect.style.fontFamily = `"${cleanFamilyName}", sans-serif`;
+
+          els.fontImportUrl.value = "";
+
+          if (previewDataStore.size === 0 && els.textInput.value) {
+            els.generateBtn.click();
+          }
+
+        } catch (err) {
+          showError("Font import failed: " + (err.message || err.toString() || err));
+          els.fontImportUrl.value = "";
+        } finally {
+          els.loaderOverlay.classList.add("hidden");
         }
       });
 
