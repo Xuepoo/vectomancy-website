@@ -2504,6 +2504,7 @@
 
           els.localFontSelect.value = cleanFamilyName;
           els.localFontSelect.style.fontFamily = `"${cleanFamilyName}", sans-serif`;
+          els.localFontSelect.dispatchEvent(new Event("change"));
 
           els.fontImportUrl.value = "";
 
