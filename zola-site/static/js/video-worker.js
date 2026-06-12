@@ -5,6 +5,12 @@ let activeEncoder = null;
 let activeDecoder = null;
 let totalFrames = 0;
 let processedFrames = 0;
+let frameQueue = [];
+let isProcessingQueue = false;
+let decodedCount = 0;
+let decoderFlushed = false;
+let resolveProcessing = null;
+let processingPromise = null;
 
 // Load dependencies if they are not already globally defined
 try {
@@ -64,6 +70,13 @@ async function startExport(data) {
 
   processedFrames = 0;
   totalFrames = 0;
+  frameQueue = [];
+  isProcessingQueue = false;
+  decodedCount = 0;
+  decoderFlushed = false;
+  processingPromise = new Promise((resolve) => {
+    resolveProcessing = resolve;
+  });
 
   // Initialize OffscreenCanvas
   const canvas = new OffscreenCanvas(width, height);
@@ -133,77 +146,112 @@ async function startExport(data) {
 
   // Initialize VideoDecoder
   activeDecoder = new VideoDecoder({
-    output: async (frame) => {
+    output: (frame) => {
       if (isCancelled) {
         frame.close();
         return;
       }
-      try {
-        // 1. Draw the VideoFrame onto the OffscreenCanvas context
-        ctx.drawImage(frame, 0, 0, width, height);
-
-        const timestamp = frame.timestamp;
-        const duration = frame.duration;
-
-        // 2. Call frame.close() immediately to release GPU resources
-        frame.close();
-
-        // 3. Extract pixel data with ctx.getImageData
-        const imageData = ctx.getImageData(0, 0, width, height);
-
-        // 4. Run the WASM engine's process_image_buffer to extract parametric lines
-        const wasmOptions = {
-          format: 'png',
-          color: options.color !== false,
-          mode: options.mode || 'spline',
-          chaikin_iters: options.chaikin_iters !== undefined ? parseInt(options.chaikin_iters) : 3,
-          terms: options.terms !== undefined ? parseInt(options.terms) : 20,
-          detail: options.detail !== undefined ? parseInt(options.detail) : 50,
-          min_path_len: options.min_path_len !== undefined ? parseInt(options.min_path_len) : 5,
-          color_style: options.color_style || null,
-          letter_spacing: options.letter_spacing || null
-        };
-
-        const result = await process_image_buffer(imageData, wasmOptions);
-
-        // 5. Redraw the lines on the canvas
-        ctx.fillStyle = wasmOptions.color ? "#000000" : "#ffffff";
-        ctx.fillRect(0, 0, width, height);
-
-        drawAST(ctx, result.ast, wasmOptions);
-
-        // 6. Convert the canvas to a new VideoFrame using createImageBitmap(canvas)
-        const bitmap = await createImageBitmap(canvas);
-
-        // 7. Submit it to VideoEncoder
-        const newFrame = new VideoFrame(bitmap, {
-          timestamp: timestamp,
-          duration: duration || (1000000 / fps)
-        });
-
-        const keyFrame = (processedFrames % 30 === 0);
-        activeEncoder.encode(newFrame, { keyFrame });
-
-        newFrame.close();
-        bitmap.close();
-
-        processedFrames++;
-
-        // Send periodic progress updates
-        self.postMessage({
-          type: 'PROGRESS',
-          current: processedFrames,
-          total: totalFrames
-        });
-
-      } catch (err) {
-        self.postMessage({ type: 'ERROR', error: 'Frame processing error: ' + err.toString() });
-      }
+      frameQueue.push(frame);
+      decodedCount++;
+      processQueue();
     },
     error: (err) => {
       self.postMessage({ type: 'ERROR', error: 'VideoDecoder error: ' + err.message });
     }
   });
+
+  async function processQueue() {
+    if (isProcessingQueue) return;
+    isProcessingQueue = true;
+
+    try {
+      while (frameQueue.length > 0) {
+        if (isCancelled) {
+          while (frameQueue.length > 0) {
+            const f = frameQueue.shift();
+            try { f.close(); } catch(e){}
+          }
+          break;
+        }
+
+        const frame = frameQueue.shift();
+        let bitmap = null;
+        let newFrame = null;
+
+        try {
+          // 1. Draw the VideoFrame onto the OffscreenCanvas context
+          ctx.drawImage(frame, 0, 0, width, height);
+
+          const timestamp = frame.timestamp;
+          const duration = frame.duration;
+
+          // 3. Extract pixel data with ctx.getImageData
+          const imageData = ctx.getImageData(0, 0, width, height);
+
+          // 4. Run the WASM engine's process_image_buffer to extract parametric lines
+          const wasmOptions = {
+            format: 'png',
+            color: options.color !== false,
+            mode: options.mode || 'spline',
+            chaikin_iters: options.chaikin_iters !== undefined ? parseInt(options.chaikin_iters) : 3,
+            terms: options.terms !== undefined ? parseInt(options.terms) : 20,
+            detail: options.detail !== undefined ? parseInt(options.detail) : 50,
+            min_path_len: options.min_path_len !== undefined ? parseInt(options.min_path_len) : 5,
+            color_style: options.color_style || null,
+            letter_spacing: options.letter_spacing || null
+          };
+
+          const result = await process_image_buffer(imageData, wasmOptions);
+
+          // 5. Redraw the lines on the canvas
+          ctx.fillStyle = wasmOptions.color ? "#000000" : "#ffffff";
+          ctx.fillRect(0, 0, width, height);
+
+          drawAST(ctx, result.ast, wasmOptions);
+
+          // 6. Convert the canvas to a new VideoFrame using createImageBitmap(canvas)
+          bitmap = await createImageBitmap(canvas);
+
+          // 7. Submit it to VideoEncoder
+          newFrame = new VideoFrame(bitmap, {
+            timestamp: timestamp,
+            duration: duration || (1000000 / fps)
+          });
+
+          const keyFrame = (processedFrames % 30 === 0);
+          activeEncoder.encode(newFrame, { keyFrame });
+
+          newFrame.close();
+          newFrame = null;
+          bitmap.close();
+          bitmap = null;
+
+          processedFrames++;
+
+          // Send periodic progress updates
+          self.postMessage({
+            type: 'PROGRESS',
+            current: processedFrames,
+            total: totalFrames
+          });
+
+        } catch (err) {
+          self.postMessage({ type: 'ERROR', error: 'Frame processing error: ' + err.toString() });
+          processedFrames++;
+        } finally {
+          try { frame.close(); } catch (e) {}
+          if (newFrame) { try { newFrame.close(); } catch (e) {} }
+          if (bitmap) { try { bitmap.close(); } catch (e) {} }
+        }
+      }
+    } finally {
+      isProcessingQueue = false;
+    }
+
+    if (decoderFlushed && processedFrames === decodedCount) {
+      if (resolveProcessing) resolveProcessing();
+    }
+  }
 
   // Demux MP4/MOV files using MP4Box.createFile()
   const mp4boxfile = MP4Box.createFile();
@@ -264,6 +312,15 @@ async function startExport(data) {
 
   if (isCancelled) return;
 
+  decoderFlushed = true;
+  if (processedFrames === decodedCount) {
+    if (resolveProcessing) resolveProcessing();
+  }
+
+  await processingPromise;
+
+  if (isCancelled) return;
+
   // Flush encoder
   await activeEncoder.flush();
 
@@ -310,6 +367,13 @@ function cleanup() {
     activeEncoder = null;
   }
   activeMuxer = null;
+
+  if (frameQueue) {
+    while (frameQueue.length > 0) {
+      const f = frameQueue.shift();
+      try { f.close(); } catch(e){}
+    }
+  }
 }
 
 function processColor(colorRgb, bitDepth, colorSpace) {
