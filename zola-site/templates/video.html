@@ -1,248 +1,523 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Vectomancy - Video Engine</title>
-    <meta name="description" content="Vectomancy Video Engine: Convert video frames into mathematical parametric equations. Supports Spline, Fourier, and Chaikin modes with audio preservation.">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Vectomancy Pro - Video Engine</title>
 
-    <link rel="apple-touch-icon" sizes="180x180" href="/favicons/apple-touch-icon.png">
-    <link rel="icon" type="image/png" sizes="32x32" href="/favicons/favicon-32x32.png">
-    <link rel="icon" type="image/png" sizes="16x16" href="/favicons/favicon-16x16.png">
-    <link rel="shortcut icon" href="/favicons/favicon.ico">
-    <link href="/css/nes.min.css" rel="stylesheet">
+    <link rel="preload" href="/fonts/pressstart2p.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href="/css/nes.min.css" as="style" />
+    <link rel="preload" href="/wasm/wasm_engine_bg.wasm" as="fetch" crossorigin />
+
+    <link rel="apple-touch-icon" sizes="180x180" href="/favicons/apple-touch-icon.png" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicons/favicon-32x32.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicons/favicon-16x16.png" />
+    <link rel="shortcut icon" href="/favicons/favicon.ico" />
+    <link href="/css/nes.min.css" rel="stylesheet" />
+
     <style>
-        @font-face {
-            font-family: 'Press Start 2P';
-            font-style: normal;
-            font-weight: 400;
-            font-display: swap;
-            src: url('/fonts/pressstart2p.woff2') format('woff2');
-        }
-        :root {
-            --bg-color: #1a0a2e;
-            --container-bg: #2d1b4e;
-            --text-color: #e8d5ff;
-            --accent-color: #9b59b6;
-            --glow: rgba(155, 89, 182, 0.4);
-        }
-        body {
-            margin: 0;
-            padding: 0;
-            font-family: 'Press Start 2P', cursive;
-            background-color: var(--bg-color);
-            color: var(--text-color);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            min-height: 100vh;
-            text-align: center;
-            overflow: hidden;
-        }
+      @font-face {
+        font-family: "Press Start 2P";
+        font-style: normal;
+        font-weight: 400;
+        font-display: swap;
+        src: url('/fonts/pressstart2p.woff2') format('woff2');
+      }
 
-        /* Scanline effect */
-        body::before {
-            content: '';
-            position: fixed;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background: repeating-linear-gradient(
-                0deg,
-                transparent,
-                transparent 2px,
-                rgba(0,0,0,0.15) 2px,
-                rgba(0,0,0,0.15) 4px
-            );
-            pointer-events: none;
-            z-index: 1000;
-        }
+      :root {
+        --bg-color: #1a0a2e;
+        --container-bg: #2d1b4e;
+        --text-color: #e8d5ff;
+        --accent-color: #9b59b6;
+        --accent-light: #bb77dd;
+        --glow: rgba(155, 89, 182, 0.4);
+        --success-color: #2ecc71;
+        --error-color: #e74c3c;
+      }
 
-        .container {
-            position: relative;
-            z-index: 1;
-            max-width: 600px;
-            padding: 40px 20px;
-        }
+      body {
+        margin: 0;
+        padding: 0;
+        font-family: 'Press Start 2P', cursive;
+        background-color: var(--bg-color);
+        color: var(--text-color);
+        min-height: 100vh;
+        overflow-x: hidden;
+      }
 
-        .logo-area {
-            margin-bottom: 30px;
-        }
+      body::before {
+        content: '';
+        position: fixed;
+        top: 0; left: 0; right: 0; bottom: 0;
+        background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.1) 2px, rgba(0,0,0,0.1) 4px);
+        pointer-events: none;
+        z-index: 1000;
+      }
 
-        .film-icon {
-            font-size: 48px;
-            display: block;
-            margin-bottom: 15px;
-            animation: blink 2s step-start infinite;
-        }
-        @keyframes blink {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0; }
-        }
+      .stars { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 0; overflow: hidden; }
+      .star { position: absolute; background: white; border-radius: 50%; animation: twinkle linear infinite; }
+      @keyframes twinkle { 0%, 100% { opacity: 0.1; } 50% { opacity: 0.8; } }
 
-        h1 {
-            font-size: 20px;
-            margin: 0 0 8px;
-            color: var(--accent-color);
-            text-shadow: 0 0 20px var(--glow);
-        }
+      .app-container { position: relative; z-index: 1; max-width: 1400px; margin: 0 auto; padding: 20px; }
+      .header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; padding: 10px 0; }
+      .header h1 { font-size: 16px; color: var(--accent-color); text-shadow: 0 0 20px var(--glow); margin: 0; }
+      .header .subtitle { font-size: 8px; color: #888; margin-top: 5px; }
+      .back-link { color: var(--accent-color); text-decoration: none; font-size: 8px; }
+      .back-link:hover { text-shadow: 0 0 8px var(--glow); }
 
-        .subtitle {
-            font-size: 8px;
-            color: #aaa;
-            margin-bottom: 30px;
-            line-height: 1.8;
-        }
+      .main-content { display: grid; grid-template-columns: 300px 1fr; gap: 20px; }
+      .sidebar { display: flex; flex-direction: column; gap: 15px; }
 
-        .nes-container {
-            border-color: var(--accent-color) !important;
-            background: rgba(45, 27, 78, 0.8);
-            margin-bottom: 20px;
-        }
-        .nes-container.with-title > .title {
-            background: var(--container-bg);
-            color: var(--accent-color);
-        }
+      .nes-container { border-color: var(--accent-color) !important; background: rgba(45, 27, 78, 0.9) !important; }
+      .nes-container.with-title > .title { background: var(--container-bg) !important; color: var(--accent-color) !important; }
 
-        .feature-list {
-            font-size: 8px;
-            text-align: left;
-            line-height: 2;
-            list-style: none;
-            padding: 0;
-            margin: 0;
-        }
-        .feature-list li::before {
-            content: "▶ ";
-            color: var(--accent-color);
-        }
+      .video-area { display: flex; flex-direction: column; gap: 15px; }
+      .video-container { position: relative; background: #000; border: 2px solid var(--accent-color); aspect-ratio: 16/9; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+      .video-container video, .video-container canvas { max-width: 100%; max-height: 100%; object-fit: contain; }
+      .video-placeholder { text-align: center; color: #666; font-size: 8px; padding: 20px; }
+      .video-placeholder .icon { font-size: 48px; display: block; margin-bottom: 15px; }
 
-        .progress-bar-container {
-            margin-top: 20px;
-        }
+      .controls { display: flex; gap: 10px; flex-wrap: wrap; }
+      .nes-btn { font-family: 'Press Start 2P', cursive !important; font-size: 8px !important; padding: 8px 12px !important; }
+      .nes-btn.is-primary { background: var(--accent-color) !important; border-color: var(--accent-color) !important; }
+      .nes-btn.is-success { background: var(--success-color) !important; border-color: var(--success-color) !important; }
+      .nes-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
-        .btn-group {
-            display: flex;
-            gap: 15px;
-            justify-content: center;
-            flex-wrap: wrap;
-            margin-top: 20px;
-        }
+      .progress-container { display: none; }
+      .progress-container.active { display: block; }
+      .progress-bar { height: 20px; margin: 10px 0; }
+      .progress-text { font-size: 8px; color: #aaa; text-align: center; }
 
-        /* CRT flicker on hover */
-        .nes-btn:hover {
-            text-shadow: 0 0 8px var(--glow);
-        }
+      .form-group { margin-bottom: 12px; }
+      .form-group label { display: block; font-size: 8px; color: var(--accent-light); margin-bottom: 5px; }
+      .nes-select, .nes-input { font-family: 'Press Start 2P', cursive !important; font-size: 8px !important; background: var(--container-bg) !important; color: var(--text-color) !important; border-color: var(--accent-color) !important; width: 100%; }
+      .range-container { display: flex; align-items: center; gap: 10px; }
+      .range-container input[type="range"] { flex: 1; accent-color: var(--accent-color); }
+      .range-value { font-size: 8px; color: var(--accent-light); min-width: 30px; text-align: right; }
+      .nes-checkbox + span { font-size: 8px !important; color: var(--text-color) !important; }
 
-        /* Stars background */
-        .stars {
-            position: fixed;
-            top: 0; left: 0;
-            width: 100%; height: 100%;
-            z-index: 0;
-            overflow: hidden;
-        }
-        .star {
-            position: absolute;
-            background: white;
-            border-radius: 50%;
-            animation: twinkle linear infinite;
-        }
-        @keyframes twinkle {
-            0%, 100% { opacity: 0.1; }
-            50% { opacity: 0.8; }
-        }
+      .status-bar { margin-top: 15px; padding: 10px; background: rgba(0,0,0,0.3); border: 1px solid var(--accent-color); font-size: 8px; color: #aaa; min-height: 40px; }
+      .frame-info { display: flex; justify-content: space-between; font-size: 8px; color: #888; margin-top: 5px; }
+
+      @media (max-width: 900px) { .main-content { grid-template-columns: 1fr; } }
     </style>
-</head>
-<body>
-
-    <!-- Stars BG -->
+  </head>
+  <body>
     <div class="stars" id="stars"></div>
 
-    <div class="container">
-        <div class="logo-area">
-            <a href="/" style="color: var(--accent-color); text-decoration: none; font-size: 8px;">← Back to Home</a>
+    <div class="app-container">
+      <div class="header">
+        <div>
+          <a href="/" class="back-link">&#8592; Back to Home</a>
+          <h1>&#127916; VIDEO ENGINE</h1>
+          <div class="subtitle">Frame-by-frame parametric decomposition</div>
+        </div>
+        <div>
+          <a href="/app" class="nes-btn" style="font-size: 7px;">Image Engine</a>
+        </div>
+      </div>
+
+      <div class="main-content">
+        <!-- Sidebar -->
+        <div class="sidebar">
+          <div class="nes-container with-title">
+            <p class="title" style="font-size: 8px;">Input</p>
+            <div class="form-group">
+              <label class="nes-btn is-primary" style="width: 100%; text-align: center; cursor: pointer;">
+                <input type="file" id="video-upload" accept="video/*" style="display: none;">
+                &#128193; Upload Video
+              </label>
+              <div style="font-size: 7px; color: #666; margin-top: 5px;">Or drag and drop</div>
+            </div>
+            <div id="filename-display" style="font-size: 7px; color: #888;">No file selected</div>
+          </div>
+
+          <div class="nes-container with-title">
+            <p class="title" style="font-size: 8px;">Algorithm</p>
+            <div class="form-group">
+              <label>Mode</label>
+              <select id="mode-select" class="nes-select">
+                <option value="spline" selected>Spline (Bezier)</option>
+                <option value="fourier">Fourier (Epicycle)</option>
+                <option value="chaikin">Chaikin (Polyline)</option>
+              </select>
+            </div>
+            <div class="form-group" id="terms-group" style="display: none;">
+              <label>Fourier Terms</label>
+              <div class="range-container">
+                <input type="range" id="terms-slider" min="10" max="200" value="50">
+                <span class="range-value" id="terms-value">50</span>
+              </div>
+            </div>
+            <div class="form-group" id="chaikin-group" style="display: none;">
+              <label>Chaikin Iterations</label>
+              <div class="range-container">
+                <input type="range" id="chaikin-slider" min="1" max="5" value="2">
+                <span class="range-value" id="chaikin-value">2</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="nes-container with-title">
+            <p class="title" style="font-size: 8px;">Quality</p>
+            <div class="form-group">
+              <label>Detail Level</label>
+              <div class="range-container">
+                <input type="range" id="detail-slider" min="10" max="100" value="50">
+                <span class="range-value" id="detail-value">50</span>
+              </div>
+            </div>
+            <div class="form-group">
+              <label>Min Path Length</label>
+              <div class="range-container">
+                <input type="range" id="min-path-slider" min="2" max="20" value="5">
+                <span class="range-value" id="min-path-value">5</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="nes-container with-title">
+            <p class="title" style="font-size: 8px;">Visual</p>
+            <div class="form-group">
+              <label><input type="checkbox" class="nes-checkbox" id="color-checkbox" checked> <span>Enable Colors</span></label>
+            </div>
+            <div class="form-group">
+              <label><input type="checkbox" class="nes-checkbox" id="transparent-checkbox"> <span>Transparent BG</span></label>
+            </div>
+          </div>
+
+          <div class="nes-container with-title">
+            <p class="title" style="font-size: 8px;">Export</p>
+            <div class="form-group">
+              <label>FPS</label>
+              <div class="range-container">
+                <input type="range" id="fps-slider" min="10" max="60" value="30">
+                <span class="range-value" id="fps-value">30</span>
+              </div>
+            </div>
+          </div>
         </div>
 
-        <span class="film-icon">🎬</span>
-        <h1>VIDEO ENGINE</h1>
-        <p class="subtitle">
-            Frame-by-frame parametric decomposition.<br>
-            Each frame converted to mathematical curves.<br>
-            Now available in CLI v6.0.0
-        </p>
+        <!-- Main -->
+        <div class="video-area">
+          <div class="video-container" id="video-container">
+            <div class="video-placeholder" id="placeholder">
+              <span class="icon">&#127916;</span>
+              <div>Upload a video to start</div>
+              <div style="margin-top: 10px; font-size: 7px;">Supports MP4, WebM, MOV, AVI</div>
+            </div>
+            <video id="video-player" style="display: none;" controls></video>
+            <canvas id="output-canvas" style="display: none;"></canvas>
+          </div>
 
-        <div class="nes-container with-title" style="text-align: left;">
-            <p class="title" style="font-size: 8px;">Available Features</p>
-            <ul class="feature-list">
-                <li>Frame-by-frame Bezier spline extraction</li>
-                <li>Fourier epicycle animation export</li>
-                <li>Chaikin corner-cutting smoothing</li>
-                <li>MP4 / WebM / MKV / AVI / MOV / GIF output</li>
-                <li>Original audio preservation (AAC)</li>
-                <li>Transparent background (WebM + VP9)</li>
-                <li>GPU acceleration via wgpu</li>
-                <li>Multi-threaded CPU processing</li>
-            </ul>
+          <div class="frame-info" id="frame-info" style="display: none;">
+            <span>Frame: <span id="current-frame">0</span></span>
+            <span>Time: <span id="current-time">0:00</span> / <span id="total-time">0:00</span></span>
+            <span>Size: <span id="video-size">-</span></span>
+          </div>
+
+          <div class="controls">
+            <button class="nes-btn is-primary" id="process-btn" disabled>&#9889; Process Video</button>
+            <button class="nes-btn" id="preview-btn" disabled>&#128065; Preview Frame</button>
+            <button class="nes-btn is-success" id="export-btn" disabled>&#128190; Export</button>
+            <button class="nes-btn" id="reset-btn">&#128260; Reset</button>
+          </div>
+
+          <div class="progress-container" id="progress-container">
+            <div class="nes-container">
+              <p style="font-size: 8px; margin-bottom: 10px;">Processing...</p>
+              <progress class="nes-progress is-primary progress-bar" id="progress-bar" value="0" max="100"></progress>
+              <div class="progress-text">
+                <span id="progress-percent">0%</span> -
+                <span id="progress-status">Initializing...</span>
+              </div>
+              <div class="progress-text" style="margin-top: 5px;">ETA: <span id="progress-eta">calculating...</span></div>
+            </div>
+          </div>
+
+          <div class="status-bar" id="status-bar">Ready. Upload a video to begin.</div>
         </div>
-
-        <div class="nes-container with-title" style="text-align: left;">
-            <p class="title" style="font-size: 8px;">Performance (GPU Mode)</p>
-            <p style="font-size: 8px; margin-bottom: 8px; color: #aaa;">480p Video (30fps)</p>
-            <progress class="nes-progress is-success" value="89" max="100" style="height: 12px;"></progress>
-            <p style="font-size: 7px; color: #888;">~89 fps processing speed</p>
-            <p style="font-size: 8px; margin-top: 10px; margin-bottom: 8px; color: #aaa;">1080p Video (30fps)</p>
-            <progress class="nes-progress is-primary" value="8" max="100" style="height: 12px;"></progress>
-            <p style="font-size: 7px; color: #888;">~8 fps processing speed</p>
-        </div>
-
-        <div class="nes-container with-title" style="text-align: left;">
-            <p class="title" style="font-size: 8px;">Quick Start</p>
-            <pre style="font-size: 7px; color: #e8d5ff; background: rgba(0,0,0,0.3); padding: 10px; overflow-x: auto; text-align: left;"><code># Install (via cargo)
-cargo install vectomancy-cli
-
-# Convert video with audio
-vectomancy video input.mp4 -o output.mp4
-
-# Fourier mode
-vectomancy video input.mp4 -o output.mp4  # set mode="fourier" in config
-
-# Transparent WebM
-vectomancy video input.mp4 -o output.webm  # set bg_transparent=true</code></pre>
-        </div>
-
-        <div class="btn-group">
-            <a href="/image" class="nes-btn is-primary" style="font-size: 8px;">Image Engine</a>
-            <a href="/typography" class="nes-btn is-success" style="font-size: 8px;">Typography</a>
-            <a href="https://github.com/Xuepoo/vectomancy" target="_blank" class="nes-btn" style="font-size: 8px;">Follow on GitHub</a>
-        </div>
+      </div>
     </div>
 
-    <script>
-        // Generate twinkling stars
-        const starsContainer = document.getElementById('stars');
-        for (let i = 0; i < 80; i++) {
-            const star = document.createElement('div');
-            star.className = 'star';
-            const size = Math.random() * 2 + 1;
-            star.style.cssText = `
-                width: ${size}px;
-                height: ${size}px;
-                left: ${Math.random() * 100}%;
-                top: ${Math.random() * 100}%;
-                animation-duration: ${Math.random() * 3 + 1}s;
-                animation-delay: ${Math.random() * 3}s;
-            `;
-            starsContainer.appendChild(star);
+    <script type="module">
+      import init, { process_image } from '/wasm/wasm_engine.js';
+
+      let wasmReady = false;
+      let videoFile = null;
+      let videoElement = document.getElementById('video-player');
+      let canvas = document.getElementById('output-canvas');
+      let ctx = canvas.getContext('2d');
+      let processedFrames = [];
+      let isProcessing = false;
+
+      async function initWasm() {
+        try {
+          await init();
+          wasmReady = true;
+          setStatus('WASM engine loaded. Ready to process.');
+        } catch (e) {
+          setStatus('Error loading WASM: ' + e.message);
+        }
+      }
+      initWasm();
+
+      const starsContainer = document.getElementById('stars');
+      for (let i = 0; i < 80; i++) {
+        const star = document.createElement('div');
+        star.className = 'star';
+        const size = Math.random() * 2 + 1;
+        star.style.cssText = 'width:' + size + 'px;height:' + size + 'px;left:' + Math.random() * 100 + '%;top:' + Math.random() * 100 + '%;animation-duration:' + (Math.random() * 3 + 1) + 's;animation-delay:' + Math.random() * 3 + 's;';
+        starsContainer.appendChild(star);
+      }
+
+      const videoUpload = document.getElementById('video-upload');
+      const filenameDisplay = document.getElementById('filename-display');
+      const modeSelect = document.getElementById('mode-select');
+      const termsGroup = document.getElementById('terms-group');
+      const chaikinGroup = document.getElementById('chaikin-group');
+      const termsSlider = document.getElementById('terms-slider');
+      const chaikinSlider = document.getElementById('chaikin-slider');
+      const detailSlider = document.getElementById('detail-slider');
+      const minPathSlider = document.getElementById('min-path-slider');
+      const fpsSlider = document.getElementById('fps-slider');
+      const processBtn = document.getElementById('process-btn');
+      const previewBtn = document.getElementById('preview-btn');
+      const exportBtn = document.getElementById('export-btn');
+      const resetBtn = document.getElementById('reset-btn');
+      const progressContainer = document.getElementById('progress-container');
+      const progressBar = document.getElementById('progress-bar');
+      const progressPercent = document.getElementById('progress-percent');
+      const progressStatus = document.getElementById('progress-status');
+      const progressEta = document.getElementById('progress-eta');
+      const statusBar = document.getElementById('status-bar');
+      const frameInfo = document.getElementById('frame-info');
+      const placeholder = document.getElementById('placeholder');
+
+      function setupSlider(slider, valueId) {
+        const valueEl = document.getElementById(valueId);
+        slider.addEventListener('input', () => { valueEl.textContent = slider.value; });
+      }
+      setupSlider(termsSlider, 'terms-value');
+      setupSlider(chaikinSlider, 'chaikin-value');
+      setupSlider(detailSlider, 'detail-value');
+      setupSlider(minPathSlider, 'min-path-value');
+      setupSlider(fpsSlider, 'fps-value');
+
+      modeSelect.addEventListener('change', () => {
+        termsGroup.style.display = modeSelect.value === 'fourier' ? 'block' : 'none';
+        chaikinGroup.style.display = modeSelect.value === 'chaikin' ? 'block' : 'none';
+      });
+
+      videoUpload.addEventListener('change', (e) => { if (e.target.files[0]) loadVideo(e.target.files[0]); });
+
+      const videoContainer = document.getElementById('video-container');
+      videoContainer.addEventListener('dragover', (e) => { e.preventDefault(); videoContainer.style.borderColor = '#bb77dd'; });
+      videoContainer.addEventListener('dragleave', () => { videoContainer.style.borderColor = 'var(--accent-color)'; });
+      videoContainer.addEventListener('drop', (e) => {
+        e.preventDefault();
+        videoContainer.style.borderColor = 'var(--accent-color)';
+        const file = e.dataTransfer.files[0];
+        if (file && file.type.startsWith('video/')) loadVideo(file);
+      });
+
+      function loadVideo(file) {
+        videoFile = file;
+        const url = URL.createObjectURL(file);
+        videoElement.src = url;
+        videoElement.style.display = 'block';
+        placeholder.style.display = 'none';
+        videoElement.addEventListener('loadedmetadata', () => {
+          frameInfo.style.display = 'flex';
+          document.getElementById('total-time').textContent = formatTime(videoElement.duration);
+          document.getElementById('video-size').textContent = formatSize(file.size);
+          filenameDisplay.textContent = file.name;
+          processBtn.disabled = false;
+          previewBtn.disabled = false;
+          setStatus('Video loaded: ' + file.name + ' (' + videoElement.videoWidth + 'x' + videoElement.videoHeight + ', ' + formatTime(videoElement.duration) + ')');
+        }, { once: true });
+      }
+
+      previewBtn.addEventListener('click', async () => {
+        if (!wasmReady || !videoFile) return;
+        setStatus('Extracting current frame...');
+        const frame = await extractFrame(videoElement.currentTime);
+        if (frame) {
+          setStatus('Processing frame...');
+          try {
+            const result = processFrame(frame);
+            displayResult(result, frame.width, frame.height);
+            setStatus('Frame preview complete.');
+          } catch (e) { setStatus('Error: ' + e.message); }
+        }
+      });
+
+      processBtn.addEventListener('click', async () => {
+        if (isProcessing || !videoFile) return;
+        isProcessing = true;
+        processBtn.disabled = true;
+        exportBtn.disabled = true;
+        progressContainer.classList.add('active');
+
+        const fps = parseInt(fpsSlider.value);
+        const duration = videoElement.duration;
+        const totalFrames = Math.floor(duration * fps);
+        processedFrames = [];
+        setStatus('Processing ' + totalFrames + ' frames at ' + fps + ' fps...');
+        const startTime = Date.now();
+
+        for (let i = 0; i < totalFrames; i++) {
+          const time = i / fps;
+          progressPercent.textContent = Math.round((i / totalFrames) * 100) + '%';
+          progressBar.value = (i / totalFrames) * 100;
+          progressStatus.textContent = 'Frame ' + (i + 1) + ' / ' + totalFrames;
+          const elapsed = (Date.now() - startTime) / 1000;
+          const remaining = (elapsed / (i + 1)) * (totalFrames - i - 1);
+          progressEta.textContent = formatTime(remaining);
+
+          try {
+            const frame = await extractFrame(time);
+            if (frame) {
+              const result = processFrame(frame);
+              processedFrames.push({ data: result, width: frame.width, height: frame.height });
+            }
+          } catch (e) { console.error('Frame ' + i + ' error:', e); }
+          if (i % 5 === 0) await new Promise(r => setTimeout(r, 0));
         }
 
-        // Check for saved theme preference
-        const stored = localStorage.getItem('vectomancy_user_settings');
-        if (stored) {
-            try {
-                const settings = JSON.parse(stored);
-                // Video page always uses its own dark purple theme
-            } catch(e) {}
+        progressPercent.textContent = '100%';
+        progressBar.value = 100;
+        progressStatus.textContent = 'Complete!';
+        progressEta.textContent = '0:00';
+        isProcessing = false;
+        processBtn.disabled = false;
+        exportBtn.disabled = false;
+        setStatus('Processing complete! ' + processedFrames.length + ' frames in ' + formatTime((Date.now() - startTime) / 1000));
+      });
+
+      exportBtn.addEventListener('click', async () => {
+        if (processedFrames.length === 0) return;
+        setStatus('Playing processed frames...');
+        const outputCanvas = document.getElementById('output-canvas');
+        outputCanvas.style.display = 'block';
+        videoElement.style.display = 'none';
+        const fps = parseInt(fpsSlider.value);
+        const frameDelay = 1000 / fps;
+        let frameIndex = 0;
+        function showNextFrame() {
+          if (frameIndex >= processedFrames.length) frameIndex = 0;
+          const frame = processedFrames[frameIndex];
+          outputCanvas.width = frame.width;
+          outputCanvas.height = frame.height;
+          const transparent = document.getElementById('transparent-checkbox').checked;
+          ctx.fillStyle = transparent ? 'rgba(0,0,0,0)' : 'white';
+          ctx.fillRect(0, 0, frame.width, frame.height);
+          ctx.fillStyle = '#9b59b6';
+          ctx.font = '12px "Press Start 2P"';
+          ctx.textAlign = 'center';
+          ctx.fillText('Frame ' + (frameIndex + 1) + '/' + processedFrames.length, frame.width / 2, frame.height / 2);
+          frameIndex++;
+          setTimeout(showNextFrame, frameDelay);
         }
+        showNextFrame();
+        setStatus('Preview active. Full FFmpeg WASM export coming soon - use CLI for now.');
+      });
+
+      resetBtn.addEventListener('click', () => {
+        videoFile = null;
+        processedFrames = [];
+        videoElement.src = '';
+        videoElement.style.display = 'none';
+        canvas.style.display = 'none';
+        placeholder.style.display = 'block';
+        frameInfo.style.display = 'none';
+        progressContainer.classList.remove('active');
+        processBtn.disabled = true;
+        previewBtn.disabled = true;
+        exportBtn.disabled = true;
+        filenameDisplay.textContent = 'No file selected';
+        setStatus('Ready. Upload a video to begin.');
+      });
+
+      function extractFrame(time) {
+        return new Promise((resolve) => {
+          videoElement.currentTime = time;
+          videoElement.addEventListener('seeked', () => {
+            const tempCanvas = document.createElement('canvas');
+            tempCanvas.width = videoElement.videoWidth;
+            tempCanvas.height = videoElement.videoHeight;
+            const tempCtx = tempCanvas.getContext('2d');
+            tempCtx.drawImage(videoElement, 0, 0);
+            tempCanvas.toBlob((blob) => {
+              blob.arrayBuffer().then(buffer => {
+                resolve({ data: new Uint8Array(buffer), width: tempCanvas.width, height: tempCanvas.height });
+              });
+            }, 'image/png');
+          }, { once: true });
+        });
+      }
+
+      function processFrame(frame) {
+        const options = {
+          format: 'json',
+          color: document.getElementById('color-checkbox').checked,
+          mode: modeSelect.value,
+          chaikin_iters: parseInt(chaikinSlider.value),
+          terms: parseInt(termsSlider.value),
+          detail: parseInt(detailSlider.value),
+          min_path_len: parseInt(minPathSlider.value),
+        };
+        return process_image(frame.data, options);
+      }
+
+      function displayResult(result, width, height) {
+        canvas.width = width;
+        canvas.height = height;
+        canvas.style.display = 'block';
+        videoElement.style.display = 'none';
+        const transparent = document.getElementById('transparent-checkbox').checked;
+        ctx.fillStyle = transparent ? 'rgba(0,0,0,0)' : 'white';
+        ctx.fillRect(0, 0, width, height);
+        try {
+          const data = JSON.parse(result);
+          ctx.strokeStyle = 'black';
+          ctx.lineWidth = 1;
+          if (data.paths) {
+            for (const path of data.paths) {
+              if (path.data && path.data.length > 0) {
+                ctx.beginPath();
+                ctx.moveTo(path.data[0].x, path.data[0].y);
+                for (let i = 1; i < path.data.length; i++) ctx.lineTo(path.data[i].x, path.data[i].y);
+                ctx.stroke();
+              }
+            }
+          } else if (data.equations) {
+            for (const eq of data.equations) {
+              if (eq.data) {
+                for (const seg of eq.data) {
+                  ctx.beginPath();
+                  for (let t = 0; t <= 20; t++) {
+                    const tt = t / 20;
+                    const x = seg.x_poly[0] + seg.x_poly[1] * tt + seg.x_poly[2] * tt * tt + seg.x_poly[3] * tt * tt * tt;
+                    const y = seg.y_poly[0] + seg.y_poly[1] * tt + seg.y_poly[2] * tt * tt + seg.y_poly[3] * tt * tt * tt;
+                    if (t === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+                  }
+                  ctx.stroke();
+                }
+              }
+            }
+          }
+        } catch (e) {
+          ctx.fillStyle = '#9b59b6';
+          ctx.font = '10px "Press Start 2P"';
+          ctx.textAlign = 'center';
+          ctx.fillText('Processing complete', width / 2, height / 2);
+        }
+      }
+
+      function setStatus(text) { statusBar.textContent = text; }
+      function formatTime(s) { const m = Math.floor(s / 60); return m + ':' + Math.floor(s % 60).toString().padStart(2, '0'); }
+      function formatSize(b) { if (b < 1024) return b + ' B'; if (b < 1048576) return (b / 1024).toFixed(1) + ' KB'; return (b / 1048576).toFixed(1) + ' MB'; }
     </script>
-</body>
+  </body>
 </html>
