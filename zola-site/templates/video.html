@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Vectomancy - Video Engine (Coming Soon)</title>
-    <meta name="description" content="Vectomancy Video Engine: Convert video frames into mathematical parametric equations. Coming soon.">
+    <title>Vectomancy - Video Engine</title>
+    <meta name="description" content="Vectomancy Video Engine: Convert video frames into mathematical parametric equations. Supports Spline, Fourier, and Chaikin modes with audio preservation.">
 
     <link rel="apple-touch-icon" sizes="180x180" href="/favicons/apple-touch-icon.png">
     <link rel="icon" type="image/png" sizes="32x32" href="/favicons/favicon-32x32.png">
@@ -168,29 +168,46 @@
         <p class="subtitle">
             Frame-by-frame parametric decomposition.<br>
             Each frame converted to mathematical curves.<br>
-            Coming when it's ready.
+            Now available in CLI v6.0.0
         </p>
 
         <div class="nes-container with-title" style="text-align: left;">
-            <p class="title" style="font-size: 8px;">Planned Features</p>
+            <p class="title" style="font-size: 8px;">Available Features</p>
             <ul class="feature-list">
                 <li>Frame-by-frame Bezier spline extraction</li>
                 <li>Fourier epicycle animation export</li>
-                <li>WebM / GIF / MP4 output</li>
-                <li>FFmpeg WASM backend (zero server)</li>
-                <li>Per-frame color palette reduction</li>
-                <li>Real-time preview at 60fps</li>
+                <li>Chaikin corner-cutting smoothing</li>
+                <li>MP4 / WebM / MKV / AVI / MOV / GIF output</li>
+                <li>Original audio preservation (AAC)</li>
+                <li>Transparent background (WebM + VP9)</li>
+                <li>GPU acceleration via wgpu</li>
+                <li>Multi-threaded CPU processing</li>
             </ul>
         </div>
 
         <div class="nes-container with-title" style="text-align: left;">
-            <p class="title" style="font-size: 8px;">Development Status</p>
-            <p style="font-size: 8px; margin-bottom: 8px; color: #aaa;">FFmpeg WASM Integration</p>
-            <progress class="nes-progress is-primary" value="5" max="100" style="height: 12px;"></progress>
-            <p style="font-size: 8px; margin-top: 10px; margin-bottom: 8px; color: #aaa;">Frame Rendering Pipeline</p>
-            <progress class="nes-progress is-warning" value="0" max="100" style="height: 12px;"></progress>
-            <p style="font-size: 8px; margin-top: 10px; margin-bottom: 8px; color: #aaa;">WASM Memory Management</p>
-            <progress class="nes-progress is-error" value="0" max="100" style="height: 12px;"></progress>
+            <p class="title" style="font-size: 8px;">Performance (GPU Mode)</p>
+            <p style="font-size: 8px; margin-bottom: 8px; color: #aaa;">480p Video (30fps)</p>
+            <progress class="nes-progress is-success" value="89" max="100" style="height: 12px;"></progress>
+            <p style="font-size: 7px; color: #888;">~89 fps processing speed</p>
+            <p style="font-size: 8px; margin-top: 10px; margin-bottom: 8px; color: #aaa;">1080p Video (30fps)</p>
+            <progress class="nes-progress is-primary" value="8" max="100" style="height: 12px;"></progress>
+            <p style="font-size: 7px; color: #888;">~8 fps processing speed</p>
+        </div>
+
+        <div class="nes-container with-title" style="text-align: left;">
+            <p class="title" style="font-size: 8px;">Quick Start</p>
+            <pre style="font-size: 7px; color: #e8d5ff; background: rgba(0,0,0,0.3); padding: 10px; overflow-x: auto; text-align: left;"><code># Install (via cargo)
+cargo install vectomancy-cli
+
+# Convert video with audio
+vectomancy video input.mp4 -o output.mp4
+
+# Fourier mode
+vectomancy video input.mp4 -o output.mp4  # set mode="fourier" in config
+
+# Transparent WebM
+vectomancy video input.mp4 -o output.webm  # set bg_transparent=true</code></pre>
         </div>
 
         <div class="btn-group">
