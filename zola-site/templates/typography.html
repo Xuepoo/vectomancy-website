@@ -2594,7 +2594,7 @@
                     start_pos: currentGradient.start_pos,
                     end_pos: currentGradient.end_pos,
                   }
-                : [1.0, 0.45, 0.0] // Solid orange
+                : hexToRgb(els.solidColorInput.value)
               : null;
 
             const options = {
