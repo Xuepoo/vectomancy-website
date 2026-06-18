@@ -2594,7 +2594,7 @@
                     start_pos: currentGradient.start_pos,
                     end_pos: currentGradient.end_pos,
                   }
-                : [1.0, 0.45, 0.0] // Solid orange
+                : hexToRgb(els.solidColorInput.value)
               : null;
 
             const options = {
@@ -3209,9 +3209,13 @@
       function renderViewport() {
         renderRequested = false;
         const r = els.canvasArea.getBoundingClientRect();
-        els.mainCanvas.width = r.width;
-        els.mainCanvas.height = r.height;
-        ctx.clearRect(0, 0, r.width, r.height);
+        const targetWidth = Math.floor(r.width);
+        const targetHeight = Math.floor(r.height);
+        if (els.mainCanvas.width !== targetWidth || els.mainCanvas.height !== targetHeight) {
+          els.mainCanvas.width = targetWidth;
+          els.mainCanvas.height = targetHeight;
+        }
+        ctx.clearRect(0, 0, els.mainCanvas.width, els.mainCanvas.height);
         if (!activePreviewId || !cachedViewportCanvas) return;
 
         ctx.save();

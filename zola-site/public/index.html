@@ -242,5 +242,59 @@
     }
 </script>
 
+
+    <!-- Retro Feedback UI -->
+    <button type="button" class="nes-btn is-primary" id="btn-open-feedback" style="position: fixed; bottom: 30px; right: 30px; z-index: 1000; box-shadow: 0 4px 10px rgba(0,0,0,0.3);">
+        <i class="nes-icon is-small heart"></i> Feedback
+    </button>
+
+    <dialog class="nes-dialog" id="dialog-feedback">
+      <form method="dialog">
+        <p class="title">Send Feedback</p>
+        <div class="nes-field">
+          <textarea id="feedback_textarea" class="nes-textarea" placeholder="Found a bug or have an idea?" style="min-height: 120px; font-family: inherit; font-size: 12px;"></textarea>
+        </div>
+        <menu class="dialog-menu" style="margin-top: 20px; display: flex; justify-content: space-between;">
+          <button class="nes-btn">Cancel</button>
+          <button class="nes-btn is-success" id="btn-submit-feedback" type="button">Submit</button>
+        </menu>
+      </form>
+    </dialog>
+
+    <script>
+      document.getElementById('btn-open-feedback').addEventListener('click', function() {
+          document.getElementById('dialog-feedback').showModal();
+      });
+
+      document.getElementById('btn-submit-feedback').addEventListener('click', async function() {
+          const textarea = document.getElementById('feedback_textarea');
+          const text = textarea.value.trim();
+          if (!text) return;
+
+          const btn = this;
+          btn.innerText = "Sending...";
+          btn.classList.add('is-disabled');
+
+          try {
+              const res = await fetch('/api/feedback', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ message: text })
+              });
+              if (res.ok) {
+                  textarea.value = '';
+                  document.getElementById('dialog-feedback').close();
+                  alert("Thanks for your feedback! The developer will check it soon.");
+              } else {
+                  alert("Failed to send feedback.");
+              }
+          } catch (e) {
+              alert("Network error.");
+          } finally {
+              btn.innerText = "Submit";
+              btn.classList.remove('is-disabled');
+          }
+      });
+    </script>
 </body>
 </html>

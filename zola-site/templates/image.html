@@ -922,8 +922,12 @@
         function renderViewport() {
             renderRequested = false;
             const r = els.canvasArea.getBoundingClientRect();
-            els.mainCanvas.width = r.width; els.mainCanvas.height = r.height;
-            ctx.clearRect(0,0,r.width,r.height);
+            const targetWidth = Math.floor(r.width);
+            const targetHeight = Math.floor(r.height);
+            if (els.mainCanvas.width !== targetWidth || els.mainCanvas.height !== targetHeight) {
+                els.mainCanvas.width = targetWidth; els.mainCanvas.height = targetHeight;
+            }
+            ctx.clearRect(0,0,els.mainCanvas.width,els.mainCanvas.height);
             if(!activePreviewId) return;
 
             ctx.save();
