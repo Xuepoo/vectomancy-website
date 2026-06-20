@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+
+{% block title %}Vectomancy - Admin Queue{% endblock title %}
+
+{% block extra_head %}
+{% endblock extra_head %}
+
+{% block content %}
+<div class="container" style="max-width: 1100px;">
+  <!-- Navigation Back -->
+  <div style="margin-top: 15px; display: flex; justify-content: space-between; align-items: center;">
+    <a href="/gallery/" class="nes-btn is-primary" style="font-size: 8px;">< Back</a>
+    <button class="nes-btn" id="themeToggleBtn" style="font-size: 8px;">Theme</button>
+  </div>
+
+  <header style="margin-top: 20px; margin-bottom: 20px; text-align: center;">
+    <h1 style="font-size: 20px;">VECTOMANCY ADMIN</h1>
+    <p style="font-size: 8px; line-height: 1.6;">Admin queue management.</p>
+  </header>
+
+  <!-- Maintenance Notice -->
+  <div class="nes-container is-rounded" style="margin-top: 30px; margin-bottom: 30px; padding: 30px; text-align: center;">
+    <p style="font-size: 11px; color: var(--error-color); margin-bottom: 20px;">⚠️ ADMIN PANEL OFFLINE</p>
+    <p style="font-size: 8px; line-height: 1.8; margin-bottom: 20px;">
+      The admin panel is temporarily disabled while the gallery is offline for upgrades.
+    </p>
+    <a href="/" class="nes-btn is-primary" style="font-size: 8px;">Back to Home</a>
+  </div>
+</div>
+
+<script>
+  // Theme support
+  document.getElementById("themeToggleBtn").onclick = () => {
+    const isDark = document.body.classList.toggle("dark-theme");
+    try {
+      localStorage.setItem("vectomancy_theme", isDark ? "dark" : "light");
+    } catch(e) {}
+  };
+</script>
+{% endblock content %}

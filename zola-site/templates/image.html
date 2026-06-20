@@ -7,7 +7,7 @@
     <meta name="description" content="Convert raster images into mathematical parametric equations, Fourier series, and Bezier splines using WebAssembly. Free online pixel math tool.">
 
     <!-- Performance Optimization: Preload -->
-    <link rel="preload" href="https://cdn.xuepoo.xyz/vectomancy/fonts/pressstart2p.woff2" as="font" type="font/woff2" crossorigin>
+    <link rel="preload" href="/fonts/pressstart2p.woff2" as="font" type="font/woff2" crossorigin>
     <link rel="preload" href="/css/nes.min.css" as="style">
     <link rel="preload" href="/wasm/wasm_engine_bg.wasm" as="fetch" crossorigin>
     <link rel="preload" href="/img/logo.svg" as="image">
@@ -17,6 +17,7 @@
     <link rel="icon" type="image/png" sizes="16x16" href="/favicons/favicon-16x16.png">
     <link rel="shortcut icon" href="/favicons/favicon.ico">
     <link href="/css/nes.min.css" rel="stylesheet">
+    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
     <style>
         @font-face {
             font-family: 'Press Start 2P';
@@ -338,6 +339,28 @@
     </style>
 </head>
 <body>
+    <script>
+        (function() {
+            const sharedTheme = localStorage.getItem('vectomancy_theme');
+            let useDark = false;
+            if (sharedTheme) {
+                useDark = (sharedTheme === 'dark');
+            } else {
+                const stored = localStorage.getItem('vectomancy_user_settings');
+                if (stored) {
+                    try {
+                        const settings = JSON.parse(stored);
+                        useDark = (settings.theme === 'dark');
+                    } catch(e) {}
+                } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+                    useDark = true;
+                }
+            }
+            if (useDark) {
+                document.body.classList.add('dark-theme');
+            }
+        })();
+    </script>
 
     <div class="sidebar">
         <div class="nes-container with-title is-centered control-group" style="padding: 15px 10px;">
@@ -352,7 +375,6 @@
             <div style="display: flex; gap: 10px; margin-bottom: 10px; font-size: 8px; justify-content: center;">
                 <label><input type="radio" class="nes-radio" name="inputType" value="local" checked><span>Local</span></label>
                 <label><input type="radio" class="nes-radio" name="inputType" value="url"><span>URL</span></label>
-                <label><input type="radio" class="nes-radio" name="inputType" value="preset"><span>Preset</span></label>
             </div>
 
             <div id="localInputWrapper">
@@ -367,14 +389,7 @@
                     <button id="fetchUrlBtn" class="nes-btn is-primary" style="font-size: 8px;" aria-label="Fetch URL">GO</button>
                 </div>
             </div>
-            <div id="presetInputWrapper" class="hidden">
-                <div style="display: flex; gap: 10px; overflow-x: auto; padding-bottom: 5px;">
-                    <img src="https://cdn.xuepoo.xyz/vectomancy/presets/miku.webp" class="preset-example" data-filename="miku.webp" alt="Miku Preset" style="width: 48px; height: 48px; cursor: pointer; border: 2px solid var(--text-color); object-fit: cover;">
-                    <img src="https://cdn.xuepoo.xyz/vectomancy/presets/vim.webp" class="preset-example" data-filename="vim.webp" alt="Vim Preset" style="width: 48px; height: 48px; cursor: pointer; border: 2px solid var(--text-color); object-fit: cover;">
-                    <img src="https://cdn.xuepoo.xyz/vectomancy/presets/chiikawa.webp" class="preset-example" data-filename="chiikawa.webp" alt="Chiikawa Preset" style="width: 48px; height: 48px; cursor: pointer; border: 2px solid var(--text-color); object-fit: cover;">
-                    <img src="https://cdn.xuepoo.xyz/vectomancy/presets/iris.webp" class="preset-example" data-filename="iris.webp" alt="Iris Preset" style="width: 48px; height: 48px; cursor: pointer; border: 2px solid var(--text-color); object-fit: cover;">
-                </div>
-            </div>
+
             <div style="margin-top: 10px; text-align: center; border-top: 2px dashed #444; padding-top: 10px;">
                 <span id="filename-display" class="truncate-text" style="font-size: 8px; color: #aaa;">No file selected</span>
             </div>
@@ -429,6 +444,9 @@
             <label for="minPathRange">Min Path Len: <span id="minPathVal" style="color: var(--accent-color);">10</span></label>
             <input type="range" id="minPathRange" min="1" max="50" value="10" class="nes-range" aria-label="Minimum Path Length">
 
+            <label for="strokeRange">Stroke Weight: <span id="strokeVal" style="color: var(--accent-color);">1.0</span>px</label>
+            <input type="range" id="strokeRange" min="0.1" max="5.0" step="0.1" value="1.0" class="nes-range" aria-label="Stroke Weight">
+
             <div id="fourier-controls" class="hidden">
                 <label for="termsRange">Terms: <span id="termsVal" style="color: var(--accent-color);">50</span></label>
                 <input type="range" id="termsRange" min="5" max="200" value="50" class="nes-range" aria-label="Fourier Terms">
@@ -453,10 +471,36 @@
                 </select>
             </div>
             <button class="nes-btn is-success" id="downloadBtn" style="width: 100%; font-size: 10px;" aria-label="Download File">DOWNLOAD</button>
+            <button class="nes-btn is-warning" id="shareBtn" style="width: 100%; font-size: 10px; margin-top: 10px; display: none !important;" aria-label="Share to Gallery">SHARE TO GALLERY</button>
         </div>
 
+        <!-- Share to Gallery Dialog -->
+        <dialog class="nes-dialog" id="shareDialog" style="max-width: 480px; font-size: 8px;">
+          <form method="dialog">
+            <p class="title" style="font-size: 10px;">Share to Gallery</p>
+            <div class="nes-field" style="margin-bottom: 10px;">
+              <label for="share_title" style="font-size: 8px;">Artwork Title <span style="color:red;">*</span></label>
+              <input type="text" id="share_title" class="nes-input" maxlength="50" placeholder="Max 50 chars" style="font-size: 8px;">
+            </div>
+            <div class="nes-field" style="margin-bottom: 10px;">
+              <label for="share_author" style="font-size: 8px;">Author Name <span style="color:red;">*</span></label>
+              <input type="text" id="share_author" class="nes-input" maxlength="30" placeholder="Max 30 chars" style="font-size: 8px;">
+            </div>
+            <div class="nes-field" style="margin-bottom: 15px;">
+              <label for="share_source" style="font-size: 8px;">Original Image Link (Optional)</label>
+              <input type="url" id="share_source" class="nes-input" placeholder="https://..." style="font-size: 8px;">
+            </div>
+            <!-- Cloudflare Turnstile Widget -->
+            <div class="cf-turnstile" data-sitekey="0x4AAAAAADnyXlfM34fGcnXc" data-theme="light" id="turnstile-widget" style="margin-bottom: 15px; display: flex; justify-content: center;"></div>
+            <menu class="dialog-menu" style="display: flex; justify-content: space-between; padding: 0; margin: 0;">
+              <button class="nes-btn" type="button" id="cancelShareBtn">Cancel</button>
+              <button class="nes-btn is-success" type="button" id="confirmShareBtn">Submit</button>
+            </menu>
+          </form>
+        </dialog>
+
         <div class="nes-container with-title control-group" id="partnerWidget" style="padding: 15px; text-align: center;">
-            <p class="title" style="font-size: 11px;">Partners</p>
+            <p class="title" style="font-size: 11px;">Resources</p>
             <div id="partnerContent" style="font-size: 10px; line-height: 1.5;">
                 <!-- Dynamically Populated -->
             </div>
@@ -532,8 +576,10 @@
         </form>
     </dialog>
 
+    <script src="/js/fflate.min.js"></script>
     <script type="module">
         import init, { process_image, process_text } from "/wasm/wasm_engine.js";
+
 
         let isWasmLoaded = false;
         let originalImageObj = null;
@@ -573,18 +619,22 @@
             gridCheck: document.getElementById('gridCheck'),
             detailRange: document.getElementById('detailRange'),
             minPathRange: document.getElementById('minPathRange'),
+            strokeRange: document.getElementById('strokeRange'),
             termsRange: document.getElementById('termsRange'),
             chaikinRange: document.getElementById('chaikinRange'),
             fourierControls: document.getElementById('fourier-controls'),
             chaikinControls: document.getElementById('chaikin-controls'),
             detailVal: document.getElementById('detailVal'),
             minPathVal: document.getElementById('minPathVal'),
+            strokeVal: document.getElementById('strokeVal'),
             termsVal: document.getElementById('termsVal'),
             chaikinVal: document.getElementById('chaikinVal'),
             overlayStats: document.getElementById('overlayStats'),
             exportFormat: document.getElementById('exportFormat'),
             bgTransparentCheck: document.getElementById('bgTransparentCheck'),
             downloadBtn: document.getElementById('downloadBtn'),
+        shareBtn: document.getElementById('shareBtn'),
+        shareDialog: document.getElementById('shareDialog'),
             loaderOverlay: document.getElementById('loaderOverlay'),
             loaderText: document.getElementById('loaderText'),
             progressContainer: document.getElementById('progressContainer'),
@@ -595,7 +645,6 @@
             errorMessage: document.getElementById('error-message'),
             radioLocal: document.querySelector('input[value="local"]'),
             radioUrl: document.querySelector('input[value="url"]'),
-            radioPreset: document.querySelector('input[value="preset"]'),
             btnZoomIn: document.getElementById('btnZoomIn'),
             btnZoomOut: document.getElementById('btnZoomOut'),
             btnResetViewObj: document.getElementById('btnResetViewObj'),
@@ -632,6 +681,7 @@
         function updateLabels() {
             els.detailVal.innerText = els.detailRange.value;
             els.minPathVal.innerText = els.minPathRange.value;
+            els.strokeVal.innerText = els.strokeRange.value;
             els.termsVal.innerText = els.termsRange.value;
             els.chaikinVal.innerText = els.chaikinRange.value;
             const mode = els.modeSelect.value;
@@ -639,7 +689,11 @@
             els.chaikinControls.classList.toggle('hidden', mode !== 'chaikin');
         }
 
-        [els.detailRange, els.minPathRange, els.termsRange, els.chaikinRange, els.modeSelect].forEach(el => el.addEventListener('input', updateLabels));
+        [els.detailRange, els.minPathRange, els.strokeRange, els.termsRange, els.chaikinRange, els.modeSelect].forEach(el => el.addEventListener('input', updateLabels));
+        els.strokeRange.addEventListener('input', () => {
+            recacheViewportCanvas();
+            requestRender();
+        });
 
         els.themeToggleBtn.addEventListener('click', () => {
             document.body.classList.toggle('dark-theme');
@@ -679,17 +733,17 @@
         function updateInputView() {
             document.getElementById('localInputWrapper').classList.toggle('hidden', !els.radioLocal.checked);
             document.getElementById('urlInputWrapper').classList.toggle('hidden', !els.radioUrl.checked);
-            document.getElementById('presetInputWrapper').classList.toggle('hidden', !els.radioPreset.checked);
         }
-        [els.radioLocal, els.radioUrl, els.radioPreset].forEach(r => r.addEventListener('change', updateInputView));
+        [els.radioLocal, els.radioUrl].forEach(r => r.addEventListener('change', updateInputView));
 
         // Image page: hardcode image partner links
         const partnerContent = document.getElementById('partnerContent');
         partnerContent.innerHTML = `
-            <p style="margin-bottom: 8px; color: var(--accent-color); font-size: 9px;">Image Networks</p>
+            <p style="margin-bottom: 8px; color: var(--accent-color); font-size: 9px;">Image Tools</p>
             <div style="display: flex; flex-direction: column; gap: 8px;">
-                <a href="https://www.pixiv.net" target="_blank" class="nes-btn" style="font-size: 9px; padding: 4px 8px;">Pixiv</a>
-                <a href="https://www.pinterest.com" target="_blank" class="nes-btn" style="font-size: 9px; padding: 4px 8px;">Pinterest</a>
+                <a href="https://www.waifu2x.net/" target="_blank" class="nes-btn is-primary" style="font-size: 9px; padding: 4px 8px;">Waifu2x</a>
+                <a href="https://vectorizer.ai/" target="_blank" class="nes-btn is-primary" style="font-size: 9px; padding: 4px 8px;">Vectorizer</a>
+                <a href="https://www.photopea.com/" target="_blank" class="nes-btn is-primary" style="font-size: 9px; padding: 4px 8px;">Photopea</a>
             </div>
         `;
         updateInputView();
@@ -766,22 +820,7 @@
             }
         });
 
-        document.querySelectorAll('.preset-example').forEach(img => {
-            img.addEventListener('click', async (e) => {
-                els.loaderOverlay.classList.remove('hidden');
-                els.loaderText.innerText = "Loading Preset...";
-                try {
-                    const url = img.src;
-                    const r = await fetch(url + (url.includes('?') ? '&' : '?') + 'v=2');
-                    if (!r.ok) throw new Error("HTTP Error");
-                    const b = await r.arrayBuffer();
-                    handleImageBytes(b, img.dataset.filename);
-                } catch(err) {
-                    showError("Failed to load preset.\nPlease check your network.");
-                }
-                els.loaderOverlay.classList.add('hidden');
-            });
-        });
+
 
         els.generateBtn.addEventListener('click', () => {
             if(!isWasmLoaded) return;
@@ -922,8 +961,12 @@
         function renderViewport() {
             renderRequested = false;
             const r = els.canvasArea.getBoundingClientRect();
-            els.mainCanvas.width = r.width; els.mainCanvas.height = r.height;
-            ctx.clearRect(0,0,r.width,r.height);
+            const targetWidth = Math.floor(r.width);
+            const targetHeight = Math.floor(r.height);
+            if (els.mainCanvas.width !== targetWidth || els.mainCanvas.height !== targetHeight) {
+                els.mainCanvas.width = targetWidth; els.mainCanvas.height = targetHeight;
+            }
+            ctx.clearRect(0,0,els.mainCanvas.width,els.mainCanvas.height);
             if(!activePreviewId) return;
 
             ctx.save();
@@ -1006,7 +1049,8 @@
 
         function drawAST(ctx, ast, isThumb, isDark, isExport) {
             ctx.lineJoin = 'round'; ctx.lineCap = 'round';
-            ctx.lineWidth = isThumb ? 3 : (isExport ? 1.5 : 1.5/scale);
+            const strokeWidth = els.strokeRange ? parseFloat(els.strokeRange.value) : 1.0;
+            ctx.lineWidth = isThumb ? 3 : (isExport ? strokeWidth : strokeWidth/scale);
             const defCol = isDark ? '#fff' : '#000';
             const extractColor = els.colorCheck.checked || isThumb || isExport;
 
@@ -1171,15 +1215,122 @@
             let finalFilename = baseName + (isOriginal ? "_original" : `_vecto_${els.modeSelect.value.toUpperCase()}_D${els.detailRange.value}`);
             if (format === 'json') {
                 if (isOriginal) return showError("No JSON for original!");
-                const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(res.ast));
-                const link = document.createElement('a'); link.download = `${finalFilename}.json`; link.href = dataStr; link.click();
+                const blob = new Blob([JSON.stringify(res.ast)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.download = `${finalFilename}.json`;
+                link.href = url;
+                link.click();
+                setTimeout(() => URL.revokeObjectURL(url), 100);
             } else {
                 const link = document.createElement('a'); link.download = `${finalFilename}.${format}`;
                 link.href = canvas.toDataURL(format === 'jpg' ? 'image/jpeg' : 'image/png'); link.click();
             }
         });
 
-        // Settings persistence functions
+        // ── Share to Gallery ──────────────────────────────────────────────────
+        document.getElementById('cancelShareBtn').addEventListener('click', () => {
+            if (window.turnstile) window.turnstile.reset('#turnstile-widget');
+            els.shareDialog.close();
+        });
+
+        els.shareBtn.addEventListener('click', () => {
+            if (!activePreviewId || activePreviewId === 'original') {
+                return showError('Generate a mathematical rendering first, then select it to share!');
+            }
+            if (window.turnstile) window.turnstile.reset('#turnstile-widget');
+            els.shareDialog.showModal();
+        });
+
+        document.getElementById('confirmShareBtn').addEventListener('click', async () => {
+            const title  = document.getElementById('share_title').value.trim();
+            const author = document.getElementById('share_author').value.trim();
+            const source = document.getElementById('share_source').value.trim();
+
+            if (!title || !author) {
+                return showError('Title and Author Name are required!');
+            }
+
+            // Verify Turnstile Token
+            const turnstileToken = document.querySelector('[name="cf-turnstile-response"]')?.value;
+            if (!turnstileToken) {
+                return showError('Security check (Turnstile) is incomplete!');
+            }
+
+            const res = previewDataStore.get(activePreviewId);
+            if (!res || !res.ast) return showError('No rendered preview found!');
+
+            const confirmBtn = document.getElementById('confirmShareBtn');
+            confirmBtn.innerText = 'UPLOADING...';
+            confirmBtn.disabled = true;
+
+            try {
+                // Generate 300px-wide WebP thumbnail
+                const thumbSize = 300;
+                const aspect = res.width / res.height;
+                const thumbCanvas = document.createElement('canvas');
+                thumbCanvas.width  = thumbSize;
+                thumbCanvas.height = Math.round(thumbSize / aspect);
+                const tCtx = thumbCanvas.getContext('2d');
+                tCtx.fillStyle = '#ffffff';
+                tCtx.fillRect(0, 0, thumbCanvas.width, thumbCanvas.height);
+                const s = thumbSize / res.width;
+                tCtx.scale(s, s);
+                drawAST(tCtx, res.ast, true, false);
+
+                const thumbBlob = await new Promise(resolve =>
+                    thumbCanvas.toBlob(resolve, 'image/webp', 0.82)
+                );
+                const astJson = JSON.stringify(res.ast);
+                // Gzip-compress AST to reduce payload (fflate loaded as global script)
+                let astBlob;
+                try {
+                    const enc = new TextEncoder();
+                    const raw = enc.encode(astJson);
+                    const compressed = window.fflate.gzipSync(raw, { level: 1 });
+                    // Use octet-stream (not application/gzip) for CF Workers multipart compat
+                    astBlob = new Blob([compressed], { type: 'application/octet-stream' });
+                } catch (_) {
+                    // Fallback: send uncompressed as octet-stream for CF Workers compat
+                    // (application/json or text/* types get parsed as strings, not Files)
+                    astBlob = new Blob([astJson], { type: 'application/octet-stream' });
+                }
+
+                const formData = new FormData();
+                formData.append('title',                 title);
+                formData.append('author_name',           author);
+                formData.append('source_url',            source);
+                formData.append('aspect_ratio',          String(aspect));
+                formData.append('cf-turnstile-response', turnstileToken);
+                formData.append('ast_json',              astBlob,   astBlob.type === 'application/gzip' ? 'ast.json.gz' : 'ast.json');
+                formData.append('thumbnail',             thumbBlob, 'thumb.webp');
+
+                const postRes = await fetch('/api/gallery/submit', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (!postRes.ok) {
+                    const err = await postRes.json().catch(() => ({}));
+                    throw new Error(err.error || 'Submission failed.');
+                }
+
+                alert('Artwork shared! It will appear in the gallery after review.');
+                els.shareDialog.close();
+                document.getElementById('share_title').value  = '';
+                document.getElementById('share_author').value = '';
+                document.getElementById('share_source').value = '';
+
+            } catch (err) {
+                showError('Share error: ' + err.message);
+            } finally {
+                if (window.turnstile) window.turnstile.reset('#turnstile-widget');
+                confirmBtn.innerText = 'Submit';
+                confirmBtn.disabled  = false;
+            }
+        });
+
+
         const STORAGE_KEY = 'vectomancy_user_settings';
         function saveSettings() {
             try {
@@ -1192,12 +1343,14 @@
                     transparent: els.bgTransparentCheck.checked,
                     detail: els.detailRange.value,
                     minPath: els.minPathRange.value,
+                    strokeWeight: els.strokeRange.value,
                     terms: els.termsRange.value,
                     chaikin: els.chaikinRange.value,
                     exportFormat: els.exportFormat.value,
                     theme: document.body.classList.contains('dark-theme') ? 'dark' : 'light'
                 };
                 localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
+                localStorage.setItem('vectomancy_theme', settings.theme);
             } catch(e) {
                 console.error("Failed to save settings to localStorage:", e);
             }
@@ -1206,8 +1359,16 @@
         function loadSettings() {
             try {
                 const stored = localStorage.getItem(STORAGE_KEY);
-                if (!stored) return;
-                const settings = JSON.parse(stored);
+                let settings = {};
+                if (stored) {
+                    try {
+                        settings = JSON.parse(stored);
+                    } catch(e) {}
+                }
+                const sharedTheme = localStorage.getItem('vectomancy_theme');
+                if (sharedTheme) {
+                    settings.theme = sharedTheme;
+                }
                 if (settings.mode !== undefined) els.modeSelect.value = settings.mode;
                 if (settings.color !== undefined) els.colorCheck.checked = settings.color;
                 if (settings.colorDepth !== undefined) els.colorDepthSelect.value = settings.colorDepth;
@@ -1216,6 +1377,7 @@
                 if (settings.transparent !== undefined) els.bgTransparentCheck.checked = settings.transparent;
                 if (settings.detail !== undefined) els.detailRange.value = settings.detail;
                 if (settings.minPath !== undefined) els.minPathRange.value = settings.minPath;
+                if (settings.strokeWeight !== undefined) els.strokeRange.value = settings.strokeWeight;
                 if (settings.terms !== undefined) els.termsRange.value = settings.terms;
                 if (settings.chaikin !== undefined) els.chaikinRange.value = settings.chaikin;
                 if (settings.exportFormat !== undefined) els.exportFormat.value = settings.exportFormat;
@@ -1242,7 +1404,7 @@
         [
             els.modeSelect, els.colorCheck, els.colorDepthSelect, els.colorSpaceSelect,
             els.gridCheck, els.bgTransparentCheck, els.detailRange, els.minPathRange,
-            els.termsRange, els.chaikinRange, els.exportFormat
+            els.strokeRange, els.termsRange, els.chaikinRange, els.exportFormat
         ].forEach(el => {
             el.addEventListener('input', saveSettings);
             el.addEventListener('change', saveSettings);
@@ -1259,6 +1421,33 @@
         });
 
         run();
+    </script>
+
+    <!-- Custom Styled Alert Dialog -->
+    <dialog class="nes-dialog is-rounded" id="custom-alert-dialog" style="z-index: 10000; font-family: 'Press Start 2P', cursive; font-size: 10px; max-width: 450px; text-align: left;">
+      <form method="dialog">
+        <p class="title" style="font-size: 10px; margin-bottom: 15px; color: var(--text-color);">NOTIFICATION</p>
+        <p id="custom-alert-message" style="font-size: 8px; line-height: 1.6; margin-bottom: 25px; word-break: break-word;"></p>
+        <menu class="dialog-menu" style="display: flex; justify-content: flex-end; padding: 0; margin: 0;">
+          <button class="nes-btn is-primary" style="font-size: 8px; padding: 4px 12px;">OK</button>
+        </menu>
+      </form>
+    </dialog>
+
+    <script>
+      (function() {
+        const nativeAlert = window.alert;
+        window.alert = function(message) {
+          const dialog = document.getElementById('custom-alert-dialog');
+          if (!dialog) {
+            nativeAlert(message);
+            return;
+          }
+          const msgEl = document.getElementById('custom-alert-message');
+          msgEl.innerText = message;
+          dialog.showModal();
+        };
+      })();
     </script>
 </body>
 </html>

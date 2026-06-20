@@ -7,6 +7,13 @@ coverage/
 .ruff-cache/
 __pycache__/
 *.pyc
-*.pyo
+.pyo
 .wrangler
 .worktrees/
+
+# Zola build output
+zola-site/public/
+
+# Quality tool caches
+.pre-commit-cache/
+.prettier-cache/
