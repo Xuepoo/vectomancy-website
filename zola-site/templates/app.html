@@ -525,14 +525,7 @@
               value="url"
             /><span>URL</span></label
           >
-          <label
-            ><input
-              type="radio"
-              class="nes-radio"
-              name="inputType"
-              value="preset"
-            /><span>Preset</span></label
-          >
+
           <label
             ><input
               type="radio"
@@ -583,69 +576,7 @@
             </button>
           </div>
         </div>
-        <div id="presetInputWrapper" class="hidden">
-          <div
-            style="
-              display: flex;
-              gap: 10px;
-              overflow-x: auto;
-              padding-bottom: 5px;
-            "
-          >
-            <img
-              src="https://cdn.xuepoo.xyz/vectomancy/presets/miku.webp"
-              class="preset-example"
-              data-filename="miku.webp"
-              alt="Miku Preset"
-              style="
-                width: 48px;
-                height: 48px;
-                cursor: pointer;
-                border: 2px solid var(--text-color);
-                object-fit: cover;
-              "
-            />
-            <img
-              src="https://cdn.xuepoo.xyz/vectomancy/presets/vim.webp"
-              class="preset-example"
-              data-filename="vim.webp"
-              alt="Vim Preset"
-              style="
-                width: 48px;
-                height: 48px;
-                cursor: pointer;
-                border: 2px solid var(--text-color);
-                object-fit: cover;
-              "
-            />
-            <img
-              src="https://cdn.xuepoo.xyz/vectomancy/presets/chiikawa.webp"
-              class="preset-example"
-              data-filename="chiikawa.webp"
-              alt="Chiikawa Preset"
-              style="
-                width: 48px;
-                height: 48px;
-                cursor: pointer;
-                border: 2px solid var(--text-color);
-                object-fit: cover;
-              "
-            />
-            <img
-              src="https://cdn.xuepoo.xyz/vectomancy/presets/iris.webp"
-              class="preset-example"
-              data-filename="iris.webp"
-              alt="Iris Preset"
-              style="
-                width: 48px;
-                height: 48px;
-                cursor: pointer;
-                border: 2px solid var(--text-color);
-                object-fit: cover;
-              "
-            />
-          </div>
-        </div>
+
         <div id="textInputWrapper" class="hidden">
           <textarea
             id="textInput"
@@ -1290,7 +1221,6 @@
         errorMessage: document.getElementById("error-message"),
         radioLocal: document.querySelector('input[value="local"]'),
         radioUrl: document.querySelector('input[value="url"]'),
-        radioPreset: document.querySelector('input[value="preset"]'),
         radioText: document.querySelector('input[value="text"]'),
         textInput: document.getElementById("textInput"),
         fontInput: document.getElementById("fontInput"),
@@ -1413,13 +1343,10 @@
           .getElementById("urlInputWrapper")
           .classList.toggle("hidden", !els.radioUrl.checked);
         document
-          .getElementById("presetInputWrapper")
-          .classList.toggle("hidden", !els.radioPreset.checked);
-        document
           .getElementById("textInputWrapper")
           .classList.toggle("hidden", !els.radioText.checked);
       }
-      [els.radioLocal, els.radioUrl, els.radioPreset, els.radioText].forEach(
+      [els.radioLocal, els.radioUrl, els.radioText].forEach(
         (r) => r.addEventListener("change", updateInputView),
       );
 
@@ -1439,7 +1366,6 @@
             `;
         els.radioLocal.parentElement.style.display = "none";
         els.radioUrl.parentElement.style.display = "none";
-        els.radioPreset.parentElement.style.display = "none";
         els.radioText.checked = true;
         updateInputView();
       } else {
@@ -1765,30 +1691,7 @@
         }
       });
 
-      document.querySelectorAll(".preset-example").forEach((img) => {
-        img.addEventListener("click", async (e) => {
-          els.loaderOverlay.classList.remove("hidden");
-          els.loaderText.innerText = "Loading Preset...";
-          try {
-            // Use proxy to avoid CORS issues. Use production proxy if testing locally.
-            const proxyBase =
-              window.location.hostname === "localhost" ||
-              window.location.hostname === "127.0.0.1" ||
-              window.location.protocol === "file:"
-                ? "https://vectomancy.pages.dev/proxy"
-                : "/proxy";
-            const r = await fetch(
-              proxyBase + "?url=" + encodeURIComponent(e.target.src),
-            );
-            if (!r.ok) throw new Error("HTTP Error");
-            const b = await r.arrayBuffer();
-            handleImageBytes(b, e.target.dataset.filename);
-          } catch (err) {
-            showError("Failed to load preset.\nPlease check your network.");
-          }
-          els.loaderOverlay.classList.add("hidden");
-        });
-      });
+
 
       els.generateBtn.addEventListener("click", () => {
         if (!isWasmLoaded) return;
