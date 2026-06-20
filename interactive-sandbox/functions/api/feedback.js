@@ -11,14 +11,14 @@ export async function onRequestPost(context) {
       await fetch(context.env.DISCORD_WEBHOOK, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ content: `**New Feedback Received:**\n> ${message}` })
+        body: JSON.stringify({ content: `**New Feedback Received:**\n> ${message}` }),
       });
     }
 
     console.log("Feedback logged on Edge:", message);
 
     return new Response(JSON.stringify({ success: true }), {
-      headers: { "Content-Type": "application/json" }
+      headers: { "Content-Type": "application/json" },
     });
   } catch (err) {
     return new Response(JSON.stringify({ error: err.message }), { status: 500 });

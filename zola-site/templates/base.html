@@ -7,7 +7,7 @@
 
     <!-- Performance Optimization -->
     <link rel="dns-prefetch" href="https://cdn.xuepoo.xyz">
-    <link rel="preload" href="/fonts/pressstart2p.woff2" as="font" type="font/woff2">
+    <link rel="preload" href="/fonts/pressstart2p.woff2" as="font" type="font/woff2" crossorigin>
     <link rel="preload" href="/css/nes.min.css" as="style">
 
     <!-- SEO Meta Tags -->
@@ -96,6 +96,28 @@
     {% block extra_head %}{% endblock extra_head %}
 </head>
 <body>
+    <script>
+        (function() {
+            const sharedTheme = localStorage.getItem('vectomancy_theme');
+            let useDark = false;
+            if (sharedTheme) {
+                useDark = (sharedTheme === 'dark');
+            } else {
+                const stored = localStorage.getItem('vectomancy_user_settings');
+                if (stored) {
+                    try {
+                        const settings = JSON.parse(stored);
+                        useDark = (settings.theme === 'dark');
+                    } catch(e) {}
+                } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+                    useDark = true;
+                }
+            }
+            if (useDark) {
+                document.body.classList.add('dark-theme');
+            }
+        })();
+    </script>
     {% block content %}
     {% endblock content %}
 
@@ -117,7 +139,87 @@
       </form>
     </dialog>
 
+    <!-- Custom Styled Alert Dialog -->
+    <dialog class="nes-dialog is-rounded" id="custom-alert-dialog" style="z-index: 10000; font-family: 'Press Start 2P', cursive; font-size: 10px; max-width: 450px; text-align: left;">
+      <form method="dialog">
+        <p class="title" style="font-size: 10px; margin-bottom: 15px; color: var(--text-color);">NOTIFICATION</p>
+        <p id="custom-alert-message" style="font-size: 8px; line-height: 1.6; margin-bottom: 25px; word-break: break-word;"></p>
+        <menu class="dialog-menu" style="display: flex; justify-content: flex-end; padding: 0; margin: 0;">
+          <button class="nes-btn is-primary" style="font-size: 8px; padding: 4px 12px;">OK</button>
+        </menu>
+      </form>
+    </dialog>
+
+    <!-- Custom Styled Confirm Dialog -->
+    <dialog class="nes-dialog is-rounded" id="custom-confirm-dialog" style="z-index: 10000; font-family: 'Press Start 2P', cursive; font-size: 10px; max-width: 450px; text-align: left;">
+      <form method="dialog">
+        <p class="title" style="font-size: 10px; margin-bottom: 15px; color: var(--text-color);">CONFIRM</p>
+        <p id="custom-confirm-message" style="font-size: 8px; line-height: 1.6; margin-bottom: 25px; word-break: break-word;"></p>
+        <menu class="dialog-menu" style="display: flex; justify-content: space-between; padding: 0; margin: 0;">
+          <button class="nes-btn" id="custom-confirm-cancel" type="button" style="font-size: 8px; padding: 4px 12px;">CANCEL</button>
+          <button class="nes-btn is-success" id="custom-confirm-ok" type="button" style="font-size: 8px; padding: 4px 12px;">OK</button>
+        </menu>
+      </form>
+    </dialog>
+
     <script>
+      // Global custom alert overlay (replaces default browser alert)
+      const nativeAlert = window.alert;
+      window.alert = function(message) {
+          const dialog = document.getElementById('custom-alert-dialog');
+          if (!dialog) {
+              nativeAlert(message);
+              return;
+          }
+          const msgEl = document.getElementById('custom-alert-message');
+          msgEl.innerText = message;
+          dialog.showModal();
+      };
+
+      // Custom async confirm dialog (must be awaited)
+      window.showCustomConfirm = function(message) {
+          return new Promise((resolve) => {
+              const dialog = document.getElementById('custom-confirm-dialog');
+              if (!dialog) {
+                  resolve(window.confirm(message));
+                  return;
+              }
+              const msgEl = document.getElementById('custom-confirm-message');
+              const okBtn = document.getElementById('custom-confirm-ok');
+              const cancelBtn = document.getElementById('custom-confirm-cancel');
+
+              msgEl.innerText = message;
+
+              const cleanup = () => {
+                  okBtn.onclick = null;
+                  cancelBtn.onclick = null;
+                  dialog.removeEventListener('close', onClose);
+              };
+
+              const onClose = () => {
+                  cleanup();
+                  resolve(false);
+              };
+
+              const onOk = () => {
+                  cleanup();
+                  dialog.close();
+                  resolve(true);
+              };
+
+              const onCancel = () => {
+                  cleanup();
+                  dialog.close();
+                  resolve(false);
+              };
+
+              okBtn.onclick = onOk;
+              cancelBtn.onclick = onCancel;
+              dialog.addEventListener('close', onClose);
+              dialog.showModal();
+          });
+      };
+
       document.getElementById('btn-open-feedback').addEventListener('click', function() {
           document.getElementById('dialog-feedback').showModal();
       });

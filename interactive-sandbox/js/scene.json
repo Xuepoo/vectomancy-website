@@ -1,11 +1,59 @@
 {
   "theme": "transparent",
   "entities": [
-    { "id": "creative", "url": "ast/h1_creative.json", "x": 300, "y": 300, "scale": 1.5, "rotation": 0, "targetUrl": null },
-    { "id": "engineering", "url": "ast/h1_engineering.json", "x": 400, "y": 450, "scale": 1.5, "rotation": 0, "targetUrl": null },
-    { "id": "subtitle", "url": "ast/subtitle.json", "x": 400, "y": 600, "scale": 0.5, "rotation": 0, "targetUrl": null },
-    { "id": "miku", "url": "ast/miku.json", "x": 800, "y": 150, "scale": 0.5, "rotation": 0, "targetUrl": null },
-    { "id": "teto", "url": "ast/teto.json", "x": 1050, "y": 450, "scale": 0.45, "rotation": 0, "targetUrl": null },
-    { "id": "bochi", "url": "ast/bochi.json", "x": 600, "y": 550, "scale": 0.15, "rotation": 0, "targetUrl": null }
+    {
+      "id": "creative",
+      "url": "ast/h1_creative.json",
+      "x": 300,
+      "y": 300,
+      "scale": 1.5,
+      "rotation": 0,
+      "targetUrl": null
+    },
+    {
+      "id": "engineering",
+      "url": "ast/h1_engineering.json",
+      "x": 400,
+      "y": 450,
+      "scale": 1.5,
+      "rotation": 0,
+      "targetUrl": null
+    },
+    {
+      "id": "subtitle",
+      "url": "ast/subtitle.json",
+      "x": 400,
+      "y": 600,
+      "scale": 0.5,
+      "rotation": 0,
+      "targetUrl": null
+    },
+    {
+      "id": "miku",
+      "url": "ast/miku.json",
+      "x": 800,
+      "y": 150,
+      "scale": 0.5,
+      "rotation": 0,
+      "targetUrl": null
+    },
+    {
+      "id": "teto",
+      "url": "ast/teto.json",
+      "x": 1050,
+      "y": 450,
+      "scale": 0.45,
+      "rotation": 0,
+      "targetUrl": null
+    },
+    {
+      "id": "bochi",
+      "url": "ast/bochi.json",
+      "x": 600,
+      "y": 550,
+      "scale": 0.15,
+      "rotation": 0,
+      "targetUrl": null
+    }
   ]
 }

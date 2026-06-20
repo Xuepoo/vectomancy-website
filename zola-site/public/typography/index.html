@@ -12,7 +12,7 @@
     <!-- Performance Optimization: Preload -->
     <link
       rel="preload"
-      href="https://cdn.xuepoo.xyz/vectomancy/fonts/pressstart2p.woff2"
+      href="/fonts/pressstart2p.woff2"
       as="font"
       type="font/woff2"
       crossorigin
@@ -59,41 +59,7 @@
           U+2212, U+2215, U+FEFF, U+FFFD;
       }
 
-      @font-face {
-        font-family: "Roboto";
-        src: url("https://fonts.gstatic.com/l/font?kit=KFOMCnqEu92Fr1ME7kSn66aGLdTylUAMQXC89YmC2DPNWubEbVmUiA4&skey=a0a0114a1dcab3ac&v=v51")
-          format("truetype");
-      }
-      @font-face {
-        font-family: "Pacifico";
-        src: url("https://cdn.xuepoo.xyz/vectomancy/fonts/Pacifico-Regular.ttf")
-          format("truetype");
-      }
-      @font-face {
-        font-family: "QingKeHuangYou";
-        src: url("https://cdn.xuepoo.xyz/vectomancy/fonts/QingKeHuangYou.ttf")
-          format("truetype");
-      }
-      @font-face {
-        font-family: "MaShanZheng";
-        src: url("https://cdn.xuepoo.xyz/vectomancy/fonts/MaShanZheng.ttf")
-          format("truetype");
-      }
-      @font-face {
-        font-family: "LongCang";
-        src: url("https://cdn.xuepoo.xyz/vectomancy/fonts/LongCang.ttf")
-          format("truetype");
-      }
-      @font-face {
-        font-family: "SawarabiMincho";
-        src: url("https://cdn.xuepoo.xyz/vectomancy/fonts/SawarabiMincho.ttf")
-          format("truetype");
-      }
-      @font-face {
-        font-family: "DotGothic16";
-        src: url("https://cdn.xuepoo.xyz/vectomancy/fonts/DotGothic16.ttf")
-          format("truetype");
-      }
+
 
       :root {
         --bg-color: #f5f0e8;
@@ -502,6 +468,28 @@
     </style>
   </head>
   <body>
+    <script>
+        (function() {
+            const sharedTheme = localStorage.getItem('vectomancy_theme');
+            let useDark = false;
+            if (sharedTheme) {
+                useDark = (sharedTheme === 'dark');
+            } else {
+                const stored = localStorage.getItem('vectomancy_user_settings');
+                if (stored) {
+                    try {
+                        const settings = JSON.parse(stored);
+                        useDark = (settings.theme === 'dark');
+                    } catch(e) {}
+                } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+                    useDark = true;
+                }
+            }
+            if (useDark) {
+                document.body.classList.add('dark-theme');
+            }
+        })();
+    </script>
     <div class="sidebar">
       <div
         class="nes-container with-title is-centered control-group"
@@ -616,7 +604,6 @@
             data-url="https://cdn.xuepoo.xyz/vectomancy/fonts/font.ttf"
             data-filename="PressStart2P"
             style="
-              font-family: &quot;Press Start 2P&quot;, sans-serif;
               font-size: 11px;
               padding: 4px;
             "
@@ -628,7 +615,6 @@
             data-url="https://cdn.xuepoo.xyz/vectomancy/fonts/Roboto-Regular.ttf"
             data-filename="Roboto"
             style="
-              font-family: &quot;Roboto&quot;, sans-serif;
               font-size: 11px;
               padding: 4px;
             "
@@ -640,7 +626,6 @@
             data-url="https://cdn.xuepoo.xyz/vectomancy/fonts/Pacifico-Regular.ttf"
             data-filename="Pacifico"
             style="
-              font-family: &quot;Pacifico&quot;, cursive;
               font-size: 11px;
               padding: 4px;
             "
@@ -652,7 +637,6 @@
             data-url="https://cdn.xuepoo.xyz/vectomancy/fonts/QingKeHuangYou.ttf"
             data-filename="QingKeHuangYou"
             style="
-              font-family: &quot;QingKeHuangYou&quot;, sans-serif;
               font-size: 11px;
               padding: 4px;
             "
@@ -664,7 +648,6 @@
             data-url="https://cdn.xuepoo.xyz/vectomancy/fonts/MaShanZheng.ttf"
             data-filename="MaShanZheng"
             style="
-              font-family: &quot;MaShanZheng&quot;, sans-serif;
               font-size: 11px;
               padding: 4px;
             "
@@ -676,7 +659,6 @@
             data-url="https://cdn.xuepoo.xyz/vectomancy/fonts/LongCang.ttf"
             data-filename="LongCang"
             style="
-              font-family: &quot;LongCang&quot;, sans-serif;
               font-size: 11px;
               padding: 4px;
             "
@@ -688,7 +670,6 @@
             data-url="https://cdn.xuepoo.xyz/vectomancy/fonts/SawarabiMincho.ttf"
             data-filename="SawarabiMincho"
             style="
-              font-family: &quot;SawarabiMincho&quot;, serif;
               font-size: 11px;
               padding: 4px;
             "
@@ -700,7 +681,6 @@
             data-url="https://cdn.xuepoo.xyz/vectomancy/fonts/DotGothic16.ttf"
             data-filename="DotGothic16"
             style="
-              font-family: &quot;DotGothic16&quot;, sans-serif;
               font-size: 11px;
               padding: 4px;
             "
@@ -917,6 +897,23 @@
           value="5"
           class="nes-range"
           aria-label="Minimum Path Length"
+        />
+
+        <label for="strokeRange"
+          >Stroke Weight:
+          <span id="strokeVal" style="color: var(--accent-color)"
+            >1.0</span
+          >px</label
+        >
+        <input
+          type="range"
+          id="strokeRange"
+          min="0.1"
+          max="5.0"
+          step="0.1"
+          value="1.0"
+          class="nes-range"
+          aria-label="Stroke Weight"
         />
 
         <label for="letterSpacingRange"
@@ -1372,6 +1369,9 @@
 
           <p>
             <strong>Tips:</strong><br />
+            - Use Shift + Enter to input a newline.<br />
+            - Some fonts may require a space at the start or end of the text to prevent missing shapes.<br />
+            - If 'Access System Fonts' fails, switch to Chrome/Edge, as Firefox/Safari block local resource access.<br />
             - For CJK text, use "System Fonts" API (Chrome) or upload a Noto CJK
             font.<br />
             - Large CJK fonts (10-30MB) are cached in IndexedDB after first
@@ -1471,6 +1471,7 @@
         gridCheck: document.getElementById("gridCheck"),
         detailRange: document.getElementById("detailRange"),
         minPathRange: document.getElementById("minPathRange"),
+        strokeRange: document.getElementById("strokeRange"),
         letterSpacingRange: document.getElementById("letterSpacingRange"),
         termsRange: document.getElementById("termsRange"),
         chaikinRange: document.getElementById("chaikinRange"),
@@ -1478,6 +1479,7 @@
         chaikinControls: document.getElementById("chaikin-controls"),
         detailVal: document.getElementById("detailVal"),
         minPathVal: document.getElementById("minPathVal"),
+        strokeVal: document.getElementById("strokeVal"),
         letterSpacingVal: document.getElementById("letterSpacingVal"),
         termsVal: document.getElementById("termsVal"),
         chaikinVal: document.getElementById("chaikinVal"),
@@ -1543,7 +1545,7 @@
 
           // Set default input text if empty
           if (!els.textInput.value) {
-            els.textInput.value = "VECTOMANCY";
+            els.textInput.value = "Hello, World! ";
           }
 
           // If no font cached, trigger click on default "PressStart2P"
@@ -1752,6 +1754,7 @@
       function updateLabels() {
         els.detailVal.innerText = els.detailRange.value;
         els.minPathVal.innerText = els.minPathRange.value;
+        els.strokeVal.innerText = els.strokeRange.value;
         els.letterSpacingVal.innerText = els.letterSpacingRange.value;
         els.termsVal.innerText = els.termsRange.value;
         els.chaikinVal.innerText = els.chaikinRange.value;
@@ -1806,6 +1809,7 @@
       [
         els.detailRange,
         els.minPathRange,
+        els.strokeRange,
         els.letterSpacingRange,
         els.termsRange,
         els.chaikinRange,
@@ -1816,6 +1820,12 @@
       ].forEach((el) => {
         if (el) el.addEventListener("input", updateLabels);
       });
+      if (els.strokeRange) {
+        els.strokeRange.addEventListener("input", () => {
+          recacheViewportCanvas();
+          requestRender();
+        });
+      }
 
       function updateColorStyleOnAst() {
         saveSettings();
@@ -3363,7 +3373,8 @@
         ctx.lineJoin = "round";
         ctx.lineCap = "round";
         const visualScale = scale > 0 && isFinite(scale) ? scale : 1.0;
-        ctx.lineWidth = isThumb ? 3 : isExport ? 1.5 : 1.5 / visualScale;
+        const strokeWidth = els.strokeRange ? parseFloat(els.strokeRange.value) : 1.0;
+        ctx.lineWidth = isThumb ? 3 : isExport ? strokeWidth : strokeWidth / visualScale;
 
         if (ast.type === "Spline" || ast.type === "spline") {
           ast.equations.forEach((path) => {
@@ -3563,6 +3574,7 @@
             hideHandles: els.hideHandlesCheck.checked,
             detail: els.detailRange.value,
             minPath: els.minPathRange.value,
+            strokeWeight: els.strokeRange.value,
             letterSpacing: els.letterSpacingRange.value,
             terms: els.termsRange.value,
             chaikin: els.chaikinRange.value,
@@ -3577,14 +3589,23 @@
               : "light",
           };
           localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
+          localStorage.setItem("vectomancy_theme", settings.theme);
         } catch (e) {}
       }
 
       function loadSettings() {
         try {
           const stored = localStorage.getItem(STORAGE_KEY);
-          if (!stored) return;
-          const settings = JSON.parse(stored);
+          let settings = {};
+          if (stored) {
+            try {
+              settings = JSON.parse(stored);
+            } catch (e) {}
+          }
+          const sharedTheme = localStorage.getItem("vectomancy_theme");
+          if (sharedTheme) {
+            settings.theme = sharedTheme;
+          }
           if (settings.mode !== undefined) els.modeSelect.value = settings.mode;
           if (settings.color !== undefined)
             els.colorCheck.checked = settings.color;
@@ -3606,6 +3627,8 @@
             els.detailRange.value = settings.detail;
           if (settings.minPath !== undefined)
             els.minPathRange.value = settings.minPath;
+          if (settings.strokeWeight !== undefined)
+            els.strokeRange.value = settings.strokeWeight;
           if (settings.letterSpacing !== undefined)
             els.letterSpacingRange.value = settings.letterSpacing;
           if (settings.terms !== undefined)
@@ -3668,6 +3691,7 @@
         els.hideHandlesCheck,
         els.detailRange,
         els.minPathRange,
+        els.strokeRange,
         els.letterSpacingRange,
         els.termsRange,
         els.chaikinRange,
@@ -3776,5 +3800,32 @@
         </menu>
       </form>
     </dialog>
+
+    <!-- Custom Styled Alert Dialog -->
+    <dialog class="nes-dialog is-rounded" id="custom-alert-dialog" style="z-index: 10000; font-family: 'Press Start 2P', cursive; font-size: 10px; max-width: 450px; text-align: left;">
+      <form method="dialog">
+        <p class="title" style="font-size: 10px; margin-bottom: 15px; color: var(--text-color);">NOTIFICATION</p>
+        <p id="custom-alert-message" style="font-size: 8px; line-height: 1.6; margin-bottom: 25px; word-break: break-word;"></p>
+        <menu class="dialog-menu" style="display: flex; justify-content: flex-end; padding: 0; margin: 0;">
+          <button class="nes-btn is-primary" style="font-size: 8px; padding: 4px 12px;">OK</button>
+        </menu>
+      </form>
+    </dialog>
+
+    <script>
+      (function() {
+        const nativeAlert = window.alert;
+        window.alert = function(message) {
+          const dialog = document.getElementById('custom-alert-dialog');
+          if (!dialog) {
+            nativeAlert(message);
+            return;
+          }
+          const msgEl = document.getElementById('custom-alert-message');
+          msgEl.innerText = message;
+          dialog.showModal();
+        };
+      })();
+    </script>
   </body>
 </html>

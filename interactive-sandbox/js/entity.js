@@ -33,9 +33,10 @@ export class MathEntity {
       this.path = new Path2D();
       for (const p of this.ast.paths) {
         for (const cmd of p.commands) {
-          if (cmd.type === 'M') this.path.moveTo(cmd.x, cmd.y);
-          else if (cmd.type === 'C') this.path.bezierCurveTo(cmd.x1, cmd.y1, cmd.x2, cmd.y2, cmd.x, cmd.y);
-          else if (cmd.type === 'L') this.path.lineTo(cmd.x, cmd.y);
+          if (cmd.type === "M") this.path.moveTo(cmd.x, cmd.y);
+          else if (cmd.type === "C")
+            this.path.bezierCurveTo(cmd.x1, cmd.y1, cmd.x2, cmd.y2, cmd.x, cmd.y);
+          else if (cmd.type === "L") this.path.lineTo(cmd.x, cmd.y);
         }
       }
       return;
@@ -44,7 +45,7 @@ export class MathEntity {
     if (this.ast.type === "Spline" && this.ast.equations) {
       for (const eq of this.ast.equations) {
         let p2d = new Path2D();
-        let color = '#fff';
+        let color = "#fff";
         if (eq.color_rgb && eq.color_rgb.length >= 3) {
           // color_rgb is usually [r, g, b] 0-1 range
           let r = Math.round(eq.color_rgb[0] * 255);
@@ -63,8 +64,12 @@ export class MathEntity {
             let y = 0;
             for (let j = 0; j < seg.y_poly.length; j++) y += seg.y_poly[j] * Math.pow(local_t, j);
 
-            if (first) { p2d.moveTo(x, y); first = false; }
-            else { p2d.lineTo(x, y); }
+            if (first) {
+              p2d.moveTo(x, y);
+              first = false;
+            } else {
+              p2d.lineTo(x, y);
+            }
           }
         }
         this.paths.push({ path: p2d, color: color });
@@ -84,11 +89,11 @@ export class MathEntity {
       // Pad slightly for strokes
       const padding = 10;
       this.offscreenCanvas = new OffscreenCanvas(w + padding * 2, h + padding * 2);
-      this.offscreenCtx = this.offscreenCanvas.getContext('2d');
+      this.offscreenCtx = this.offscreenCanvas.getContext("2d");
       this.offscreenCtx.translate(-minX + padding, -minY + padding);
 
       for (const p of this.paths) {
-        this.offscreenCtx.strokeStyle = p.color || '#fff';
+        this.offscreenCtx.strokeStyle = p.color || "#fff";
         this.offscreenCtx.lineWidth = 2; // Original logic
         this.offscreenCtx.stroke(p.path);
       }

@@ -14,6 +14,7 @@
     <link rel="icon" type="image/png" sizes="16x16" href="/favicons/favicon-16x16.png" />
     <link rel="shortcut icon" href="/favicons/favicon.ico" />
     <link href="/css/nes.min.css" rel="stylesheet" />
+    <script src="/js/fflate.min.js"></script>
 
     <style>
       @font-face {
@@ -122,6 +123,28 @@
     </style>
   </head>
   <body>
+    <script>
+        (function() {
+            const sharedTheme = localStorage.getItem('vectomancy_theme');
+            let useDark = false;
+            if (sharedTheme) {
+                useDark = (sharedTheme === 'dark');
+            } else {
+                const stored = localStorage.getItem('vectomancy_user_settings');
+                if (stored) {
+                    try {
+                        const settings = JSON.parse(stored);
+                        useDark = (settings.theme === 'dark');
+                    } catch(e) {}
+                } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+                    useDark = true;
+                }
+            }
+            if (useDark) {
+                document.body.classList.add('dark-theme');
+            }
+        })();
+    </script>
     <div class="stars" id="stars"></div>
 
     <div class="app-container">
@@ -190,6 +213,13 @@
               <div class="range-container">
                 <input type="range" id="min-path-slider" min="2" max="20" value="5">
                 <span class="range-value" id="min-path-value">5</span>
+              </div>
+            </div>
+            <div class="form-group">
+              <label>Stroke W.</label>
+              <div class="range-container">
+                <input type="range" id="stroke-slider" min="0.1" max="5.0" step="0.1" value="1.0">
+                <span class="range-value" id="stroke-value">1.0</span>
               </div>
             </div>
             <div class="form-group">
@@ -287,6 +317,86 @@
       let ctx = canvas.getContext('2d');
       let processedFrames = [];
       let isProcessing = false;
+      let playbackTimeout = null;
+
+      let lastPreviewResult = null;
+      let lastPreviewWidth = 0;
+      let lastPreviewHeight = 0;
+
+      const els = {
+        modeSelect: document.getElementById('mode-select'),
+        termsRange: document.getElementById('terms-slider'),
+        chaikinRange: document.getElementById('chaikin-slider'),
+        detailRange: document.getElementById('detail-slider'),
+        minPathRange: document.getElementById('min-path-slider'),
+        strokeRange: document.getElementById('stroke-slider'),
+        colorCheck: document.getElementById('color-checkbox'),
+        transparentCheck: document.getElementById('transparent-checkbox'),
+        fpsRange: document.getElementById('fps-slider')
+      };
+
+      const STORAGE_KEY = 'vectomancy_user_settings';
+
+      function updateLabels() {
+        document.getElementById('terms-value').textContent = els.termsRange.value;
+        document.getElementById('chaikin-value').textContent = els.chaikinRange.value;
+        document.getElementById('detail-value').textContent = els.detailRange.value;
+        document.getElementById('min-path-value').textContent = els.minPathRange.value;
+        document.getElementById('stroke-value').textContent = els.strokeRange.value;
+        document.getElementById('fps-value').textContent = els.fpsRange.value;
+
+        // Toggle visibility of mode groups
+        document.getElementById('terms-group').style.display = els.modeSelect.value === 'fourier' ? 'block' : 'none';
+        document.getElementById('chaikin-group').style.display = els.modeSelect.value === 'chaikin' ? 'block' : 'none';
+      }
+
+      function saveSettings() {
+        try {
+          const stored = localStorage.getItem(STORAGE_KEY);
+          let settings = {};
+          if (stored) {
+            try { settings = JSON.parse(stored); } catch(e) {}
+          }
+          settings.videoMode = els.modeSelect.value;
+          settings.videoTerms = els.termsRange.value;
+          settings.videoChaikin = els.chaikinRange.value;
+          settings.videoDetail = els.detailRange.value;
+          settings.videoMinPath = els.minPathRange.value;
+          settings.videoStrokeWeight = els.strokeRange.value;
+          settings.videoColor = els.colorCheck.checked;
+          settings.videoTransparent = els.transparentCheck.checked;
+          settings.videoFps = els.fpsRange.value;
+          settings.theme = document.body.classList.contains('dark-theme') ? 'dark' : 'light';
+
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
+          localStorage.setItem('vectomancy_theme', settings.theme);
+        } catch(e) {
+          console.error("Failed to save settings to localStorage:", e);
+        }
+      }
+
+      function loadSettings() {
+        try {
+          const stored = localStorage.getItem(STORAGE_KEY);
+          let settings = {};
+          if (stored) {
+            try { settings = JSON.parse(stored); } catch(e) {}
+          }
+          if (settings.videoMode !== undefined) els.modeSelect.value = settings.videoMode;
+          if (settings.videoTerms !== undefined) els.termsRange.value = settings.videoTerms;
+          if (settings.videoChaikin !== undefined) els.chaikinRange.value = settings.videoChaikin;
+          if (settings.videoDetail !== undefined) els.detailRange.value = settings.videoDetail;
+          if (settings.videoMinPath !== undefined) els.minPathRange.value = settings.videoMinPath;
+          if (settings.videoStrokeWeight !== undefined) els.strokeRange.value = settings.videoStrokeWeight;
+          if (settings.videoColor !== undefined) els.colorCheck.checked = settings.videoColor;
+          if (settings.videoTransparent !== undefined) els.transparentCheck.checked = settings.videoTransparent;
+          if (settings.videoFps !== undefined) els.fpsRange.value = settings.videoFps;
+
+          updateLabels();
+        } catch(e) {
+          console.error("Failed to load settings from localStorage:", e);
+        }
+      }
 
       async function initWasm() {
         try {
@@ -311,11 +421,8 @@
       const themeToggleBtn = document.getElementById('themeToggleBtn');
       themeToggleBtn.addEventListener('click', () => {
         document.body.classList.toggle('dark-theme');
-        localStorage.setItem('vectomancy_theme', document.body.classList.contains('dark-theme') ? 'dark' : 'light');
+        saveSettings();
       });
-      if (localStorage.getItem('vectomancy_theme') === 'dark') {
-        document.body.classList.add('dark-theme');
-      }
 
       document.getElementById('helpBtn').addEventListener('click', () => {
         document.getElementById('help-dialog').classList.add('active');
@@ -327,6 +434,7 @@
       });
 
       document.getElementById('resetViewBtn').addEventListener('click', () => {
+        if (playbackTimeout) { clearTimeout(playbackTimeout); playbackTimeout = null; }
         videoFile = null;
         processedFrames = [];
         videoElement.src = '';
@@ -354,12 +462,31 @@
       setupSlider(document.getElementById('chaikin-slider'), 'chaikin-value');
       setupSlider(document.getElementById('detail-slider'), 'detail-value');
       setupSlider(document.getElementById('min-path-slider'), 'min-path-value');
+      setupSlider(document.getElementById('stroke-slider'), 'stroke-value');
       setupSlider(document.getElementById('fps-slider'), 'fps-value');
+
+      document.getElementById('stroke-slider').addEventListener('input', () => {
+        if (lastPreviewResult && !isProcessing) {
+          displayResult(lastPreviewResult, lastPreviewWidth, lastPreviewHeight);
+        }
+      });
 
       document.getElementById('mode-select').addEventListener('change', (e) => {
         document.getElementById('terms-group').style.display = e.target.value === 'fourier' ? 'block' : 'none';
         document.getElementById('chaikin-group').style.display = e.target.value === 'chaikin' ? 'block' : 'none';
+        saveSettings();
       });
+
+      // Listen for updates to save settings
+      [
+        els.modeSelect, els.termsRange, els.chaikinRange, els.detailRange,
+        els.minPathRange, els.strokeRange, els.colorCheck, els.transparentCheck, els.fpsRange
+      ].forEach(el => {
+        el.addEventListener('input', saveSettings);
+        el.addEventListener('change', saveSettings);
+      });
+
+      loadSettings();
 
       document.getElementById('video-upload').addEventListener('change', (e) => {
         if (e.target.files[0]) loadVideo(e.target.files[0]);
@@ -392,11 +519,15 @@
 
       document.getElementById('preview-btn').addEventListener('click', async () => {
         if (!wasmReady || !videoFile) return;
+        if (playbackTimeout) { clearTimeout(playbackTimeout); playbackTimeout = null; }
         setStatus('Processing current frame...');
         const frame = await extractFrame(videoElement.currentTime);
         if (frame) {
           try {
             const result = processFrame(frame);
+            lastPreviewResult = result;
+            lastPreviewWidth = frame.width;
+            lastPreviewHeight = frame.height;
             displayResult(result, frame.width, frame.height);
             setStatus('Preview complete.');
           } catch (e) { setStatus('Error: ' + e.message); }
@@ -405,6 +536,7 @@
 
       document.getElementById('process-btn').addEventListener('click', async () => {
         if (isProcessing || !videoFile) return;
+        if (playbackTimeout) { clearTimeout(playbackTimeout); playbackTimeout = null; }
         isProcessing = true;
         document.getElementById('process-btn').disabled = true;
         document.getElementById('export-btn').disabled = true;
@@ -448,6 +580,15 @@
 
       document.getElementById('export-btn').addEventListener('click', () => {
         if (processedFrames.length === 0) return;
+        const dialog = document.getElementById('export-dialog');
+        if (dialog) dialog.showModal();
+      });
+
+      document.getElementById('btn-export-play').addEventListener('click', () => {
+        const dialog = document.getElementById('export-dialog');
+        if (dialog) dialog.close();
+        if (processedFrames.length === 0) return;
+        if (playbackTimeout) { clearTimeout(playbackTimeout); playbackTimeout = null; }
         setStatus('Playing processed frames...');
         canvas.style.display = 'block';
         videoElement.style.display = 'none';
@@ -456,20 +597,114 @@
         function showNextFrame() {
           if (frameIndex >= processedFrames.length) frameIndex = 0;
           const frame = processedFrames[frameIndex];
-          canvas.width = frame.width;
-          canvas.height = frame.height;
-          const transparent = document.getElementById('transparent-checkbox').checked;
-          ctx.fillStyle = transparent ? 'rgba(0,0,0,0)' : 'white';
-          ctx.fillRect(0, 0, frame.width, frame.height);
+          displayResult(frame.data, frame.width, frame.height);
           ctx.fillStyle = 'var(--accent-color)';
-          ctx.font = '12px "Press Start 2P"';
+          ctx.font = '8px "Press Start 2P"';
           ctx.textAlign = 'center';
-          ctx.fillText('Frame ' + (frameIndex + 1) + '/' + processedFrames.length, frame.width / 2, frame.height / 2);
+          ctx.fillText('Frame ' + (frameIndex + 1) + '/' + processedFrames.length, frame.width / 2, 20);
           frameIndex++;
-          setTimeout(showNextFrame, 1000 / fps);
+          playbackTimeout = setTimeout(showNextFrame, 1000 / fps);
         }
         showNextFrame();
         setStatus('Preview active. Use CLI for full export: vectomancy video input.mp4 -o output.mp4');
+      });
+
+      document.getElementById('btn-export-webm').addEventListener('click', () => {
+        const dialog = document.getElementById('export-dialog');
+        if (dialog) dialog.close();
+        if (processedFrames.length === 0) return;
+        if (playbackTimeout) { clearTimeout(playbackTimeout); playbackTimeout = null; }
+
+        const fps = parseInt(document.getElementById('fps-slider').value);
+        setStatus('Exporting WebM... Please wait.');
+
+        canvas.style.display = 'block';
+        videoElement.style.display = 'none';
+
+        const stream = canvas.captureStream(fps);
+        let mediaRecorder;
+        const options = { mimeType: 'video/webm; codecs=vp9' };
+        try {
+          mediaRecorder = new MediaRecorder(stream, options);
+        } catch (e) {
+          try {
+            mediaRecorder = new MediaRecorder(stream, { mimeType: 'video/webm' });
+          } catch (err) {
+            alert('MediaRecorder is not supported in this browser.');
+            setStatus('Export failed: MediaRecorder unsupported.');
+            return;
+          }
+        }
+
+        const chunks = [];
+        mediaRecorder.ondataavailable = (e) => {
+          if (e.data && e.data.size > 0) chunks.push(e.data);
+        };
+
+        mediaRecorder.onstop = () => {
+          const blob = new Blob(chunks, { type: 'video/webm' });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          const baseName = videoFile ? videoFile.name.split('.')[0] : 'video';
+          a.download = `${baseName}_vecto.webm`;
+          a.click();
+          setStatus('Export WebM complete!');
+        };
+
+        mediaRecorder.start();
+
+        let frameIndex = 0;
+        function renderNextFrameForRecording() {
+          if (frameIndex >= processedFrames.length) {
+            mediaRecorder.stop();
+            return;
+          }
+          const frame = processedFrames[frameIndex];
+          displayResult(frame.data, frame.width, frame.height);
+          frameIndex++;
+          setTimeout(renderNextFrameForRecording, 1000 / fps);
+        }
+
+        renderNextFrameForRecording();
+      });
+
+      document.getElementById('btn-export-zip').addEventListener('click', () => {
+        const dialog = document.getElementById('export-dialog');
+        if (dialog) dialog.close();
+        if (processedFrames.length === 0) return;
+        setStatus('Creating ZIP file...');
+
+        if (!window.fflate) {
+          alert('Compression library (fflate) is not loaded.');
+          setStatus('Export failed: fflate not loaded.');
+          return;
+        }
+
+        const zipData = {};
+        const baseName = videoFile ? videoFile.name.split('.')[0] : 'video';
+
+        processedFrames.forEach((frame, idx) => {
+          const fileName = `${baseName}_frame_${(idx + 1).toString().padStart(4, '0')}.json`;
+          const encoder = new TextEncoder();
+          const u8 = encoder.encode(frame.data);
+          zipData[fileName] = u8;
+        });
+
+        window.fflate.zip(zipData, (err, data) => {
+          if (err) {
+            alert('ZIP creation failed: ' + err.message);
+            setStatus('ZIP creation failed.');
+            return;
+          }
+          const blob = new Blob([data], { type: 'application/zip' });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `${baseName}_vecto_frames.zip`;
+          a.click();
+          setStatus('Export ZIP complete!');
+        });
       });
 
       function extractFrame(time) {
@@ -513,7 +748,8 @@
         try {
           const data = JSON.parse(result);
           ctx.strokeStyle = document.body.classList.contains('dark-theme') ? 'white' : 'black';
-          ctx.lineWidth = 1;
+          const strokeSlider = document.getElementById('stroke-slider');
+          ctx.lineWidth = strokeSlider ? parseFloat(strokeSlider.value) : 1.0;
           if (data.paths) {
             for (const path of data.paths) {
               if (path.data && path.data.length > 0) {
@@ -550,6 +786,77 @@
       function setStatus(text) { document.getElementById('status-bar').textContent = text; }
       function formatTime(s) { const m = Math.floor(s / 60); return m + ':' + Math.floor(s % 60).toString().padStart(2, '0'); }
       function formatSize(b) { if (b < 1024) return b + ' B'; if (b < 1048576) return (b / 1024).toFixed(1) + ' KB'; return (b / 1048576).toFixed(1) + ' MB'; }
+    </script>
+
+    <!-- Custom Styled Alert Dialog -->
+    <dialog class="nes-dialog is-rounded" id="custom-alert-dialog" style="z-index: 10000; font-family: 'Press Start 2P', cursive; font-size: 10px; max-width: 450px; text-align: left;">
+      <form method="dialog">
+        <p class="title" style="font-size: 10px; margin-bottom: 15px; color: var(--text-color);">NOTIFICATION</p>
+        <p id="custom-alert-message" style="font-size: 8px; line-height: 1.6; margin-bottom: 25px; word-break: break-word;"></p>
+        <menu class="dialog-menu" style="display: flex; justify-content: flex-end; padding: 0; margin: 0;">
+          <button class="nes-btn is-primary" style="font-size: 8px; padding: 4px 12px;">OK</button>
+        </menu>
+      </form>
+    </dialog>
+
+    <!-- Export Dialog -->
+    <dialog class="nes-dialog is-rounded" id="export-dialog" style="z-index: 10000; font-family: 'Press Start 2P', cursive; font-size: 8px; max-width: 500px; text-align: left;">
+      <form method="dialog">
+        <p class="title" style="font-size: 10px; margin-bottom: 15px; color: var(--text-color);">EXPORT VIDEO</p>
+        <p style="font-size: 8px; line-height: 1.6; margin-bottom: 20px;">Select export method for processed frames:</p>
+        <div style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 25px;">
+          <button type="button" class="nes-btn is-primary" id="btn-export-webm" style="font-size: 8px; text-align: left;">🎬 Export WebM Video</button>
+          <button type="button" class="nes-btn is-success" id="btn-export-zip" style="font-size: 8px; text-align: left;">📦 Export Frames (ZIP)</button>
+          <button type="button" class="nes-btn" id="btn-export-play" style="font-size: 8px; text-align: left;">👁️ Play Web Preview</button>
+        </div>
+        <menu class="dialog-menu" style="display: flex; justify-content: flex-end; padding: 0; margin: 0;">
+          <button class="nes-btn" style="font-size: 8px; padding: 4px 12px;">Cancel</button>
+        </menu>
+      </form>
+    </dialog>
+
+    <!-- Maintenance Notice Dialog -->
+    <dialog class="nes-dialog is-rounded" id="maintenance-dialog" style="z-index: 10001; font-family: 'Press Start 2P', cursive; font-size: 8px; max-width: 550px; text-align: left;">
+      <form method="dialog">
+        <p class="title" style="font-size: 10px; margin-bottom: 15px; color: var(--error-color);">⚠️ MAINTENANCE</p>
+        <p style="font-size: 8px; line-height: 1.6; margin-bottom: 15px;">
+          The web-based video engine is currently undergoing maintenance and upgrades.
+        </p>
+        <p style="font-size: 8px; line-height: 1.6; margin-bottom: 15px;">
+          For fast, multi-threaded CPU and GPU-accelerated video conversion, please use the local CLI tool instead:
+        </p>
+        <div class="nes-container" style="margin-bottom: 20px; padding: 10px; font-size: 7px; background-color: #212529 !important; border-color: #212529 !important; color: white !important;">
+          <p style="margin-bottom: 5px; color: #f7d51d !important;"># Install via Cargo</p>
+          <code style="color: white !important; display: block; margin-bottom: 10px; background-color: transparent !important;">cargo install vectomancy</code>
+          <p style="margin-bottom: 5px; color: #f7d51d !important;"># Run video conversion</p>
+          <code style="color: white !important; display: block; word-break: break-all; background-color: transparent !important;">vectomancy video input.mp4 -o output.mp4</code>
+        </div>
+        <menu class="dialog-menu" style="display: flex; justify-content: flex-end; padding: 0; margin: 0;">
+          <button class="nes-btn is-primary" style="font-size: 8px; padding: 4px 12px;">OK</button>
+        </menu>
+      </form>
+    </dialog>
+
+    <script>
+      (function() {
+        const nativeAlert = window.alert;
+        window.alert = function(message) {
+          const dialog = document.getElementById('custom-alert-dialog');
+          if (!dialog) {
+            nativeAlert(message);
+            return;
+          }
+          const msgEl = document.getElementById('custom-alert-message');
+          msgEl.innerText = message;
+          dialog.showModal();
+        };
+
+        // Auto-show maintenance dialog on page load
+        const maintDialog = document.getElementById('maintenance-dialog');
+        if (maintDialog) {
+          maintDialog.showModal();
+        }
+      })();
     </script>
   </body>
 </html>

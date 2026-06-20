@@ -30,12 +30,14 @@ This repository is split into two primary components:
 ## 🚀 Development Setup
 
 ### Prerequisites
+
 - [Rust](https://www.rust-lang.org/tools/install) (latest stable)
 - [wasm-pack](https://rustwasm.github.io/wasm-pack/installer/)
 - [Zola](https://www.getzola.org/documentation/getting-started/installation/)
 - [Bun](https://bun.sh/) or npm (for Wrangler deployment)
 
 ### 1. Build the WASM Engine
+
 You must compile the Rust code into WebAssembly before starting the frontend server.
 
 ```bash
@@ -44,12 +46,14 @@ wasm-pack build --target web --out-dir ../zola-site/static/wasm
 ```
 
 ### 2. Run the Local Development Server
+
 Serve the frontend locally to test changes.
 
 ```bash
 cd zola-site
 zola serve
 ```
+
 The site will be available at `http://127.0.0.1:1111`.
 
 ---
@@ -67,9 +71,11 @@ wrangler pages deploy public --project-name vectomancy --branch main
 ```
 
 ### Asset Management (R2)
+
 Heavy assets like gallery images and presets are hosted on Cloudflare R2 and served via the edge-cached custom domain `https://cdn.xuepoo.xyz`.
 
 Upload new assets via:
+
 ```bash
 wrangler r2 object put "cdn-xuepoo-xyz/vectomancy/path/to/file" --file "./local/file" --remote
 ```

@@ -1,16 +1,16 @@
 export class Renderer {
   constructor(canvasId, themeClearColor) {
     this.canvas = document.getElementById(canvasId);
-    this.ctx = this.canvas.getContext('2d');
+    this.ctx = this.canvas.getContext("2d");
     this.entities = [];
-    this.themeClearColor = themeClearColor || 'rgba(17, 17, 17, 0.2)';
-    window.addEventListener('resize', () => this.resize());
+    this.themeClearColor = themeClearColor || "rgba(17, 17, 17, 0.2)";
+    window.addEventListener("resize", () => this.resize());
     this.resize();
   }
 
   resize() {
     let parent = this.canvas.parentElement;
-    if (parent && parent.tagName !== 'BODY') {
+    if (parent && parent.tagName !== "BODY") {
       const rect = parent.getBoundingClientRect();
       this.canvas.width = rect.width;
       this.canvas.height = rect.height;
@@ -60,11 +60,11 @@ export class Renderer {
         this.ctx.drawImage(ent.offscreenCanvas, ent.drawOffsetX, ent.drawOffsetY);
       } else if (ent.paths && ent.paths.length > 0) {
         for (const p of ent.paths) {
-          this.ctx.strokeStyle = p.color || '#fff';
+          this.ctx.strokeStyle = p.color || "#fff";
           this.ctx.stroke(p.path);
         }
       } else if (ent.path) {
-        this.ctx.strokeStyle = ent.ast.color || '#fff';
+        this.ctx.strokeStyle = ent.ast.color || "#fff";
         this.ctx.stroke(ent.path);
       }
 
@@ -77,9 +77,9 @@ export class Renderer {
         let s = ent.scale;
         this.ctx.scale(s, s);
 
-        this.ctx.shadowColor = 'rgba(255,255,255,0.8)';
+        this.ctx.shadowColor = "rgba(255,255,255,0.8)";
         this.ctx.shadowBlur = 10;
-        this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.9)';
+        this.ctx.strokeStyle = "rgba(255, 255, 255, 0.9)";
         this.ctx.lineWidth = 4 / s;
         this.ctx.setLineDash([15 / s, 15 / s]);
 

@@ -14,13 +14,23 @@ export function updatePhysics(entities, canvasWidth, canvasHeight, dt) {
       const cy = (a.cy || 0) * a.scale;
       // Keep within bounds, but only if the object actually fits on screen!
       if (halfW * 2 <= canvasWidth) {
-        if (a.x + cx - halfW < 0) { a.vx *= -0.5; a.x = halfW - cx; }
-        else if (a.x + cx + halfW > canvasWidth) { a.vx *= -0.5; a.x = canvasWidth - halfW - cx; }
+        if (a.x + cx - halfW < 0) {
+          a.vx *= -0.5;
+          a.x = halfW - cx;
+        } else if (a.x + cx + halfW > canvasWidth) {
+          a.vx *= -0.5;
+          a.x = canvasWidth - halfW - cx;
+        }
       }
 
       if (halfH * 2 <= canvasHeight) {
-        if (a.y + cy - halfH < 0) { a.vy *= -0.5; a.y = halfH - cy; }
-        else if (a.y + cy + halfH > canvasHeight) { a.vy *= -0.5; a.y = canvasHeight - halfH - cy; }
+        if (a.y + cy - halfH < 0) {
+          a.vy *= -0.5;
+          a.y = halfH - cy;
+        } else if (a.y + cy + halfH > canvasHeight) {
+          a.vy *= -0.5;
+          a.y = canvasHeight - halfH - cy;
+        }
       }
     }
   }
