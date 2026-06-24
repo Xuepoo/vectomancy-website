@@ -906,7 +906,9 @@
                 cachedViewportCanvas.width = res.width;
                 cachedViewportCanvas.height = res.height;
                 const cCtx = cachedViewportCanvas.getContext('2d');
+                const renderStart = performance.now();
                 drawAST(cCtx, res.ast, false, document.body.classList.contains('dark-theme'), true);
+                res.renderTime = Math.round(performance.now() - renderStart);
             }
         }
 
@@ -919,7 +921,7 @@
             if(id !== 'original') {
                 recacheViewportCanvas();
                 const res = previewDataStore.get(id);
-                let stats = `RENDER STATS\nSIZE: ${res.width}x${res.height}\nTIME: ${res.computeTime}ms`;
+                let stats = `RENDER STATS\nSIZE: ${res.width}x${res.height}\nCONVERT: ${res.computeTime}ms\nRENDER: ${res.renderTime || 0}ms`;
                 if(res.ast.type === 'Spline' || res.ast.type === 'spline') stats += `\nPATHS: ${res.ast.equations.length}`;
                 else if(res.ast.type === 'Fourier' || res.ast.type === 'fourier') stats += `\nSTROKES: ${res.ast.strokes.length}`;
                 else if(res.ast.type === 'Polyline' || res.ast.type === 'polyline') stats += `\nPATHS: ${res.ast.paths.length}`;
