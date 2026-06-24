@@ -2771,7 +2771,7 @@ checksum = "ba73ea9cf16a25df0c8caa16c51acb937d5712a8429db78a3ee29d5dcacd3a65"
 
 [[package]]
 name = "vectomancy"
-version = "6.0.1"
+version = "6.1.0"
 dependencies = [
  "base64 0.22.1",
  "directories",
@@ -2794,7 +2794,7 @@ dependencies = [
 
 [[package]]
 name = "vectomancy-text"
-version = "6.0.1"
+version = "6.1.0"
 dependencies = [
  "ab_glyph",
  "thiserror 1.0.69",

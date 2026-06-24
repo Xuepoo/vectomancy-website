@@ -196,6 +196,9 @@
               <label><input type="checkbox" class="nes-checkbox" id="color-checkbox" checked> <span>Colors</span></label>
             </div>
             <div class="form-group">
+              <label><input type="checkbox" class="nes-checkbox" id="simplify-checkbox" checked> <span>Simplify</span></label>
+            </div>
+            <div class="form-group">
               <label><input type="checkbox" class="nes-checkbox" id="transparent-checkbox"> <span>Transparent</span></label>
             </div>
           </div>
@@ -499,6 +502,7 @@
           terms: parseInt(document.getElementById('terms-slider').value),
           detail: parseInt(document.getElementById('detail-slider').value),
           min_path_len: parseInt(document.getElementById('min-path-slider').value),
+          simplify_math: document.getElementById('simplify-checkbox').checked,
         });
       }
 

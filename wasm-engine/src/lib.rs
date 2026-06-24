@@ -19,6 +19,8 @@ pub struct ProcessOptions {
     pub color_style: Option<models::ColorStyle>,
     #[serde(default)]
     pub letter_spacing: Option<f32>,
+    #[serde(default)]
+    pub simplify_math: Option<bool>,
 }
 
 #[derive(Serialize)]
@@ -92,7 +94,10 @@ fn build_ast(output: models::ParserOutput, opts: &ProcessOptions) -> Result<Wasm
                             let reduced = math::simplify_rdp(&path.data, tolerance);
                             if reduced.len() > 2 {
                                 let segments = math::spline::fit_cubic_bezier(&reduced);
-                                let equations = math::spline::build_splines(&segments);
+                                let equations = math::spline::build_splines(
+                                    &segments,
+                                    opts.simplify_math.unwrap_or(true),
+                                );
                                 Some(models::ColoredPath {
                                     color_style: path.color_style.clone(),
                                     data: equations,
@@ -145,7 +150,10 @@ fn build_ast(output: models::ParserOutput, opts: &ProcessOptions) -> Result<Wasm
                     let all_equations: Vec<_> = segs
                         .into_iter()
                         .map(|seg| {
-                            let equations = math::spline::build_splines(&seg.data);
+                            let equations = math::spline::build_splines(
+                                &seg.data,
+                                opts.simplify_math.unwrap_or(true),
+                            );
                             models::ColoredPath {
                                 color_style: seg.color_style.clone(),
                                 data: equations,
@@ -287,7 +295,8 @@ pub fn process_text(font_bytes: &[u8], text: &str, options: JsValue) -> Result<J
     let all_equations: Vec<_> = segs
         .into_iter()
         .map(|seg| {
-            let equations = math::spline::build_splines(&seg.data);
+            let equations =
+                math::spline::build_splines(&seg.data, opts.simplify_math.unwrap_or(true));
             models::ColoredPath {
                 color_style: opts.color_style.clone().or_else(|| seg.color_style.clone()),
                 data: equations,

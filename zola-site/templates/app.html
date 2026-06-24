@@ -716,6 +716,15 @@
               aria-label="Enable Colors"
             /><span>Colors</span></label
           >
+          <label style="margin: 0"
+            ><input
+              type="checkbox"
+              class="nes-checkbox"
+              id="simplifyCheck"
+              checked
+              aria-label="Simplify Math"
+            /><span>Simplify</span></label
+          >
 
           <!-- Color options, toggled by Colors checkbox -->
           <div
@@ -1191,6 +1200,7 @@
         helpDialog: document.getElementById("help-dialog"),
         modeSelect: document.getElementById("modeSelect"),
         colorCheck: document.getElementById("colorCheck"),
+        simplifyCheck: document.getElementById("simplifyCheck"),
         colorDepthSelect: document.getElementById("colorDepthSelect"),
         colorSpaceSelect: document.getElementById("colorSpaceSelect"),
         gridCheck: document.getElementById("gridCheck"),
@@ -1720,6 +1730,7 @@
               terms: parseInt(els.termsRange.value),
               detail: parseInt(els.detailRange.value),
               min_path_len: parseInt(els.minPathRange.value),
+              simplify_math: els.simplifyCheck.checked,
             };
 
             let result;
@@ -2157,6 +2168,7 @@
           const settings = {
             mode: els.modeSelect.value,
             color: els.colorCheck.checked,
+            simplify_math: els.simplifyCheck.checked,
             colorDepth: els.colorDepthSelect.value,
             colorSpace: els.colorSpaceSelect.value,
             grid: els.gridCheck.checked,
@@ -2193,6 +2205,8 @@
           if (settings.mode !== undefined) els.modeSelect.value = settings.mode;
           if (settings.color !== undefined)
             els.colorCheck.checked = settings.color;
+          if (settings.simplify_math !== undefined)
+            els.simplifyCheck.checked = settings.simplify_math;
           if (settings.colorDepth !== undefined)
             els.colorDepthSelect.value = settings.colorDepth;
           if (settings.colorSpace !== undefined)
@@ -2252,6 +2266,7 @@
       [
         els.modeSelect,
         els.colorCheck,
+        els.simplifyCheck,
         els.colorDepthSelect,
         els.colorSpaceSelect,
         els.gridCheck,
