@@ -1,0 +1,20 @@
+default: true
+
+# Allow long lines (Zola templates and complex HTML are naturally long)
+MD013: false
+
+# Allow multiple top-level headings
+MD025: false
+
+# Allow inline HTML (used extensively in Zola templates)
+MD033: false
+
+# Allow bare URLs in docs
+MD034: false
+
+# Allow duplicate headings in different sections
+MD024:
+  siblings_only: true
+
+# Allow emphasis used as headings in legacy docs
+MD036: false

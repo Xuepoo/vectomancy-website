@@ -408,6 +408,7 @@
 
             <div style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 10px;">
                 <label style="margin: 0;"><input type="checkbox" class="nes-checkbox" id="colorCheck" checked aria-label="Enable Colors"/><span>Colors</span></label>
+                <label style="margin: 0;"><input type="checkbox" class="nes-checkbox" id="simplifyCheck" checked aria-label="Simplify Math"/><span>Simplify</span></label>
 
                 <!-- Color options, toggled by Colors checkbox -->
                 <div id="colorOptionsContainer" style="margin-left: 15px; border-left: 2px solid var(--accent-color); padding-left: 10px; display: flex; flex-direction: column; gap: 8px;">
@@ -614,6 +615,7 @@
             helpDialog: document.getElementById('help-dialog'),
             modeSelect: document.getElementById('modeSelect'),
             colorCheck: document.getElementById('colorCheck'),
+            simplifyCheck: document.getElementById('simplifyCheck'),
             colorDepthSelect: document.getElementById('colorDepthSelect'),
             colorSpaceSelect: document.getElementById('colorSpaceSelect'),
             gridCheck: document.getElementById('gridCheck'),
@@ -836,7 +838,8 @@
                     // Optional style configs can be added here
                     const options = { format: 'jpg', color: els.colorCheck.checked, mode: els.modeSelect.value,
                                      chaikin_iters: parseInt(els.chaikinRange.value), terms: parseInt(els.termsRange.value),
-                                     detail: parseInt(els.detailRange.value), min_path_len: parseInt(els.minPathRange.value) };
+                                     detail: parseInt(els.detailRange.value), min_path_len: parseInt(els.minPathRange.value),
+                                     simplify_math: els.simplifyCheck.checked };
 
                     const result = process_image(currentImageBytes, options);
 
@@ -1337,6 +1340,7 @@
                 const settings = {
                     mode: els.modeSelect.value,
                     color: els.colorCheck.checked,
+                    simplify_math: els.simplifyCheck.checked,
                     colorDepth: els.colorDepthSelect.value,
                     colorSpace: els.colorSpaceSelect.value,
                     grid: els.gridCheck.checked,
@@ -1371,6 +1375,7 @@
                 }
                 if (settings.mode !== undefined) els.modeSelect.value = settings.mode;
                 if (settings.color !== undefined) els.colorCheck.checked = settings.color;
+                if (settings.simplify_math !== undefined) els.simplifyCheck.checked = settings.simplify_math;
                 if (settings.colorDepth !== undefined) els.colorDepthSelect.value = settings.colorDepth;
                 if (settings.colorSpace !== undefined) els.colorSpaceSelect.value = settings.colorSpace;
                 if (settings.grid !== undefined) els.gridCheck.checked = settings.grid;
@@ -1402,7 +1407,7 @@
 
         // Listen for setting updates to persist them
         [
-            els.modeSelect, els.colorCheck, els.colorDepthSelect, els.colorSpaceSelect,
+            els.modeSelect, els.colorCheck, els.simplifyCheck, els.colorDepthSelect, els.colorSpaceSelect,
             els.gridCheck, els.bgTransparentCheck, els.detailRange, els.minPathRange,
             els.strokeRange, els.termsRange, els.chaikinRange, els.exportFormat
         ].forEach(el => {
