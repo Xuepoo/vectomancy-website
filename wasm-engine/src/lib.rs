@@ -21,6 +21,10 @@ pub struct ProcessOptions {
     pub letter_spacing: Option<f32>,
     #[serde(default)]
     pub simplify_math: Option<bool>,
+    #[serde(default)]
+    pub fourier_adaptive: Option<bool>,
+    #[serde(default)]
+    pub fourier_energy_threshold: Option<f64>,
 }
 
 #[derive(Serialize)]
@@ -69,8 +73,16 @@ fn build_ast(output: models::ParserOutput, opts: &ProcessOptions) -> Result<Wasm
                         valid_paths.iter().map(|p| p.as_slice()).collect();
 
                     // GPU is disabled in WASM, pass false
-                    let batch_results = math::perform_fft_batch(&path_refs, opts.terms, false)
-                        .map_err(|e| JsValue::from_str(&format!("FFT error: {}", e)))?;
+                    let fourier_adaptive = opts.fourier_adaptive.unwrap_or(true);
+                    let fourier_energy = opts.fourier_energy_threshold.unwrap_or(0.995);
+                    let batch_results = math::perform_fft_batch(
+                        &path_refs,
+                        opts.terms,
+                        false,
+                        fourier_adaptive,
+                        fourier_energy,
+                    )
+                    .map_err(|e| JsValue::from_str(&format!("FFT error: {}", e)))?;
 
                     let mut strokes = Vec::new();
                     for (terms, color) in batch_results.into_iter().zip(valid_colors) {
@@ -177,8 +189,16 @@ fn build_ast(output: models::ParserOutput, opts: &ProcessOptions) -> Result<Wasm
 
                     let path_refs: Vec<&[models::Point2D]> =
                         valid_paths.iter().map(|p| p.as_slice()).collect();
-                    let batch_results = math::perform_fft_batch(&path_refs, opts.terms, false)
-                        .map_err(|e| JsValue::from_str(&format!("FFT error: {}", e)))?;
+                    let fourier_adaptive = opts.fourier_adaptive.unwrap_or(true);
+                    let fourier_energy = opts.fourier_energy_threshold.unwrap_or(0.995);
+                    let batch_results = math::perform_fft_batch(
+                        &path_refs,
+                        opts.terms,
+                        false,
+                        fourier_adaptive,
+                        fourier_energy,
+                    )
+                    .map_err(|e| JsValue::from_str(&format!("FFT error: {}", e)))?;
 
                     let mut strokes = Vec::new();
                     for (terms, color) in batch_results.into_iter().zip(valid_colors) {
