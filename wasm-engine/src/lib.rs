@@ -338,3 +338,140 @@ pub fn process_text(font_bytes: &[u8], text: &str, options: JsValue) -> Result<J
     serde_wasm_bindgen::to_value(&result)
         .map_err(|e| JsValue::from_str(&format!("Serialization failed: {}", e)))
 }
+
+#[derive(Deserialize)]
+pub struct FitOptions {
+    pub mode: String,
+    pub chaikin_iters: usize,
+    pub terms: usize,
+    pub detail: usize,
+    pub min_path_len: usize,
+    #[serde(default)]
+    pub simplify_math: Option<bool>,
+    #[serde(default)]
+    pub fourier_adaptive: Option<bool>,
+    #[serde(default)]
+    pub fourier_energy_threshold: Option<f64>,
+}
+
+#[derive(Serialize)]
+struct FitOutput {
+    ast: MathExpressionAST,
+}
+
+#[wasm_bindgen]
+pub fn fit_paths(paths_json: JsValue, options: JsValue) -> Result<JsValue, JsValue> {
+    let opts: FitOptions = serde_wasm_bindgen::from_value(options)
+        .map_err(|e| JsValue::from_str(&format!("Invalid options: {}", e)))?;
+
+    let paths: Vec<models::ColoredPath<Vec<models::Point2D>>> =
+        serde_wasm_bindgen::from_value(paths_json)
+            .map_err(|e| JsValue::from_str(&format!("Invalid paths: {}", e)))?;
+
+    let tolerance = {
+        let detail_clamped = opts.detail.clamp(1, 100) as f64;
+        5.0 * (1.0 - (detail_clamped / 100.0)).powi(2) + 0.1
+    };
+    let min_path_len = opts.min_path_len;
+    let mode = opts.mode.to_lowercase();
+    let bbox = math::compute_bounding_box(&paths);
+
+    let ast = match mode.as_str() {
+        "fourier" => {
+            let mut valid_paths = Vec::new();
+            let mut valid_colors = Vec::new();
+            for path in paths {
+                if path.data.len() < min_path_len {
+                    continue;
+                }
+                let reduced = math::simplify_rdp(&path.data, tolerance);
+                if reduced.len() > 3 {
+                    valid_paths.push(reduced);
+                    valid_colors.push(path.color_style.clone());
+                }
+            }
+
+            let path_refs: Vec<&[models::Point2D]> =
+                valid_paths.iter().map(|p| p.as_slice()).collect();
+
+            let fourier_adaptive = opts.fourier_adaptive.unwrap_or(true);
+            let fourier_energy = opts.fourier_energy_threshold.unwrap_or(0.995);
+            let batch_results = math::perform_fft_batch(
+                &path_refs,
+                opts.terms,
+                false,
+                fourier_adaptive,
+                fourier_energy,
+            )
+            .map_err(|e| JsValue::from_str(&format!("FFT error: {}", e)))?;
+
+            let mut strokes = Vec::new();
+            for (terms, color) in batch_results.into_iter().zip(valid_colors) {
+                strokes.push(models::ColoredPath {
+                    color_style: color,
+                    data: terms,
+                });
+            }
+            MathExpressionAST::Fourier {
+                strokes,
+                bounding_box: bbox,
+            }
+        }
+        "spline" => {
+            let all_equations: Vec<_> = paths
+                .into_iter()
+                .filter_map(|path| {
+                    if path.data.len() < min_path_len {
+                        return None;
+                    }
+                    let reduced = math::simplify_rdp(&path.data, tolerance);
+                    if reduced.len() > 2 {
+                        let segments = math::spline::fit_cubic_bezier(&reduced);
+                        let equations = math::spline::build_splines(
+                            &segments,
+                            opts.simplify_math.unwrap_or(true),
+                        );
+                        Some(models::ColoredPath {
+                            color_style: path.color_style.clone(),
+                            data: equations,
+                        })
+                    } else {
+                        None
+                    }
+                })
+                .collect();
+            MathExpressionAST::Spline {
+                equations: all_equations,
+                bounding_box: bbox,
+            }
+        }
+        _ => {
+            let smoothed_paths: Vec<_> = paths
+                .into_iter()
+                .filter_map(|path| {
+                    if path.data.len() < min_path_len {
+                        return None;
+                    }
+                    let reduced = math::simplify_rdp(&path.data, tolerance);
+                    let smoothed = if opts.chaikin_iters > 0 {
+                        math::chaikin_smooth(&reduced, opts.chaikin_iters)
+                    } else {
+                        reduced
+                    };
+                    Some(models::ColoredPath {
+                        color_style: path.color_style.clone(),
+                        data: smoothed,
+                    })
+                })
+                .collect();
+            MathExpressionAST::Polyline {
+                paths: smoothed_paths,
+                bounding_box: bbox,
+            }
+        }
+    };
+
+    let result = FitOutput { ast };
+    serde_wasm_bindgen::to_value(&result)
+        .map_err(|e| JsValue::from_str(&format!("Serialization failed: {}", e)))
+}

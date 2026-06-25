@@ -580,6 +580,7 @@
     <script src="/js/fflate.min.js"></script>
     <script type="module">
         import init, { process_image, process_text } from "/wasm/wasm_engine.js";
+        import { Scene, Entity } from "/js/vecto-core.js";
 
 
         let isWasmLoaded = false;
@@ -588,9 +589,10 @@
         let currentFilename = "";
         let previewDataStore = new Map();
         let activePreviewId = null;
-        let cachedViewportCanvas = null;
         let snapshotCount = 0;
         let pendingDeleteId = null;
+        let scene = null;
+        let activeEntity = null;
 
         let scale = 1, offsetX = 0, offsetY = 0;
         let isDragging = false, dragStart = { x: 0, y: 0 };
@@ -672,6 +674,9 @@
                 isWasmLoaded = true;
                 els.loaderOverlay.classList.add('hidden');
                 console.log("WASM Initialized!");
+
+                scene = new Scene(els.mainCanvas);
+                scene.start();
             } catch (e) {
                 els.statusText.innerText = "ERR: LOAD";
                 console.error(e);
@@ -679,6 +684,151 @@
         }
 
         run();
+
+        class OriginalImageEntity extends Entity {
+            constructor(img) {
+                super('original-image');
+                this.img = img;
+            }
+            isPointInside() { return false; }
+            render(r) {
+                if (this.img) {
+                    r.drawImage(this.img, 0, 0, this.img.width, this.img.height);
+                }
+            }
+        }
+
+        class VectorImageEntity extends Entity {
+            constructor(ast, width, height, isDark, strokeWidth, depth, space, bgTransparent) {
+                super('vector-image');
+                this.ast = ast;
+                this.width = width;
+                this.height = height;
+                this.isDark = isDark;
+                this.strokeWidth = strokeWidth;
+                this.depth = depth;
+                this.space = space;
+                this.bgTransparent = bgTransparent;
+
+                this.offscreen = document.createElement('canvas');
+                this.offscreen.width = width;
+                this.offscreen.height = height;
+                const oCtx = this.offscreen.getContext('2d');
+                if (!bgTransparent) {
+                    oCtx.fillStyle = isDark ? '#000000' : '#ffffff';
+                    oCtx.fillRect(0, 0, width, height);
+                }
+                drawAST(oCtx, ast, false, isDark, true);
+            }
+            isPointInside() { return false; }
+            render(r) {
+                r.drawImage(this.offscreen, 0, 0, this.width, this.height);
+            }
+        }
+
+        const workers = [];
+        const maxWorkers = Math.min(navigator.hardwareConcurrency || 4, 4);
+
+        function initWorkers() {
+            if (workers.length > 0) return;
+            for (let i = 0; i < maxWorkers; i++) {
+                const w = new Worker('/js/image-worker.js', { type: 'module' });
+                w.postMessage({ type: 'init', wasmUrl: '/wasm/wasm_engine_bg.wasm' });
+                workers.push(w);
+            }
+        }
+
+        function fitPathsParallel(paths, config) {
+            return new Promise((resolve, reject) => {
+                if (paths.length === 0) {
+                    resolve({
+                        type: config.mode === 'fourier' ? 'Fourier' : (config.mode === 'spline' ? 'Spline' : 'Polyline'),
+                        strokes: [],
+                        equations: [],
+                        paths: []
+                    });
+                    return;
+                }
+
+                initWorkers();
+
+                const chunks = Array.from({ length: maxWorkers }, () => []);
+                const chunkWeights = Array(maxWorkers).fill(0);
+
+                const sortedPaths = paths.map((p, idx) => ({ path: p, index: idx, weight: p.data.length }))
+                                         .sort((a, b) => b.weight - a.weight);
+
+                for (const item of sortedPaths) {
+                    let minIdx = 0;
+                    let minWeight = chunkWeights[0];
+                    for (let i = 1; i < maxWorkers; i++) {
+                        if (chunkWeights[i] < minWeight) {
+                            minWeight = chunkWeights[i];
+                            minIdx = i;
+                        }
+                    }
+                    chunks[minIdx].push(item.path);
+                    chunkWeights[minIdx] += item.weight;
+                }
+
+                let completed = 0;
+                const results = Array(maxWorkers);
+                let failed = false;
+
+                for (let i = 0; i < maxWorkers; i++) {
+                    const worker = workers[i];
+
+                    const handleMessage = (e) => {
+                        if (failed) return;
+                        if (e.data.type === 'success' && e.data.chunkId === i) {
+                            results[i] = e.data.astChunk;
+                            completed++;
+                            worker.removeEventListener('message', handleMessage);
+                            worker.removeEventListener('error', handleError);
+
+                            if (completed === maxWorkers) {
+                                cleanupAll();
+                                const firstChunk = results.find(r => r);
+                                const combined = {
+                                    type: firstChunk.type,
+                                    strokes: results.flatMap(r => r.strokes || []),
+                                    equations: results.flatMap(r => r.equations || []),
+                                    paths: results.flatMap(r => r.paths || [])
+                                };
+                                resolve(combined);
+                            }
+                        } else if (e.data.type === 'error' && e.data.chunkId === i) {
+                            failed = true;
+                            cleanupAll();
+                            reject(new Error(e.data.error));
+                        }
+                    };
+
+                    const handleError = (err) => {
+                        failed = true;
+                        cleanupAll();
+                        reject(err);
+                    };
+
+                    const cleanupAll = () => {
+                        for (let j = 0; j < maxWorkers; j++) {
+                            workers[j].removeEventListener('message', handleMessage);
+                            workers[j].removeEventListener('error', handleError);
+                        }
+                    };
+
+                    worker.addEventListener('message', handleMessage);
+                    worker.addEventListener('error', handleError);
+
+                    worker.postMessage({
+                        type: 'fit',
+                        chunkId: i,
+                        paths: chunks[i],
+                        config: config
+                    });
+                }
+            });
+        }
 
         function updateLabels() {
             els.detailVal.innerText = els.detailRange.value;
@@ -693,7 +843,7 @@
 
         [els.detailRange, els.minPathRange, els.strokeRange, els.termsRange, els.chaikinRange, els.modeSelect].forEach(el => el.addEventListener('input', updateLabels));
         els.strokeRange.addEventListener('input', () => {
-            recacheViewportCanvas();
+            updateActiveEntityStyle();
             requestRender();
         });
 
@@ -706,7 +856,7 @@
                 el.classList.toggle('is-dark');
             });
 
-            recacheViewportCanvas();
+            updateActiveEntityStyle();
             requestRender();
             saveSettings();
         });
@@ -824,32 +974,53 @@
 
 
 
-        els.generateBtn.addEventListener('click', () => {
+        els.generateBtn.addEventListener('click', async () => {
             if(!isWasmLoaded) return;
             if(!currentImageBytes) return showError("No Image!");
 
             els.progressContainer.classList.remove('hidden');
             let p = 0;
-            const pInt = setInterval(() => { p += 20; if(p>=90) { p=90; clearInterval(pInt); } els.progressBar.value = p; }, 10);
+            const pInt = setInterval(() => { p += 10; if(p>=90) { p=90; clearInterval(pInt); } els.progressBar.value = p; }, 20);
 
-            setTimeout(() => {
+            try {
+                const start = performance.now();
+                const options = { format: 'jpg', color: els.colorCheck.checked, mode: els.modeSelect.value,
+                                 chaikin_iters: parseInt(els.chaikinRange.value), terms: parseInt(els.termsRange.value),
+                                 detail: parseInt(els.detailRange.value), min_path_len: parseInt(els.minPathRange.value),
+                                 simplify_math: els.simplifyCheck.checked };
+
+                let result;
                 try {
-                    const start = performance.now();
-                    // Optional style configs can be added here
-                    const options = { format: 'jpg', color: els.colorCheck.checked, mode: els.modeSelect.value,
-                                     chaikin_iters: parseInt(els.chaikinRange.value), terms: parseInt(els.termsRange.value),
-                                     detail: parseInt(els.detailRange.value), min_path_len: parseInt(els.minPathRange.value),
-                                     simplify_math: els.simplifyCheck.checked };
+                    // 1. Extract paths on main thread
+                    const polylineOptions = Object.assign({}, options, { mode: 'polyline', chaikin_iters: 0 });
+                    const polylineResult = process_image(currentImageBytes, polylineOptions);
 
-                    const result = process_image(currentImageBytes, options);
+                    // 2. Fit paths in parallel
+                    const rawPaths = polylineResult.ast.paths;
+                    const fittedAst = await fitPathsParallel(rawPaths, options);
 
-                    snapshotCount++;
-                    const id = `snap-${snapshotCount}`;
-                    createSnapshot(id, result, `${options.mode.substring(0,3).toUpperCase()} D${options.detail}`, Math.round(performance.now()-start));
-                } catch(e) { console.error(e); }
-                clearInterval(pInt); els.progressBar.value = 100;
+                    // 3. Assemble final result
+                    result = {
+                        ast: Object.assign({}, fittedAst, { bounding_box: polylineResult.ast.bounding_box }),
+                        width: polylineResult.width,
+                        height: polylineResult.height
+                    };
+                } catch (parallelError) {
+                    console.warn("Parallel processing failed, falling back to main-thread processing:", parallelError);
+                    result = process_image(currentImageBytes, options);
+                }
+
+                snapshotCount++;
+                const id = `snap-${snapshotCount}`;
+                createSnapshot(id, result, `${options.mode.substring(0,3).toUpperCase()} D${options.detail}`, Math.round(performance.now()-start));
+            } catch(e) {
+                console.error(e);
+                showError("Vectorization Failed: " + e.message);
+            } finally {
+                clearInterval(pInt);
+                els.progressBar.value = 100;
                 setTimeout(() => els.progressContainer.classList.add('hidden'), 200);
-            }, 50);
+            }
         });
 
         function createSnapshot(id, result, label, time) {
@@ -897,18 +1068,47 @@
 
         els.helpBtn.addEventListener('click', () => { els.helpDialog.showModal(); });
 
-        function recacheViewportCanvas() {
-            if (activePreviewId && activePreviewId !== 'original') {
-                const res = previewDataStore.get(activePreviewId);
-                if (!cachedViewportCanvas) {
-                    cachedViewportCanvas = document.createElement('canvas');
+        function updateActiveEntityStyle() {
+            if (scene && activePreviewId) {
+                if (activeEntity) {
+                    scene.remove(activeEntity);
+                    activeEntity = null;
                 }
-                cachedViewportCanvas.width = res.width;
-                cachedViewportCanvas.height = res.height;
-                const cCtx = cachedViewportCanvas.getContext('2d');
-                const renderStart = performance.now();
-                drawAST(cCtx, res.ast, false, document.body.classList.contains('dark-theme'), true);
-                res.renderTime = Math.round(performance.now() - renderStart);
+
+                if (activePreviewId === 'original') {
+                    if (originalImageObj) {
+                        activeEntity = new OriginalImageEntity(originalImageObj);
+                        activeEntity.setPosition(offsetX, offsetY);
+                        activeEntity.setScale(scale, scale);
+                        scene.add(activeEntity);
+                    }
+                } else if (previewDataStore.has(activePreviewId)) {
+                    const res = previewDataStore.get(activePreviewId);
+                    const strokeWidth = els.strokeRange ? parseFloat(els.strokeRange.value) : 1.0;
+                    const depth = els.colorDepthSelect ? els.colorDepthSelect.value : '24';
+                    const space = els.colorSpaceSelect ? els.colorSpaceSelect.value : 'srgb';
+                    const renderStart = performance.now();
+                    activeEntity = new VectorImageEntity(
+                        res.ast,
+                        res.width,
+                        res.height,
+                        document.body.classList.contains('dark-theme'),
+                        strokeWidth,
+                        depth,
+                        space,
+                        els.bgTransparentCheck.checked
+                    );
+                    res.renderTime = Math.round(performance.now() - renderStart);
+                    activeEntity.setPosition(offsetX, offsetY);
+                    activeEntity.setScale(scale, scale);
+                    scene.add(activeEntity);
+
+                    let stats = `RENDER STATS\nSIZE: ${res.width}x${res.height}\nCONVERT: ${res.computeTime}ms\nRENDER: ${res.renderTime || 0}ms`;
+                    if(res.ast.type === 'Spline' || res.ast.type === 'spline') stats += `\nPATHS: ${res.ast.equations.length}`;
+                    else if(res.ast.type === 'Fourier' || res.ast.type === 'fourier') stats += `\nSTROKES: ${res.ast.strokes.length}`;
+                    else if(res.ast.type === 'Polyline' || res.ast.type === 'polyline') stats += `\nPATHS: ${res.ast.paths.length}`;
+                    els.overlayStats.innerText = stats;
+                }
             }
         }
 
@@ -918,23 +1118,16 @@
             const item = document.getElementById(`gallery-${id}`);
             if(item) { item.classList.add('active'); item.scrollIntoView({ behavior:'smooth', inline:'center' }); }
 
-            if(id !== 'original') {
-                recacheViewportCanvas();
-                const res = previewDataStore.get(id);
-                let stats = `RENDER STATS\nSIZE: ${res.width}x${res.height}\nCONVERT: ${res.computeTime}ms\nRENDER: ${res.renderTime || 0}ms`;
-                if(res.ast.type === 'Spline' || res.ast.type === 'spline') stats += `\nPATHS: ${res.ast.equations.length}`;
-                else if(res.ast.type === 'Fourier' || res.ast.type === 'fourier') stats += `\nSTROKES: ${res.ast.strokes.length}`;
-                else if(res.ast.type === 'Polyline' || res.ast.type === 'polyline') stats += `\nPATHS: ${res.ast.paths.length}`;
-                els.overlayStats.innerText = stats;
-            } else {
-                cachedViewportCanvas = null;
+            if (id === 'original') {
                 if(originalImageObj) {
                     els.overlayStats.innerText = `ORIGINAL IMAGE\nSIZE: ${originalImageObj.width}x${originalImageObj.height}`;
                 } else {
                     els.overlayStats.innerText = "Waiting for input...";
                 }
             }
-            resetViewport(); requestRender();
+
+            resetViewport();
+            updateActiveEntityStyle();
         }
 
         function resetViewport() {
@@ -968,30 +1161,26 @@
             const r = els.canvasArea.getBoundingClientRect();
             const targetWidth = Math.floor(r.width);
             const targetHeight = Math.floor(r.height);
-            if (els.mainCanvas.width !== targetWidth || els.mainCanvas.height !== targetHeight) {
-                els.mainCanvas.width = targetWidth; els.mainCanvas.height = targetHeight;
-            }
-            ctx.clearRect(0,0,els.mainCanvas.width,els.mainCanvas.height);
-            if(!activePreviewId) return;
 
-            ctx.save();
-            ctx.translate(offsetX, offsetY);
-            ctx.scale(scale, scale);
-
-            const w = activePreviewId === 'original' ? originalImageObj.width : previewDataStore.get(activePreviewId).width;
-            const h = activePreviewId === 'original' ? originalImageObj.height : previewDataStore.get(activePreviewId).height;
-
-            if (!els.bgTransparentCheck.checked) {
-                ctx.fillStyle = document.body.classList.contains('dark-theme') ? '#000000' : '#ffffff';
-                ctx.fillRect(0, 0, w, h);
+            if (scene) {
+                const renderer = scene.getRenderer();
+                if (renderer.width !== targetWidth || renderer.height !== targetHeight) {
+                    renderer.resize(targetWidth, targetHeight);
+                }
             }
 
-            if (activePreviewId === 'original') {
-                if(originalImageObj) ctx.drawImage(originalImageObj, 0, 0);
-            } else if(cachedViewportCanvas) {
-                ctx.drawImage(cachedViewportCanvas, 0, 0);
+            if (activeEntity) {
+                activeEntity.setPosition(offsetX, offsetY);
+                activeEntity.setScale(scale, scale);
             }
-            ctx.restore();
+
+            if (els.mainCanvas) {
+                if (els.bgTransparentCheck.checked) {
+                    els.mainCanvas.style.backgroundColor = 'transparent';
+                } else {
+                    els.mainCanvas.style.backgroundColor = document.body.classList.contains('dark-theme') ? '#000000' : '#ffffff';
+                }
+            }
         }
 
         function processColor(colorRgb, bitDepth, colorSpace) {
@@ -1174,22 +1363,23 @@
         els.bgTransparentCheck.addEventListener('change', () => {
             if (els.bgTransparentCheck.checked && els.exportFormat.value === 'jpg') els.exportFormat.value = 'png';
             Array.from(els.exportFormat.options).find(o => o.value === 'jpg').disabled = els.bgTransparentCheck.checked;
+            updateActiveEntityStyle();
             requestRender();
         });
 
         els.colorCheck.addEventListener('change', () => {
             document.getElementById('colorOptionsContainer').classList.toggle('hidden', !els.colorCheck.checked);
-            recacheViewportCanvas();
+            updateActiveEntityStyle();
             requestRender();
         });
 
         els.colorDepthSelect.addEventListener('change', () => {
-            recacheViewportCanvas();
+            updateActiveEntityStyle();
             requestRender();
         });
 
         els.colorSpaceSelect.addEventListener('change', () => {
-            recacheViewportCanvas();
+            updateActiveEntityStyle();
             requestRender();
         });
 
