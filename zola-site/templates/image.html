@@ -469,6 +469,7 @@
                     <option value="png">PNG (Transparent OK)</option>
                     <option value="jpg">JPG (Solid background)</option>
                     <option value="json">JSON (AST Vector)</option>
+                    <option value="svg">SVG (Vector Graphics)</option>
                 </select>
             </div>
             <button class="nes-btn is-success" id="downloadBtn" style="width: 100%; font-size: 10px;" aria-label="Download File">DOWNLOAD</button>
@@ -1168,6 +1169,116 @@
             }
         }
 
+        function astToSvgString(ast, width, height, isDark) {
+            const strokeWidth = els.strokeRange ? parseFloat(els.strokeRange.value) : 1.0;
+            const depth = els.colorDepthSelect ? els.colorDepthSelect.value : '24';
+            const space = els.colorSpaceSelect ? els.colorSpaceSelect.value : 'srgb';
+            const defCol = isDark ? '#ffffff' : '#000000';
+            const bbox = (ast.bounding_box && !ast.bounding_box.some(v => !isFinite(v)))
+                ? ast.bounding_box
+                : [0, 0, width, height];
+
+            const defs = [];
+            let gradCounter = 0;
+
+            function fmtNum(v) {
+                return (Math.round(v * 10000) / 10000).toString();
+            }
+
+            function resolveStroke(colorStyle) {
+                if (!colorStyle) return defCol;
+                if (Array.isArray(colorStyle)) {
+                    const rgb = processColor(colorStyle, depth, space);
+                    return rgb ? `rgb(${rgb.join(',')})` : defCol;
+                }
+                if (colorStyle.stops) {
+                    const id = `vecto-svg-grad-${gradCounter++}`;
+                    const start_pos = colorStyle.start_pos || [0.0, 0.5];
+                    const end_pos = colorStyle.end_pos || [1.0, 0.5];
+                    const w = bbox[2] - bbox[0];
+                    const h = bbox[3] - bbox[1];
+                    const x0 = bbox[0] + (parseFloat(start_pos[0]) || 0) * w;
+                    const y0 = bbox[1] + (parseFloat(start_pos[1]) || 0.5) * h;
+                    const x1 = bbox[0] + (parseFloat(end_pos[0]) || 1) * w;
+                    const y1 = bbox[1] + (parseFloat(end_pos[1]) || 0.5) * h;
+                    const stops = colorStyle.stops.map(stop => {
+                        let offset = parseFloat(stop[0]);
+                        if (isNaN(offset) || !isFinite(offset)) offset = 0.0;
+                        offset = Math.max(0.0, Math.min(1.0, offset));
+                        const rgb = processColor(stop[1], depth, space);
+                        return `<stop offset="${fmtNum(offset)}" stop-color="rgb(${rgb.join(',')})"/>`;
+                    }).join('');
+                    defs.push(`<linearGradient id="${id}" gradientUnits="userSpaceOnUse" x1="${fmtNum(x0)}" y1="${fmtNum(y0)}" x2="${fmtNum(x1)}" y2="${fmtNum(y1)}">${stops}</linearGradient>`);
+                    return `url(#${id})`;
+                }
+                if (colorStyle.LinearGradient) {
+                    const id = `vecto-svg-grad-${gradCounter++}`;
+                    const start = processColor(colorStyle.LinearGradient.start, depth, space);
+                    const end = processColor(colorStyle.LinearGradient.end, depth, space);
+                    const angle = (colorStyle.LinearGradient.angle || 0) * Math.PI / 180.0;
+                    const w = bbox[2] - bbox[0], h = bbox[3] - bbox[1];
+                    const cx = bbox[0] + w / 2, cy = bbox[1] + h / 2;
+                    const r = Math.sqrt(w * w + h * h) / 2;
+                    const x1 = cx - Math.cos(angle) * r, y1 = cy - Math.sin(angle) * r;
+                    const x2 = cx + Math.cos(angle) * r, y2 = cy + Math.sin(angle) * r;
+                    defs.push(`<linearGradient id="${id}" gradientUnits="userSpaceOnUse" x1="${fmtNum(x1)}" y1="${fmtNum(y1)}" x2="${fmtNum(x2)}" y2="${fmtNum(y2)}"><stop offset="0" stop-color="rgb(${start.join(',')})"/><stop offset="1" stop-color="rgb(${end.join(',')})"/></linearGradient>`);
+                    return `url(#${id})`;
+                }
+                return defCol;
+            }
+
+            function pathTag(points, stroke) {
+                if (points.length === 0) return '';
+                let d = `M ${fmtNum(points[0][0])} ${fmtNum(points[0][1])}`;
+                for (let i = 1; i < points.length; i++) {
+                    d += ` L ${fmtNum(points[i][0])} ${fmtNum(points[i][1])}`;
+                }
+                return `<path d="${d}" fill="none" stroke="${stroke}" stroke-width="${fmtNum(strokeWidth)}"/>`;
+            }
+
+            let body = '';
+
+            if (ast.type === 'Spline' || ast.type === 'spline') {
+                ast.equations.forEach(path => {
+                    const stroke = resolveStroke(path.color_style || path.color_rgb);
+                    path.data.forEach(eq => {
+                        const points = [];
+                        for (let t = 0; t <= 1; t += 0.02) {
+                            const x = eq.x_poly[0] + eq.x_poly[1] * t + eq.x_poly[2] * t * t + eq.x_poly[3] * t * t * t;
+                            const y = eq.y_poly[0] + eq.y_poly[1] * t + eq.y_poly[2] * t * t + eq.y_poly[3] * t * t * t;
+                            points.push([x, y]);
+                        }
+                        body += pathTag(points, stroke);
+                    });
+                });
+            } else if (ast.type === 'Fourier' || ast.type === 'fourier') {
+                ast.strokes.forEach(stroke => {
+                    const strokeColor = resolveStroke(stroke.color_style || stroke.color_rgb);
+                    const points = [];
+                    const steps = Math.min(stroke.data.length * 4, 2000);
+                    for (let i = 0; i <= steps; i++) {
+                        const t = (i / steps) * Math.PI * 2;
+                        let x = 0, y = 0;
+                        stroke.data.forEach(term => {
+                            x += term.amplitude * Math.cos(term.frequency * t + term.phase);
+                            y += term.amplitude * Math.sin(term.frequency * t + term.phase);
+                        });
+                        points.push([x, y]);
+                    }
+                    body += pathTag(points, strokeColor);
+                });
+            } else if (ast.type === 'Polyline' || ast.type === 'polyline') {
+                ast.paths.forEach(path => {
+                    const stroke = resolveStroke(path.color_style || path.color_rgb);
+                    const points = path.data.map(pt => [pt.x, pt.y]);
+                    body += pathTag(points, stroke);
+                });
+            }
+
+            const defsMarkup = defs.length ? `<defs>${defs.join('')}</defs>` : '';
+            return `<?xml version="1.0" encoding="UTF-8"?>\n<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">\n${defsMarkup}${body}\n</svg>\n`;
+        }
+
         // --- Event Listeners ---
         els.resetViewBtn.addEventListener('click', () => { resetViewport(); requestRender(); });
         els.gridCheck.addEventListener('change', () => { els.canvasArea.classList.toggle('show-grid', els.gridCheck.checked); });
@@ -1207,17 +1318,9 @@
             const format = els.exportFormat.value;
             const isOriginal = activePreviewId === 'original';
             const res = isOriginal ? { width: originalImageObj.width, height: originalImageObj.height } : previewDataStore.get(activePreviewId);
-            const canvas = document.createElement('canvas');
-            canvas.width = res.width; canvas.height = res.height;
-            const eCtx = canvas.getContext('2d');
-            if (!els.bgTransparentCheck.checked || format === 'jpg') {
-                eCtx.fillStyle = document.body.classList.contains('dark-theme') ? '#000000' : '#ffffff';
-                eCtx.fillRect(0, 0, res.width, res.height);
-            }
-            if (isOriginal) eCtx.drawImage(originalImageObj, 0, 0);
-            else drawAST(eCtx, res.ast, false, document.body.classList.contains('dark-theme'), true);
             const baseName = currentFilename.split('.')[0] || "image";
             let finalFilename = baseName + (isOriginal ? "_original" : `_vecto_${els.modeSelect.value.toUpperCase()}_D${els.detailRange.value}`);
+
             if (format === 'json') {
                 if (isOriginal) return showError("No JSON for original!");
                 const blob = new Blob([JSON.stringify(res.ast)], { type: 'application/json' });
@@ -1227,10 +1330,33 @@
                 link.href = url;
                 link.click();
                 setTimeout(() => URL.revokeObjectURL(url), 100);
-            } else {
-                const link = document.createElement('a'); link.download = `${finalFilename}.${format}`;
-                link.href = canvas.toDataURL(format === 'jpg' ? 'image/jpeg' : 'image/png'); link.click();
+                return;
             }
+
+            if (format === 'svg') {
+                if (isOriginal) return showError("No SVG for original!");
+                const svgString = astToSvgString(res.ast, res.width, res.height, document.body.classList.contains('dark-theme'));
+                const blob = new Blob([svgString], { type: 'image/svg+xml' });
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.download = `${finalFilename}.svg`;
+                link.href = url;
+                link.click();
+                setTimeout(() => URL.revokeObjectURL(url), 100);
+                return;
+            }
+
+            const canvas = document.createElement('canvas');
+            canvas.width = res.width; canvas.height = res.height;
+            const eCtx = canvas.getContext('2d');
+            if (!els.bgTransparentCheck.checked || format === 'jpg') {
+                eCtx.fillStyle = document.body.classList.contains('dark-theme') ? '#000000' : '#ffffff';
+                eCtx.fillRect(0, 0, res.width, res.height);
+            }
+            if (isOriginal) eCtx.drawImage(originalImageObj, 0, 0);
+            else drawAST(eCtx, res.ast, false, document.body.classList.contains('dark-theme'), true);
+            const link = document.createElement('a'); link.download = `${finalFilename}.${format}`;
+            link.href = canvas.toDataURL(format === 'jpg' ? 'image/jpeg' : 'image/png'); link.click();
         });
 
         // ── Share to Gallery ──────────────────────────────────────────────────
