@@ -291,18 +291,17 @@
                 <p class="title" style="font-size: 9px; margin-bottom: 10px; background: var(--container-bg) !important; color: var(--text-color) !important;">Recent Updates</p>
                 <div style="font-size: 8px; line-height: 1.6; color: var(--text-color);">
                     <div style="margin-bottom: 20px;">
-                        <span class="nes-text is-primary" style="font-weight: bold; display: block; margin-bottom: 5px;">[v6.2.0] - 2026-06-25</span>
+                        <span class="nes-text is-primary" style="font-weight: bold; display: block; margin-bottom: 5px;">[v6.3.0] - 2026-07-24</span>
+                        <ul style="margin: 0; padding-left: 20px; list-style-type: square;">
+                            <li style="margin-bottom: 5px;"><strong>SVG Export:</strong> New vector export option for the Image Engine. Flattens Spline, Fourier, and Chaikin curves into a clean, scalable SVG document with full color and gradient support.</li>
+                            <li><strong>CLI Parity:</strong> The core <code>vectomancy</code> CLI (v6.3.0) now also supports <code>--format svg</code> for the <code>image</code>, <code>video</code>, and <code>text</code> subcommands.</li>
+                        </ul>
+                    </div>
+                    <div style="margin-bottom: 20px;">
+                        <span class="nes-text is-success" style="font-weight: bold; display: block; margin-bottom: 5px;">[v6.2.0] - 2026-06-25</span>
                         <ul style="margin: 0; padding-left: 20px; list-style-type: square;">
                             <li style="margin-bottom: 5px;"><strong>Adaptive Fourier Compression:</strong> Dynamically selects the minimal number of Fourier terms to retain based on cumulative energy threshold (99.5% default) to accelerate equations.</li>
                             <li><strong>Parameters & Defaults:</strong> Configurable via <code>--fourier-adaptive</code> / <code>--fourier-energy</code> CLI options, or <code>fourier_adaptive</code> in <code>config.toml</code>.</li>
-                        </ul>
-                    </div>
-                    <div>
-                        <span class="nes-text is-success" style="font-weight: bold; display: block; margin-bottom: 5px;">[v6.1.0] - 2026-06-24</span>
-                        <ul style="margin: 0; padding-left: 20px; list-style-type: square;">
-                            <li style="margin-bottom: 5px;"><strong>AST Quantization:</strong> Truncates coordinates/expressions to 4 decimal places, saving ~40% file size and boosting rendering performance.</li>
-                            <li style="margin-bottom: 5px;"><strong>Zero Term Elimination:</strong> Automatically omits null coefficients in Desmos export equations.</li>
-                            <li><strong>Simplify Settings:</strong> New toggle checkbox added to Web UI Settings panel.</li>
                         </ul>
                     </div>
                 </div>
