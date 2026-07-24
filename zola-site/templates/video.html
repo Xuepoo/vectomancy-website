@@ -282,6 +282,7 @@
 
     <script type="module">
       import init, { process_image } from '/wasm/wasm_engine.js';
+      import { VideoFramePool } from '/js/worker-pool.js';
 
       let wasmReady = false;
       let videoFile = null;
@@ -290,11 +291,13 @@
       let ctx = canvas.getContext('2d');
       let processedFrames = [];
       let isProcessing = false;
+      let framePool = null;
 
       async function initWasm() {
         try {
           await init();
           wasmReady = true;
+          framePool = new VideoFramePool();
           setStatus('WASM engine loaded. Ready.');
         } catch (e) {
           setStatus('Error loading WASM: ' + e.message);
@@ -405,7 +408,6 @@
           } catch (e) { setStatus('Error: ' + e.message); }
         }
       });
-
       document.getElementById('process-btn').addEventListener('click', async () => {
         if (isProcessing || !videoFile) return;
         isProcessing = true;
@@ -417,26 +419,53 @@
         const duration = videoElement.duration;
         const totalFrames = Math.floor(duration * fps);
         processedFrames = [];
-        setStatus('Processing ' + totalFrames + ' frames...');
+        setStatus('Extracting ' + totalFrames + ' frames...');
         const startTime = Date.now();
 
+        // Frame extraction stays on the main thread: it depends on the DOM
+        // <video> element (seek + canvas drawImage), which isn't available
+        // inside a Worker. This part is I/O-bound (waiting on 'seeked'),
+        // not CPU-bound, so it isn't the bottleneck we're parallelizing.
+        const extracted = [];
         for (let i = 0; i < totalFrames; i++) {
           const time = i / fps;
-          document.getElementById('progress-percent').textContent = Math.round((i / totalFrames) * 100) + '%';
-          document.getElementById('progress-bar').value = (i / totalFrames) * 100;
-          document.getElementById('progress-status').textContent = 'Frame ' + (i + 1) + '/' + totalFrames;
-          const elapsed = (Date.now() - startTime) / 1000;
-          const remaining = (elapsed / (i + 1)) * (totalFrames - i - 1);
-          document.getElementById('progress-eta').textContent = formatTime(remaining);
-
+          document.getElementById('progress-status').textContent = 'Extracting frame ' + (i + 1) + '/' + totalFrames;
+          document.getElementById('progress-percent').textContent = Math.round((i / totalFrames) * 50) + '%';
+          document.getElementById('progress-bar').value = (i / totalFrames) * 50;
           try {
             const frame = await extractFrame(time);
-            if (frame) {
-              const result = processFrame(frame);
-              processedFrames.push({ data: result, width: frame.width, height: frame.height });
-            }
-          } catch (e) { console.error('Frame ' + i + ' error:', e); }
-          if (i % 5 === 0) await new Promise(r => setTimeout(r, 0));
+            if (frame) extracted.push(frame);
+          } catch (e) { console.error('Extract frame ' + i + ' error:', e); }
+        }
+
+        // Vectorization is CPU-bound WASM work and every frame is fully
+        // independent, so it fans out across the worker pool instead of
+        // running one frame at a time on the main thread.
+        setStatus('Vectorizing ' + extracted.length + ' frames across ' + framePool.size + ' workers...');
+        const options = {
+          format: 'png',
+          color: document.getElementById('color-checkbox').checked,
+          mode: document.getElementById('mode-select').value,
+          chaikin_iters: parseInt(document.getElementById('chaikin-slider').value),
+          terms: parseInt(document.getElementById('terms-slider').value),
+          detail: parseInt(document.getElementById('detail-slider').value),
+          min_path_len: parseInt(document.getElementById('min-path-slider').value),
+          simplify_math: document.getElementById('simplify-checkbox').checked,
+        };
+
+        const results = await framePool.processAll(extracted, options, (done, total) => {
+          const pct = 50 + Math.round((done / total) * 50);
+          document.getElementById('progress-percent').textContent = pct + '%';
+          document.getElementById('progress-bar').value = pct;
+          document.getElementById('progress-status').textContent = 'Frame ' + done + '/' + total;
+          const elapsed = (Date.now() - startTime) / 1000;
+          const remaining = (elapsed / done) * (total - done);
+          document.getElementById('progress-eta').textContent = formatTime(remaining);
+        });
+
+        for (const r of results) {
+          if (r.ok) processedFrames.push({ data: r.value, width: r.width, height: r.height });
+          else console.error('Frame processing error:', r.error);
         }
 
         document.getElementById('progress-percent').textContent = '100%';
@@ -495,7 +524,7 @@
 
       function processFrame(frame) {
         return process_image(frame.data, {
-          format: 'json',
+          format: 'png',
           color: document.getElementById('color-checkbox').checked,
           mode: document.getElementById('mode-select').value,
           chaikin_iters: parseInt(document.getElementById('chaikin-slider').value),
