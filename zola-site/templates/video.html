@@ -144,7 +144,7 @@
             <p class="title" style="font-size: 7px;">Input</p>
             <div class="form-group">
               <label class="nes-btn" style="width: 100%; text-align: center; cursor: pointer;">
-                <input type="file" id="video-upload" accept="video/*" style="display: none;">
+                <input type="file" id="video-upload" accept="video/*" style="display: none;" />
                 &#128193; Upload Video
               </label>
             </div>
@@ -163,14 +163,14 @@
             <div class="form-group" id="terms-group" style="display: none;">
               <label>Terms</label>
               <div class="range-container">
-                <input type="range" id="terms-slider" min="10" max="200" value="50">
+                <input type="range" id="terms-slider" min="10" max="200" value="50" />
                 <span class="range-value" id="terms-value">50</span>
               </div>
             </div>
             <div class="form-group" id="chaikin-group" style="display: none;">
               <label>Iterations</label>
               <div class="range-container">
-                <input type="range" id="chaikin-slider" min="1" max="5" value="2">
+                <input type="range" id="chaikin-slider" min="1" max="5" value="2" />
                 <span class="range-value" id="chaikin-value">2</span>
               </div>
             </div>
@@ -181,25 +181,39 @@
             <div class="form-group">
               <label>Detail</label>
               <div class="range-container">
-                <input type="range" id="detail-slider" min="10" max="100" value="50">
+                <input type="range" id="detail-slider" min="10" max="100" value="50" />
                 <span class="range-value" id="detail-value">50</span>
               </div>
             </div>
             <div class="form-group">
               <label>Min Path</label>
               <div class="range-container">
-                <input type="range" id="min-path-slider" min="2" max="20" value="5">
+                <input type="range" id="min-path-slider" min="2" max="20" value="5" />
                 <span class="range-value" id="min-path-value">5</span>
               </div>
             </div>
             <div class="form-group">
-              <label><input type="checkbox" class="nes-checkbox" id="color-checkbox" checked> <span>Colors</span></label>
+              <label for="stroke-input">Stroke Weight (px)</label>
+              <input
+                type="number"
+                id="stroke-input"
+                min="0.001"
+                max="100"
+                step="0.001"
+                value="2.00"
+                class="nes-input"
+                style="width:100%; font-size: 8px; padding: 4px;"
+                aria-label="Stroke Weight"
+              />
             </div>
             <div class="form-group">
-              <label><input type="checkbox" class="nes-checkbox" id="simplify-checkbox" checked> <span>Simplify</span></label>
+              <label><input type="checkbox" class="nes-checkbox" id="color-checkbox" checked /> <span>Colors</span></label>
             </div>
             <div class="form-group">
-              <label><input type="checkbox" class="nes-checkbox" id="transparent-checkbox"> <span>Transparent</span></label>
+              <label><input type="checkbox" class="nes-checkbox" id="simplify-checkbox" checked /> <span>Simplify</span></label>
+            </div>
+            <div class="form-group">
+              <label><input type="checkbox" class="nes-checkbox" id="transparent-checkbox" /> <span>Transparent</span></label>
             </div>
           </div>
 
@@ -208,7 +222,7 @@
             <div class="form-group">
               <label>FPS</label>
               <div class="range-container">
-                <input type="range" id="fps-slider" min="10" max="60" value="30">
+                <input type="range" id="fps-slider" min="10" max="60" value="30" />
                 <span class="range-value" id="fps-value">30</span>
               </div>
             </div>
@@ -241,9 +255,7 @@
           <div class="progress-container" id="progress-container">
             <div class="nes-container">
               <progress class="nes-progress is-primary progress-bar" id="progress-bar" value="0" max="100"></progress>
-              <div class="progress-text">
-                <span id="progress-percent">0%</span> - <span id="progress-status">Initializing...</span>
-              </div>
+              <div class="progress-text"><span id="progress-percent">0%</span> - <span id="progress-status">Initializing...</span></div>
               <div class="progress-text">ETA: <span id="progress-eta">-</span></div>
             </div>
           </div>
@@ -546,7 +558,8 @@
         try {
           const data = JSON.parse(result);
           ctx.strokeStyle = document.body.classList.contains('dark-theme') ? 'white' : 'black';
-          ctx.lineWidth = 1;
+          const strokeInput = document.getElementById('stroke-input');
+          ctx.lineWidth = strokeInput ? (parseFloat(strokeInput.value) || 2.0) : 2.0;
           if (data.paths) {
             for (const path of data.paths) {
               if (path.data && path.data.length > 0) {

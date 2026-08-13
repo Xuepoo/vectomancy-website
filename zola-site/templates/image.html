@@ -456,7 +456,17 @@
         <input type="range" id="minPathRange" min="1" max="50" value="10" class="nes-range" aria-label="Minimum Path Length" />
 
         <label for="strokeRange">Stroke Weight (px):</label>
-        <input type="number" id="strokeRange" min="0.01" max="5.00" step="0.01" value="2.00" class="nes-input" style="width:100%;" aria-label="Stroke Weight" />
+        <input
+          type="number"
+          id="strokeRange"
+          min="0.001"
+          max="100"
+          step="0.001"
+          value="2.00"
+          class="nes-input"
+          style="width:100%;"
+          aria-label="Stroke Weight"
+        />
 
         <div id="fourier-controls" class="hidden">
           <label for="termsRange">Terms: <span id="termsVal" style="color: var(--accent-color);">50</span></label>
@@ -483,6 +493,17 @@
           </select>
         </div>
         <button class="nes-btn is-success" id="downloadBtn" style="width: 100%; font-size: 10px;" aria-label="Download File">DOWNLOAD</button>
+        <button type="button" class="nes-btn" id="copyBtn" style="width: 100%; font-size: 10px; margin-top: 8px;" aria-label="Copy to Clipboard">COPY</button>
+        <div style="margin-top: 12px; border-top: 1px solid var(--border-color, #aaa); padding-top: 10px;">
+          <label
+            class="nes-btn"
+            style="width: 100%; text-align: center; cursor: pointer; font-size: 9px; display: block;"
+            title="Load a previously exported JSON to re-render with new settings"
+          >
+            RESTORE FROM JSON
+            <input type="file" id="restoreJsonInput" accept=".json,application/json" style="display: none;" aria-label="Restore from JSON file" />
+          </label>
+        </div>
         <button
           class="nes-btn is-warning"
           id="shareBtn"
@@ -687,6 +708,8 @@
           exportFormat: document.getElementById('exportFormat'),
           bgTransparentCheck: document.getElementById('bgTransparentCheck'),
           downloadBtn: document.getElementById('downloadBtn'),
+          copyBtn: document.getElementById('copyBtn'),
+          restoreJsonInput: document.getElementById('restoreJsonInput'),
       shareBtn: document.getElementById('shareBtn'),
       shareDialog: document.getElementById('shareDialog'),
           loaderOverlay: document.getElementById('loaderOverlay'),
@@ -1365,7 +1388,6 @@
 
       els.downloadBtn.addEventListener('click', () => {
           if (!activePreviewId) return showError("No Image Selected!");
-          const format = els.exportFormat.value;
           const isOriginal = activePreviewId === 'original';
           const res = isOriginal ? { width: originalImageObj.width, height: originalImageObj.height } : previewDataStore.get(activePreviewId);
           const baseName = currentFilename.split('.')[0] || "image";
@@ -1409,7 +1431,62 @@
           link.href = canvas.toDataURL(format === 'jpg' ? 'image/jpeg' : 'image/png'); link.click();
       });
 
-      // ── Share to Gallery ──────────────────────────────────────────────────
+      // ── COPY to clipboard ─────────────────────────────────────────────────
+      els.copyBtn.addEventListener('click', async () => {
+          if (!activePreviewId || activePreviewId === 'original') return showError("No render selected!");
+          const res = previewDataStore.get(activePreviewId);
+          const offscreen = document.createElement('canvas');
+          offscreen.width = res.width; offscreen.height = res.height;
+          const oCtx = offscreen.getContext('2d');
+          if (!els.bgTransparentCheck.checked) {
+              oCtx.fillStyle = document.body.classList.contains('dark-theme') ? '#000000' : '#ffffff';
+              oCtx.fillRect(0, 0, res.width, res.height);
+          }
+          drawAST(oCtx, res.ast, false, document.body.classList.contains('dark-theme'), true);
+          try {
+              offscreen.toBlob(async (blob) => {
+                  await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+                  const orig = els.copyBtn.innerText;
+                  els.copyBtn.innerText = 'COPIED!';
+                  setTimeout(() => { els.copyBtn.innerText = orig; }, 1500);
+              }, 'image/png');
+          } catch (e) {
+              showError('Copy failed: ' + e.message);
+          }
+      });
+
+      // ── Restore from JSON ─────────────────────────────────────────────────
+      els.restoreJsonInput.addEventListener('change', async (e) => {
+          const file = e.target.files[0];
+          if (!file) return;
+          try {
+              const text = await file.text();
+              const ast = JSON.parse(text);
+              if (!ast || !ast.type) return showError('Invalid JSON: missing AST type field.');
+              const id = 'restored_' + Date.now();
+              // Width/height: infer from bounding_box if present, else fallback
+              const bb = ast.bounding_box || ast.equations?.[0]?.bounding_box;
+              const w = bb ? Math.round(Math.abs(bb[2] - bb[0])) || 800 : 800;
+              const h = bb ? Math.round(Math.abs(bb[3] - bb[1])) || 400 : 400;
+              const result = { ast, width: w, height: h };
+              previewDataStore.set(id, result);
+              const thumb = document.createElement('canvas');
+              thumb.width = 120; thumb.height = 60;
+              const tCtx = thumb.getContext('2d');
+              tCtx.fillStyle = document.body.classList.contains('dark-theme') ? '#000' : '#fff';
+              tCtx.fillRect(0, 0, 120, 60);
+              const scale = Math.min(120 / w, 60 / h);
+              tCtx.save(); tCtx.scale(scale, scale);
+              drawAST(tCtx, ast, true, document.body.classList.contains('dark-theme'));
+              tCtx.restore();
+              addGalleryItem(id, thumb.toDataURL(), file.name.replace(/\.json$/i, ''));
+              setActivePreview(id);
+              currentFilename = file.name.replace(/\.json$/i, '.png');
+          } catch (err) {
+              showError('Failed to load JSON: ' + err.message);
+          }
+          e.target.value = '';
+      });
       document.getElementById('cancelShareBtn').addEventListener('click', () => {
           if (window.turnstile) window.turnstile.reset('#turnstile-widget');
           els.shareDialog.close();
