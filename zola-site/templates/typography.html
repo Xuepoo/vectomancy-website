@@ -750,17 +750,8 @@
         <input type="range" id="minPathRange" min="1" max="50" value="5" class="nes-range" aria-label="Minimum Path Length" />
 
         <label for="strokeRange">Stroke Weight (px):</label>
-        <input
-          type="number"
-          id="strokeRange"
-          min="0.001"
-          max="100"
-          step="0.001"
-          value="2.00"
-          class="nes-input"
-          style="width:100%;"
-          aria-label="Stroke Weight"
-        />
+        <input type="number" id="strokeRange" min="0" max="10" step="0.1" value="2.00" class="nes-input" style="width:100%;" aria-label="Stroke Weight" />
+        <div id="strokeError" style="display:none; color:#e76e55; font-size:8px; margin-top:4px;">Invalid! Use 0-10 (default 2.00px)</div>
 
         <label for="letterSpacingRange">Letter Spacing: <span id="letterSpacingVal" style="color: var(--accent-color)">0</span></label>
         <input type="range" id="letterSpacingRange" min="-20" max="100" value="0" class="nes-range" aria-label="Letter Spacing" />
@@ -1426,9 +1417,20 @@
       });
       if (els.strokeRange) {
         els.strokeRange.addEventListener("input", () => {
+          validateStrokeRange();
           recacheViewportCanvas();
           requestRender();
         });
+      }
+
+      function validateStrokeRange() {
+        const input = els.strokeRange;
+        const errorEl = document.getElementById("strokeError");
+        if (!input || !errorEl) return;
+        const v = parseFloat(input.value);
+        const invalid = input.value === "" || isNaN(v) || v < 0 || v > 10;
+        input.classList.toggle("is-error", invalid);
+        errorEl.style.display = invalid ? "block" : "none";
       }
 
       function updateColorStyleOnAst() {
@@ -2506,7 +2508,8 @@
         ctx.lineJoin = "round";
         ctx.lineCap = "round";
         const visualScale = scale > 0 && isFinite(scale) ? scale : 1.0;
-        ctx.lineWidth = isThumb ? 3 : isExport ? 1.5 : 1.5 / visualScale;
+        const strokeWidth = els.strokeRange ? parseFloat(els.strokeRange.value) || 1.5 : 1.5;
+        ctx.lineWidth = isThumb ? 3 : isExport ? strokeWidth : strokeWidth / visualScale;
 
         cache.forEach((item) => {
           ctx.strokeStyle = getStrokeStyle(
@@ -3328,6 +3331,8 @@
             els.customHeightInput.value = settings.customHeight;
           if (settings.keepRatio !== undefined)
             els.keepAspectRatioCheck.checked = settings.keepRatio;
+
+          validateStrokeRange();
 
           if (settings.theme === "dark") {
             document.body.classList.add("dark-theme");
