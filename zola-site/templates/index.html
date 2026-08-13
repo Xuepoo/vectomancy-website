@@ -1,376 +1,424 @@
-{% extends "base.html" %}
-
-{% block extra_head %}
+{% extends "base.html" %} {% block extra_head %}
 <style>
-    .marquee-container {
-        width: 100vw;
-        position: relative;
-        left: 50%;
-        right: 50%;
-        margin-left: -50vw;
-        margin-right: -50vw;
-        overflow: hidden;
-        white-space: nowrap;
-        box-sizing: border-box;
-        margin-top: 30px;
-        padding: 15px 0;
-        border-top: 4px solid var(--text-color);
-        border-bottom: 4px solid var(--text-color);
-        background: var(--container-bg);
-    }
-    .marquee-content {
-        display: inline-block;
-        animation: marquee 30s linear infinite;
-    }
-    .marquee-content img {
-        height: 380px;
-        margin-right: 30px;
-        border: 4px solid var(--text-color);
-        image-rendering: auto;
-        object-fit: contain;
-        background: #fff;
-    }
-    body.dark-theme .marquee-content img { background: #333; }
+  .marquee-container {
+      width: 100vw;
+      position: relative;
+      left: 50%;
+      right: 50%;
+      margin-left: -50vw;
+      margin-right: -50vw;
+      overflow: hidden;
+      white-space: nowrap;
+      box-sizing: border-box;
+      margin-top: 30px;
+      padding: 15px 0;
+      border-top: 4px solid var(--text-color);
+      border-bottom: 4px solid var(--text-color);
+      background: var(--container-bg);
+  }
+  .marquee-content {
+      display: inline-block;
+      animation: marquee 30s linear infinite;
+  }
+  .marquee-content img {
+      height: 380px;
+      margin-right: 30px;
+      border: 4px solid var(--text-color);
+      image-rendering: auto;
+      object-fit: contain;
+      background: #fff;
+  }
+  body.dark-theme .marquee-content img { background: #333; }
 
-    @keyframes marquee {
-        0%   { transform: translate(0, 0); }
-        100% { transform: translate(-50%, 0); }
-    }
+  @keyframes marquee {
+      0%   { transform: translate(0, 0); }
+      100% { transform: translate(-50%, 0); }
+  }
 
-    /* Sticky footer styling */
-    html, body {
-        height: 100%;
-        margin: 0;
-        padding: 0;
-        overflow-x: hidden;
-    }
-    body {
-        display: flex;
-        flex-direction: column;
-    }
-    .main-content-wrapper {
-        flex: 1;
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-    }
+  /* Sticky footer styling */
+  html, body {
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      overflow-x: hidden;
+  }
+  body {
+      display: flex;
+      flex-direction: column;
+  }
+  .main-content-wrapper {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+  }
 
-    /* Mobile Responsiveness */
-    @media (max-width: 768px) {
-        .marquee-content img {
-            height: 200px;
-            margin-right: 15px;
-            border-width: 2px;
-        }
-        .marquee-container {
-            margin-top: 15px;
-            padding: 10px 0;
-        }
-        header h1 {
-            font-size: 20px !important;
-        }
-        header img.logo-img {
-            width: 60px !important;
-            height: 60px !important;
-        }
-    }
+  /* Mobile Responsiveness */
+  @media (max-width: 768px) {
+      .marquee-content img {
+          height: 200px;
+          margin-right: 15px;
+          border-width: 2px;
+      }
+      .marquee-container {
+          margin-top: 15px;
+          padding: 10px 0;
+      }
+      header h1 {
+          font-size: 20px !important;
+      }
+      header img.logo-img {
+          width: 60px !important;
+          height: 60px !important;
+      }
+  }
 
-    /* Custom High-end 8-bit Pixel Discord Icon */
-    .discord-link {
-        position: fixed;
-        bottom: 30px;
-        left: 30px;
-        z-index: 1000;
-        text-decoration: none;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        width: 48px;
-        height: 48px;
-        color: var(--text-color);
-        transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-    }
-    .discord-link:hover {
-        transform: scale(1.15) translateY(-3px);
-    }
-    .discord-icon {
-        width: 36px;
-        height: 36px;
-        image-rendering: pixelated;
-        filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.15));
-    }
+  /* Custom High-end 8-bit Pixel Discord Icon */
+  .discord-link {
+      position: fixed;
+      bottom: 30px;
+      left: 30px;
+      z-index: 1000;
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 48px;
+      height: 48px;
+      color: var(--text-color);
+      transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  }
+  .discord-link:hover {
+      transform: scale(1.15) translateY(-3px);
+  }
+  .discord-icon {
+      width: 36px;
+      height: 36px;
+      image-rendering: pixelated;
+      filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.15));
+  }
 </style>
-{% endblock extra_head %}
-
-{% block content %}
+{% endblock extra_head %} {% block content %}
 <main class="main-content-wrapper">
-    <!-- Top-left GitHub Link -->
-    <a href="https://github.com/Xuepoo/vectomancy" target="_blank" style="position: absolute; top: 15px; left: 15px; z-index: 1000;" title="View on GitHub">
-        <i class="nes-icon github"></i>
-    </a>
+  <!-- Top-left GitHub Link -->
+  <a href="https://github.com/Xuepoo/vectomancy" target="_blank" style="position: absolute; top: 15px; left: 15px; z-index: 1000;" title="View on GitHub">
+    <i class="nes-icon github"></i>
+  </a>
 
-    <!-- Top-right Controls -->
-    <div style="position: absolute; top: 15px; right: 15px; z-index: 1000; display: flex; gap: 10px;">
-        <a href="https://blog.xuepoo.xyz/posts/vectomancy-jie-shao/" target="_blank" class="nes-btn is-primary" style="font-size: 8px;">Usage</a>
-        <button class="nes-btn" id="themeToggleBtn" style="font-size: 8px;" aria-label="Toggle Theme">Theme</button>
-    </div>
+  <!-- Top-right Controls -->
+  <div style="position: absolute; top: 15px; right: 15px; z-index: 1000; display: flex; gap: 10px;">
+    <a href="https://blog.xuepoo.xyz/posts/vectomancy-jie-shao/" target="_blank" class="nes-btn is-primary" style="font-size: 8px;">Usage</a>
+    <button class="nes-btn" id="themeToggleBtn" style="font-size: 8px;" aria-label="Toggle Theme">Theme</button>
+  </div>
 
-    <!-- Bottom-left Discord Link -->
-    <a href="https://discord.gg/mdXnZVRC" target="_blank" class="discord-link" title="Join our Discord">
-        <svg class="discord-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16">
-            <!-- Body Blue -->
-            <rect x="1" y="7" width="1" height="1" fill="#5865F2"/>
-            <rect x="1" y="8" width="1" height="1" fill="#5865F2"/>
-            <rect x="1" y="9" width="1" height="1" fill="#5865F2"/>
-            <rect x="1" y="10" width="1" height="1" fill="#5865F2"/>
-            <rect x="1" y="11" width="1" height="1" fill="#5865F2"/>
-            <rect x="2" y="5" width="1" height="1" fill="#5865F2"/>
-            <rect x="2" y="6" width="1" height="1" fill="#5865F2"/>
-            <rect x="2" y="7" width="1" height="1" fill="#5865F2"/>
-            <rect x="2" y="8" width="1" height="1" fill="#5865F2"/>
-            <rect x="2" y="9" width="1" height="1" fill="#5865F2"/>
-            <rect x="2" y="10" width="1" height="1" fill="#5865F2"/>
-            <rect x="2" y="11" width="1" height="1" fill="#5865F2"/>
-            <rect x="3" y="4" width="1" height="1" fill="#5865F2"/>
-            <rect x="3" y="5" width="1" height="1" fill="#5865F2"/>
-            <rect x="3" y="6" width="1" height="1" fill="#5865F2"/>
-            <rect x="3" y="10" width="1" height="1" fill="#5865F2"/>
-            <rect x="3" y="11" width="1" height="1" fill="#5865F2"/>
-            <rect x="3" y="12" width="1" height="1" fill="#5865F2"/>
-            <rect x="4" y="3" width="1" height="1" fill="#5865F2"/>
-            <rect x="4" y="4" width="1" height="1" fill="#5865F2"/>
-            <rect x="4" y="5" width="1" height="1" fill="#5865F2"/>
-            <rect x="4" y="11" width="1" height="1" fill="#5865F2"/>
-            <rect x="5" y="3" width="1" height="1" fill="#5865F2"/>
-            <rect x="5" y="4" width="1" height="1" fill="#5865F2"/>
-            <rect x="5" y="5" width="1" height="1" fill="#5865F2"/>
-            <rect x="6" y="4" width="1" height="1" fill="#5865F2"/>
-            <rect x="6" y="5" width="1" height="1" fill="#5865F2"/>
-            <rect x="6" y="6" width="1" height="1" fill="#5865F2"/>
-            <rect x="6" y="10" width="1" height="1" fill="#5865F2"/>
-            <rect x="6" y="11" width="1" height="1" fill="#5865F2"/>
-            <rect x="7" y="4" width="1" height="1" fill="#5865F2"/>
-            <rect x="7" y="5" width="1" height="1" fill="#5865F2"/>
-            <rect x="7" y="6" width="1" height="1" fill="#5865F2"/>
-            <rect x="7" y="7" width="1" height="1" fill="#5865F2"/>
-            <rect x="7" y="9" width="1" height="1" fill="#5865F2"/>
-            <rect x="7" y="10" width="1" height="1" fill="#5865F2"/>
-            <rect x="7" y="11" width="1" height="1" fill="#5865F2"/>
-            <rect x="8" y="4" width="1" height="1" fill="#5865F2"/>
-            <rect x="8" y="5" width="1" height="1" fill="#5865F2"/>
-            <rect x="8" y="6" width="1" height="1" fill="#5865F2"/>
-            <rect x="8" y="7" width="1" height="1" fill="#5865F2"/>
-            <rect x="8" y="9" width="1" height="1" fill="#5865F2"/>
-            <rect x="8" y="10" width="1" height="1" fill="#5865F2"/>
-            <rect x="8" y="11" width="1" height="1" fill="#5865F2"/>
-            <rect x="9" y="4" width="1" height="1" fill="#5865F2"/>
-            <rect x="9" y="5" width="1" height="1" fill="#5865F2"/>
-            <rect x="9" y="6" width="1" height="1" fill="#5865F2"/>
-            <rect x="9" y="10" width="1" height="1" fill="#5865F2"/>
-            <rect x="9" y="11" width="1" height="1" fill="#5865F2"/>
-            <rect x="10" y="3" width="1" height="1" fill="#5865F2"/>
-            <rect x="10" y="4" width="1" height="1" fill="#5865F2"/>
-            <rect x="10" y="5" width="1" height="1" fill="#5865F2"/>
-            <rect x="11" y="3" width="1" height="1" fill="#5865F2"/>
-            <rect x="11" y="4" width="1" height="1" fill="#5865F2"/>
-            <rect x="11" y="5" width="1" height="1" fill="#5865F2"/>
-            <rect x="11" y="11" width="1" height="1" fill="#5865F2"/>
-            <rect x="12" y="4" width="1" height="1" fill="#5865F2"/>
-            <rect x="12" y="5" width="1" height="1" fill="#5865F2"/>
-            <rect x="12" y="6" width="1" height="1" fill="#5865F2"/>
-            <rect x="12" y="10" width="1" height="1" fill="#5865F2"/>
-            <rect x="12" y="11" width="1" height="1" fill="#5865F2"/>
-            <rect x="12" y="12" width="1" height="1" fill="#5865F2"/>
-            <rect x="13" y="5" width="1" height="1" fill="#5865F2"/>
-            <rect x="13" y="6" width="1" height="1" fill="#5865F2"/>
-            <rect x="13" y="7" width="1" height="1" fill="#5865F2"/>
-            <rect x="13" y="8" width="1" height="1" fill="#5865F2"/>
-            <rect x="13" y="9" width="1" height="1" fill="#5865F2"/>
-            <rect x="13" y="10" width="1" height="1" fill="#5865F2"/>
-            <rect x="13" y="11" width="1" height="1" fill="#5865F2"/>
-            <rect x="14" y="7" width="1" height="1" fill="#5865F2"/>
-            <rect x="14" y="8" width="1" height="1" fill="#5865F2"/>
-            <rect x="14" y="9" width="1" height="1" fill="#5865F2"/>
-            <rect x="14" y="10" width="1" height="1" fill="#5865F2"/>
-            <rect x="14" y="11" width="1" height="1" fill="#5865F2"/>
-            <!-- Eyes White -->
-            <rect x="4" y="7" width="1" height="1" fill="#FFF"/>
-            <rect x="4" y="8" width="1" height="1" fill="#FFF"/>
-            <rect x="4" y="9" width="1" height="1" fill="#FFF"/>
-            <rect x="5" y="7" width="1" height="1" fill="#FFF"/>
-            <rect x="5" y="8" width="1" height="1" fill="#FFF"/>
-            <rect x="5" y="9" width="1" height="1" fill="#FFF"/>
-            <rect x="6" y="8" width="1" height="1" fill="#FFF"/>
-            <rect x="9" y="8" width="1" height="1" fill="#FFF"/>
-            <rect x="10" y="7" width="1" height="1" fill="#FFF"/>
-            <rect x="10" y="8" width="1" height="1" fill="#FFF"/>
-            <rect x="10" y="9" width="1" height="1" fill="#FFF"/>
-            <rect x="11" y="7" width="1" height="1" fill="#FFF"/>
-            <rect x="11" y="8" width="1" height="1" fill="#FFF"/>
-            <rect x="11" y="9" width="1" height="1" fill="#FFF"/>
-            <!-- Border Outline -->
-            <rect x="0" y="7" width="1" height="1" fill="currentColor"/>
-            <rect x="0" y="8" width="1" height="1" fill="currentColor"/>
-            <rect x="0" y="9" width="1" height="1" fill="currentColor"/>
-            <rect x="0" y="10" width="1" height="1" fill="currentColor"/>
-            <rect x="0" y="11" width="1" height="1" fill="currentColor"/>
-            <rect x="1" y="5" width="1" height="1" fill="currentColor"/>
-            <rect x="1" y="6" width="1" height="1" fill="currentColor"/>
-            <rect x="1" y="12" width="1" height="1" fill="currentColor"/>
-            <rect x="2" y="3" width="1" height="1" fill="currentColor"/>
-            <rect x="2" y="4" width="1" height="1" fill="currentColor"/>
-            <rect x="2" y="12" width="1" height="1" fill="currentColor"/>
-            <rect x="3" y="3" width="1" height="1" fill="currentColor"/>
-            <rect x="3" y="7" width="1" height="1" fill="currentColor"/>
-            <rect x="3" y="8" width="1" height="1" fill="currentColor"/>
-            <rect x="3" y="9" width="1" height="1" fill="currentColor"/>
-            <rect x="3" y="13" width="1" height="1" fill="currentColor"/>
-            <rect x="4" y="2" width="1" height="1" fill="currentColor"/>
-            <rect x="4" y="6" width="1" height="1" fill="currentColor"/>
-            <rect x="4" y="10" width="1" height="1" fill="currentColor"/>
-            <rect x="4" y="12" width="1" height="1" fill="currentColor"/>
-            <rect x="5" y="2" width="1" height="1" fill="currentColor"/>
-            <rect x="5" y="6" width="1" height="1" fill="currentColor"/>
-            <rect x="5" y="10" width="1" height="1" fill="currentColor"/>
-            <rect x="5" y="11" width="1" height="1" fill="currentColor"/>
-            <rect x="6" y="3" width="1" height="1" fill="currentColor"/>
-            <rect x="6" y="7" width="1" height="1" fill="currentColor"/>
-            <rect x="6" y="9" width="1" height="1" fill="currentColor"/>
-            <rect x="6" y="12" width="1" height="1" fill="currentColor"/>
-            <rect x="7" y="3" width="1" height="1" fill="currentColor"/>
-            <rect x="7" y="8" width="1" height="1" fill="currentColor"/>
-            <rect x="7" y="12" width="1" height="1" fill="currentColor"/>
-            <rect x="8" y="3" width="1" height="1" fill="currentColor"/>
-            <rect x="8" y="8" width="1" height="1" fill="currentColor"/>
-            <rect x="8" y="12" width="1" height="1" fill="currentColor"/>
-            <rect x="9" y="3" width="1" height="1" fill="currentColor"/>
-            <rect x="9" y="7" width="1" height="1" fill="currentColor"/>
-            <rect x="9" y="9" width="1" height="1" fill="currentColor"/>
-            <rect x="9" y="12" width="1" height="1" fill="currentColor"/>
-            <rect x="10" y="2" width="1" height="1" fill="currentColor"/>
-            <rect x="10" y="6" width="1" height="1" fill="currentColor"/>
-            <rect x="10" y="10" width="1" height="1" fill="currentColor"/>
-            <rect x="10" y="11" width="1" height="1" fill="currentColor"/>
-            <rect x="11" y="2" width="1" height="1" fill="currentColor"/>
-            <rect x="11" y="6" width="1" height="1" fill="currentColor"/>
-            <rect x="11" y="10" width="1" height="1" fill="currentColor"/>
-            <rect x="11" y="12" width="1" height="1" fill="currentColor"/>
-            <rect x="12" y="3" width="1" height="1" fill="currentColor"/>
-            <rect x="12" y="7" width="1" height="1" fill="currentColor"/>
-            <rect x="12" y="8" width="1" height="1" fill="currentColor"/>
-            <rect x="12" y="9" width="1" height="1" fill="currentColor"/>
-            <rect x="12" y="13" width="1" height="1" fill="currentColor"/>
-            <rect x="13" y="3" width="1" height="1" fill="currentColor"/>
-            <rect x="13" y="4" width="1" height="1" fill="currentColor"/>
-            <rect x="13" y="12" width="1" height="1" fill="currentColor"/>
-            <rect x="14" y="5" width="1" height="1" fill="currentColor"/>
-            <rect x="14" y="6" width="1" height="1" fill="currentColor"/>
-            <rect x="14" y="12" width="1" height="1" fill="currentColor"/>
-            <rect x="15" y="7" width="1" height="1" fill="currentColor"/>
-            <rect x="15" y="8" width="1" height="1" fill="currentColor"/>
-            <rect x="15" y="9" width="1" height="1" fill="currentColor"/>
-            <rect x="15" y="10" width="1" height="1" fill="currentColor"/>
-            <rect x="15" y="11" width="1" height="1" fill="currentColor"/>
-        </svg>
-    </a>
+  <!-- Bottom-left Discord Link -->
+  <a href="https://discord.gg/mdXnZVRC" target="_blank" class="discord-link" title="Join our Discord">
+    <svg class="discord-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16">
+      <!-- Body Blue -->
+      <rect x="1" y="7" width="1" height="1" fill="#5865F2" />
+      <rect x="1" y="8" width="1" height="1" fill="#5865F2" />
+      <rect x="1" y="9" width="1" height="1" fill="#5865F2" />
+      <rect x="1" y="10" width="1" height="1" fill="#5865F2" />
+      <rect x="1" y="11" width="1" height="1" fill="#5865F2" />
+      <rect x="2" y="5" width="1" height="1" fill="#5865F2" />
+      <rect x="2" y="6" width="1" height="1" fill="#5865F2" />
+      <rect x="2" y="7" width="1" height="1" fill="#5865F2" />
+      <rect x="2" y="8" width="1" height="1" fill="#5865F2" />
+      <rect x="2" y="9" width="1" height="1" fill="#5865F2" />
+      <rect x="2" y="10" width="1" height="1" fill="#5865F2" />
+      <rect x="2" y="11" width="1" height="1" fill="#5865F2" />
+      <rect x="3" y="4" width="1" height="1" fill="#5865F2" />
+      <rect x="3" y="5" width="1" height="1" fill="#5865F2" />
+      <rect x="3" y="6" width="1" height="1" fill="#5865F2" />
+      <rect x="3" y="10" width="1" height="1" fill="#5865F2" />
+      <rect x="3" y="11" width="1" height="1" fill="#5865F2" />
+      <rect x="3" y="12" width="1" height="1" fill="#5865F2" />
+      <rect x="4" y="3" width="1" height="1" fill="#5865F2" />
+      <rect x="4" y="4" width="1" height="1" fill="#5865F2" />
+      <rect x="4" y="5" width="1" height="1" fill="#5865F2" />
+      <rect x="4" y="11" width="1" height="1" fill="#5865F2" />
+      <rect x="5" y="3" width="1" height="1" fill="#5865F2" />
+      <rect x="5" y="4" width="1" height="1" fill="#5865F2" />
+      <rect x="5" y="5" width="1" height="1" fill="#5865F2" />
+      <rect x="6" y="4" width="1" height="1" fill="#5865F2" />
+      <rect x="6" y="5" width="1" height="1" fill="#5865F2" />
+      <rect x="6" y="6" width="1" height="1" fill="#5865F2" />
+      <rect x="6" y="10" width="1" height="1" fill="#5865F2" />
+      <rect x="6" y="11" width="1" height="1" fill="#5865F2" />
+      <rect x="7" y="4" width="1" height="1" fill="#5865F2" />
+      <rect x="7" y="5" width="1" height="1" fill="#5865F2" />
+      <rect x="7" y="6" width="1" height="1" fill="#5865F2" />
+      <rect x="7" y="7" width="1" height="1" fill="#5865F2" />
+      <rect x="7" y="9" width="1" height="1" fill="#5865F2" />
+      <rect x="7" y="10" width="1" height="1" fill="#5865F2" />
+      <rect x="7" y="11" width="1" height="1" fill="#5865F2" />
+      <rect x="8" y="4" width="1" height="1" fill="#5865F2" />
+      <rect x="8" y="5" width="1" height="1" fill="#5865F2" />
+      <rect x="8" y="6" width="1" height="1" fill="#5865F2" />
+      <rect x="8" y="7" width="1" height="1" fill="#5865F2" />
+      <rect x="8" y="9" width="1" height="1" fill="#5865F2" />
+      <rect x="8" y="10" width="1" height="1" fill="#5865F2" />
+      <rect x="8" y="11" width="1" height="1" fill="#5865F2" />
+      <rect x="9" y="4" width="1" height="1" fill="#5865F2" />
+      <rect x="9" y="5" width="1" height="1" fill="#5865F2" />
+      <rect x="9" y="6" width="1" height="1" fill="#5865F2" />
+      <rect x="9" y="10" width="1" height="1" fill="#5865F2" />
+      <rect x="9" y="11" width="1" height="1" fill="#5865F2" />
+      <rect x="10" y="3" width="1" height="1" fill="#5865F2" />
+      <rect x="10" y="4" width="1" height="1" fill="#5865F2" />
+      <rect x="10" y="5" width="1" height="1" fill="#5865F2" />
+      <rect x="11" y="3" width="1" height="1" fill="#5865F2" />
+      <rect x="11" y="4" width="1" height="1" fill="#5865F2" />
+      <rect x="11" y="5" width="1" height="1" fill="#5865F2" />
+      <rect x="11" y="11" width="1" height="1" fill="#5865F2" />
+      <rect x="12" y="4" width="1" height="1" fill="#5865F2" />
+      <rect x="12" y="5" width="1" height="1" fill="#5865F2" />
+      <rect x="12" y="6" width="1" height="1" fill="#5865F2" />
+      <rect x="12" y="10" width="1" height="1" fill="#5865F2" />
+      <rect x="12" y="11" width="1" height="1" fill="#5865F2" />
+      <rect x="12" y="12" width="1" height="1" fill="#5865F2" />
+      <rect x="13" y="5" width="1" height="1" fill="#5865F2" />
+      <rect x="13" y="6" width="1" height="1" fill="#5865F2" />
+      <rect x="13" y="7" width="1" height="1" fill="#5865F2" />
+      <rect x="13" y="8" width="1" height="1" fill="#5865F2" />
+      <rect x="13" y="9" width="1" height="1" fill="#5865F2" />
+      <rect x="13" y="10" width="1" height="1" fill="#5865F2" />
+      <rect x="13" y="11" width="1" height="1" fill="#5865F2" />
+      <rect x="14" y="7" width="1" height="1" fill="#5865F2" />
+      <rect x="14" y="8" width="1" height="1" fill="#5865F2" />
+      <rect x="14" y="9" width="1" height="1" fill="#5865F2" />
+      <rect x="14" y="10" width="1" height="1" fill="#5865F2" />
+      <rect x="14" y="11" width="1" height="1" fill="#5865F2" />
+      <!-- Eyes White -->
+      <rect x="4" y="7" width="1" height="1" fill="#FFF" />
+      <rect x="4" y="8" width="1" height="1" fill="#FFF" />
+      <rect x="4" y="9" width="1" height="1" fill="#FFF" />
+      <rect x="5" y="7" width="1" height="1" fill="#FFF" />
+      <rect x="5" y="8" width="1" height="1" fill="#FFF" />
+      <rect x="5" y="9" width="1" height="1" fill="#FFF" />
+      <rect x="6" y="8" width="1" height="1" fill="#FFF" />
+      <rect x="9" y="8" width="1" height="1" fill="#FFF" />
+      <rect x="10" y="7" width="1" height="1" fill="#FFF" />
+      <rect x="10" y="8" width="1" height="1" fill="#FFF" />
+      <rect x="10" y="9" width="1" height="1" fill="#FFF" />
+      <rect x="11" y="7" width="1" height="1" fill="#FFF" />
+      <rect x="11" y="8" width="1" height="1" fill="#FFF" />
+      <rect x="11" y="9" width="1" height="1" fill="#FFF" />
+      <!-- Border Outline -->
+      <rect x="0" y="7" width="1" height="1" fill="currentColor" />
+      <rect x="0" y="8" width="1" height="1" fill="currentColor" />
+      <rect x="0" y="9" width="1" height="1" fill="currentColor" />
+      <rect x="0" y="10" width="1" height="1" fill="currentColor" />
+      <rect x="0" y="11" width="1" height="1" fill="currentColor" />
+      <rect x="1" y="5" width="1" height="1" fill="currentColor" />
+      <rect x="1" y="6" width="1" height="1" fill="currentColor" />
+      <rect x="1" y="12" width="1" height="1" fill="currentColor" />
+      <rect x="2" y="3" width="1" height="1" fill="currentColor" />
+      <rect x="2" y="4" width="1" height="1" fill="currentColor" />
+      <rect x="2" y="12" width="1" height="1" fill="currentColor" />
+      <rect x="3" y="3" width="1" height="1" fill="currentColor" />
+      <rect x="3" y="7" width="1" height="1" fill="currentColor" />
+      <rect x="3" y="8" width="1" height="1" fill="currentColor" />
+      <rect x="3" y="9" width="1" height="1" fill="currentColor" />
+      <rect x="3" y="13" width="1" height="1" fill="currentColor" />
+      <rect x="4" y="2" width="1" height="1" fill="currentColor" />
+      <rect x="4" y="6" width="1" height="1" fill="currentColor" />
+      <rect x="4" y="10" width="1" height="1" fill="currentColor" />
+      <rect x="4" y="12" width="1" height="1" fill="currentColor" />
+      <rect x="5" y="2" width="1" height="1" fill="currentColor" />
+      <rect x="5" y="6" width="1" height="1" fill="currentColor" />
+      <rect x="5" y="10" width="1" height="1" fill="currentColor" />
+      <rect x="5" y="11" width="1" height="1" fill="currentColor" />
+      <rect x="6" y="3" width="1" height="1" fill="currentColor" />
+      <rect x="6" y="7" width="1" height="1" fill="currentColor" />
+      <rect x="6" y="9" width="1" height="1" fill="currentColor" />
+      <rect x="6" y="12" width="1" height="1" fill="currentColor" />
+      <rect x="7" y="3" width="1" height="1" fill="currentColor" />
+      <rect x="7" y="8" width="1" height="1" fill="currentColor" />
+      <rect x="7" y="12" width="1" height="1" fill="currentColor" />
+      <rect x="8" y="3" width="1" height="1" fill="currentColor" />
+      <rect x="8" y="8" width="1" height="1" fill="currentColor" />
+      <rect x="8" y="12" width="1" height="1" fill="currentColor" />
+      <rect x="9" y="3" width="1" height="1" fill="currentColor" />
+      <rect x="9" y="7" width="1" height="1" fill="currentColor" />
+      <rect x="9" y="9" width="1" height="1" fill="currentColor" />
+      <rect x="9" y="12" width="1" height="1" fill="currentColor" />
+      <rect x="10" y="2" width="1" height="1" fill="currentColor" />
+      <rect x="10" y="6" width="1" height="1" fill="currentColor" />
+      <rect x="10" y="10" width="1" height="1" fill="currentColor" />
+      <rect x="10" y="11" width="1" height="1" fill="currentColor" />
+      <rect x="11" y="2" width="1" height="1" fill="currentColor" />
+      <rect x="11" y="6" width="1" height="1" fill="currentColor" />
+      <rect x="11" y="10" width="1" height="1" fill="currentColor" />
+      <rect x="11" y="12" width="1" height="1" fill="currentColor" />
+      <rect x="12" y="3" width="1" height="1" fill="currentColor" />
+      <rect x="12" y="7" width="1" height="1" fill="currentColor" />
+      <rect x="12" y="8" width="1" height="1" fill="currentColor" />
+      <rect x="12" y="9" width="1" height="1" fill="currentColor" />
+      <rect x="12" y="13" width="1" height="1" fill="currentColor" />
+      <rect x="13" y="3" width="1" height="1" fill="currentColor" />
+      <rect x="13" y="4" width="1" height="1" fill="currentColor" />
+      <rect x="13" y="12" width="1" height="1" fill="currentColor" />
+      <rect x="14" y="5" width="1" height="1" fill="currentColor" />
+      <rect x="14" y="6" width="1" height="1" fill="currentColor" />
+      <rect x="14" y="12" width="1" height="1" fill="currentColor" />
+      <rect x="15" y="7" width="1" height="1" fill="currentColor" />
+      <rect x="15" y="8" width="1" height="1" fill="currentColor" />
+      <rect x="15" y="9" width="1" height="1" fill="currentColor" />
+      <rect x="15" y="10" width="1" height="1" fill="currentColor" />
+      <rect x="15" y="11" width="1" height="1" fill="currentColor" />
+    </svg>
+  </a>
 
-    <div class="container" style="max-width: 1200px;">
-        <header style="margin-top: 10px; margin-bottom: 10px;">
-            <img src="/img/logo.svg" alt="Vectomancy Logo" class="logo-img" style="width: 70px; height: 70px; margin-bottom: 5px;" fetchpriority="high">
-            <h1 style="margin-bottom: 5px; font-size: 26px;">VECTOMANCY</h1>
-            <p style="line-height: 1.4; font-size: 11px; margin-bottom: 15px;">Transform images into pure mathematical equations and curves.</p>
+  <div class="container" style="max-width: 1200px;">
+    <header style="margin-top: 10px; margin-bottom: 10px;">
+      <img src="/img/logo.svg" alt="Vectomancy Logo" class="logo-img" style="width: 70px; height: 70px; margin-bottom: 5px;" fetchpriority="high" />
+      <h1 style="margin-bottom: 5px; font-size: 26px;">VECTOMANCY</h1>
+      <p style="line-height: 1.4; font-size: 11px; margin-bottom: 15px;">Transform images into pure mathematical equations and curves.</p>
 
-            <div style="margin-top: 15px; display: flex; justify-content: center; gap: 15px; flex-wrap: wrap; margin-bottom: 25px;">
-                <a href="/image" class="nes-btn is-primary">Image</a>
-                <a href="/typography" class="nes-btn is-success">Text</a>
-                <a href="/video" class="nes-btn is-primary">Video</a>
-            </div>
+      <div style="margin-top: 15px; display: flex; justify-content: center; gap: 15px; flex-wrap: wrap; margin-bottom: 25px;">
+        <a href="/image" class="nes-btn is-primary">Image</a>
+        <a href="/typography" class="nes-btn is-success">Text</a>
+        <a href="/video" class="nes-btn is-primary">Video</a>
+      </div>
 
-            <!-- Recent Updates Card -->
-            <div class="nes-container with-title" style="margin-top: 40px; margin-bottom: 25px; max-width: 700px; margin-left: auto; margin-right: auto; text-align: left; background: var(--container-bg);">
-                <p class="title" style="font-size: 9px; margin-bottom: 10px; background: var(--container-bg) !important; color: var(--text-color) !important;">Recent Updates</p>
-                <div style="font-size: 8px; line-height: 1.6; color: var(--text-color);">
-                    <div style="margin-bottom: 20px;">
-                        <span class="nes-text is-primary" style="font-weight: bold; display: block; margin-bottom: 5px;">[v7.1.3] - 2026-07-31</span>
-                        <ul style="margin: 0; padding-left: 20px; list-style-type: square;">
-                            <li style="margin-bottom: 5px;"><strong>Skeleton Extraction Quality:</strong> The raster pipeline now runs full Zhang-Suen thinning with endpoint/loop-aware path tracing, matching the reference parser &mdash; previously a simplified greedy walk produced fragmented, noisy skeletons that stopped at the first branch point.</li>
-                            <li><strong>Release Pipeline Hardening:</strong> All workspace crate manifests now bump in lockstep, and the release workflow fails fast on manifest/tag version mismatch before publishing anything.</li>
-                        </ul>
-                    </div>
-                    <div style="margin-bottom: 20px;">
-                        <span class="nes-text is-success" style="font-weight: bold; display: block; margin-bottom: 5px;">[v7.1.0] - 2026-07-29</span>
-                        <ul style="margin: 0; padding-left: 20px; list-style-type: square;">
-                            <li style="margin-bottom: 5px;"><strong>Workspace Crate Decoupling:</strong> The engine is split into six standalone publishable crates &mdash; <code>vectomancy-geometry</code>, <code>vectomancy-transform</code>, <code>vectomancy-raster</code>, <code>vectomancy-svg</code>, <code>vectomancy-export</code>, <code>vectomancy-pipeline</code> &mdash; each independently versioned and tested, with the facade preserving drop-in compatibility.</li>
-                        </ul>
-                    </div>
-                    <div style="margin-bottom: 20px;">
-                        <span class="nes-text is-success" style="font-weight: bold; display: block; margin-bottom: 5px;">[v7.0.0] - 2026-07-24</span>
-                        <ul style="margin: 0; padding-left: 20px; list-style-type: square;">
-                            <li style="margin-bottom: 5px;"><strong>Multi-Core Raster Pipeline:</strong> Sobel edge detection and skeleton thinning now run in parallel across all CPU cores. Single-image processing on a multi-megapixel photo dropped from ~1.4s to ~0.5s on a 24-core machine.</li>
-                            <li><strong>Parallel Video Frames:</strong> The <code>video</code> subcommand now processes multiple frames concurrently instead of one at a time &mdash; a 10s/301-frame 1080p clip went from 22.4s to 4.5s (4.98x faster) on the same machine.</li>
-                        </ul>
-                    </div>
-                    <div style="margin-bottom: 20px;">
-                        <span class="nes-text is-success" style="font-weight: bold; display: block; margin-bottom: 5px;">[v6.3.0] - 2026-07-24</span>
-                        <ul style="margin: 0; padding-left: 20px; list-style-type: square;">
-                            <li style="margin-bottom: 5px;"><strong>SVG Export:</strong> New vector export option for the Image Engine. Flattens Spline, Fourier, and Chaikin curves into a clean, scalable SVG document with full color and gradient support.</li>
-                            <li><strong>CLI Parity:</strong> The core <code>vectomancy</code> CLI (v6.3.0) now also supports <code>--format svg</code> for the <code>image</code>, <code>video</code>, and <code>text</code> subcommands.</li>
-                        </ul>
-                    </div>
-                </div>
-            </div>
+      <!-- Recent Updates Card -->
+      <div
+        class="nes-container with-title"
+        style="margin-top: 40px; margin-bottom: 25px; max-width: 700px; margin-left: auto; margin-right: auto; text-align: left; background: var(--container-bg);"
+      >
+        <p class="title" style="font-size: 9px; margin-bottom: 10px; background: var(--container-bg) !important; color: var(--text-color) !important;">
+          Recent Updates
+        </p>
+        <div style="font-size: 8px; line-height: 1.6; color: var(--text-color);">
+          <div style="margin-bottom: 20px;">
+            <span class="nes-text is-primary" style="font-weight: bold; display: block; margin-bottom: 5px;">[2026-08-13] - Maintenance &amp; UX</span>
+            <ul style="margin: 0; padding-left: 20px; list-style-type: square;">
+              <li style="margin-bottom: 5px;">
+                <strong>SVG Export Coordinates Fixed:</strong> Exported images no longer appear only in the top-left corner &mdash; the engine now correctly
+                maps the SVG viewBox into the output canvas, honouring <code>preserveAspectRatio</code> (xMidYMid meet).
+              </li>
+              <li style="margin-bottom: 5px;">
+                <strong>Dependency Upgrade:</strong> Upgraded to <code>usvg 0.48</code> and <code>kiddo 6</code>, bringing the latest SVG parser improvements
+                and faster nearest-neighbour queries for the TSP routing pass.
+              </li>
+              <li style="margin-bottom: 5px;">
+                <strong>Stroke Weight default 2.0px:</strong> The default stroke width is now 2.0 px (was 1.0 px) across the CLI and both web tools for better
+                out-of-the-box output quality.
+              </li>
+              <li>
+                <strong>Stroke Weight input:</strong> The Stroke Weight control is now a number input instead of a slider &mdash; type any value from 0.01 to
+                5.00 without accidental redraws on drag.
+              </li>
+            </ul>
+          </div>
+          <div style="margin-bottom: 20px;">
+            <span class="nes-text is-primary" style="font-weight: bold; display: block; margin-bottom: 5px;">[v7.1.3] - 2026-07-31</span>
+            <ul style="margin: 0; padding-left: 20px; list-style-type: square;">
+              <li style="margin-bottom: 5px;">
+                <strong>Skeleton Extraction Quality:</strong> The raster pipeline now runs full Zhang-Suen thinning with endpoint/loop-aware path tracing,
+                matching the reference parser &mdash; previously a simplified greedy walk produced fragmented, noisy skeletons that stopped at the first branch
+                point.
+              </li>
+              <li>
+                <strong>Release Pipeline Hardening:</strong> All workspace crate manifests now bump in lockstep, and the release workflow fails fast on
+                manifest/tag version mismatch before publishing anything.
+              </li>
+            </ul>
+          </div>
+          <div style="margin-bottom: 20px;">
+            <span class="nes-text is-success" style="font-weight: bold; display: block; margin-bottom: 5px;">[v7.1.0] - 2026-07-29</span>
+            <ul style="margin: 0; padding-left: 20px; list-style-type: square;">
+              <li style="margin-bottom: 5px;">
+                <strong>Workspace Crate Decoupling:</strong> The engine is split into six standalone publishable crates &mdash;
+                <code>vectomancy-geometry</code>, <code>vectomancy-transform</code>, <code>vectomancy-raster</code>, <code>vectomancy-svg</code>,
+                <code>vectomancy-export</code>, <code>vectomancy-pipeline</code> &mdash; each independently versioned and tested, with the facade preserving
+                drop-in compatibility.
+              </li>
+            </ul>
+          </div>
+          <div style="margin-bottom: 20px;">
+            <span class="nes-text is-success" style="font-weight: bold; display: block; margin-bottom: 5px;">[v7.0.0] - 2026-07-24</span>
+            <ul style="margin: 0; padding-left: 20px; list-style-type: square;">
+              <li style="margin-bottom: 5px;">
+                <strong>Multi-Core Raster Pipeline:</strong> Sobel edge detection and skeleton thinning now run in parallel across all CPU cores. Single-image
+                processing on a multi-megapixel photo dropped from ~1.4s to ~0.5s on a 24-core machine.
+              </li>
+              <li>
+                <strong>Parallel Video Frames:</strong> The <code>video</code> subcommand now processes multiple frames concurrently instead of one at a time
+                &mdash; a 10s/301-frame 1080p clip went from 22.4s to 4.5s (4.98x faster) on the same machine.
+              </li>
+            </ul>
+          </div>
+          <div style="margin-bottom: 20px;">
+            <span class="nes-text is-success" style="font-weight: bold; display: block; margin-bottom: 5px;">[v6.3.0] - 2026-07-24</span>
+            <ul style="margin: 0; padding-left: 20px; list-style-type: square;">
+              <li style="margin-bottom: 5px;">
+                <strong>SVG Export:</strong> New vector export option for the Image Engine. Flattens Spline, Fourier, and Chaikin curves into a clean, scalable
+                SVG document with full color and gradient support.
+              </li>
+              <li>
+                <strong>CLI Parity:</strong> The core <code>vectomancy</code> CLI (v6.3.0) now also supports <code>--format svg</code> for the
+                <code>image</code>, <code>video</code>, and <code>text</code> subcommands.
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
 
-            <div style="margin-top: 35px; font-size: 8px; color: var(--text-color); opacity: 0.6; text-align: center; line-height: 1.8; max-width: 600px; margin-left: auto; margin-right: auto; padding: 0 10px;">
-                <p style="margin-bottom: 5px;">⚠️ Please respect the original creators. As a mathematical visualization tool, this website does not assume copyright liabilities.</p>
-                <p style="margin: 0;">请尊重原创作者版权。本网站仅为数学参数化转换工具，不承担因用户行为产生的任何版权风险。</p>
-            </div>
-        </header>
-    </div>
-
-
+      <div
+        style="margin-top: 35px; font-size: 8px; color: var(--text-color); opacity: 0.6; text-align: center; line-height: 1.8; max-width: 600px; margin-left: auto; margin-right: auto; padding: 0 10px;"
+      >
+        <p style="margin-bottom: 5px;">
+          ⚠️ Please respect the original creators. As a mathematical visualization tool, this website does not assume copyright liabilities.
+        </p>
+        <p style="margin: 0;">请尊重原创作者版权。本网站仅为数学参数化转换工具，不承担因用户行为产生的任何版权风险。</p>
+      </div>
+    </header>
+  </div>
 </main>
 
 <div class="container" style="max-width: 1200px; padding-bottom: 20px;">
-    <footer style="margin-top: 20px;">
-        <p>&copy; 2026 Vectomancy Project. Open-sourced under the MIT License.</p>
-    </footer>
+  <footer style="margin-top: 20px;">
+    <p>&copy; 2026 Vectomancy Project. Open-sourced under the MIT License.</p>
+  </footer>
 </div>
 
 <script>
-    // System dark theme detection and localStorage persistence for the landing page
-    let useDark = false;
-    const sharedTheme = localStorage.getItem('vectomancy_theme');
-    if (sharedTheme) {
-        useDark = (sharedTheme === 'dark');
-    } else {
-        const stored = localStorage.getItem('vectomancy_user_settings');
-        if (stored) {
-            try {
-                const settings = JSON.parse(stored);
-                if (settings.theme === 'dark') useDark = true;
-                else if (settings.theme === 'light') useDark = false;
-            } catch(e) {}
-        } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-            useDark = true;
-        }
-    }
+  // System dark theme detection and localStorage persistence for the landing page
+  let useDark = false;
+  const sharedTheme = localStorage.getItem('vectomancy_theme');
+  if (sharedTheme) {
+      useDark = (sharedTheme === 'dark');
+  } else {
+      const stored = localStorage.getItem('vectomancy_user_settings');
+      if (stored) {
+          try {
+              const settings = JSON.parse(stored);
+              if (settings.theme === 'dark') useDark = true;
+              else if (settings.theme === 'light') useDark = false;
+          } catch(e) {}
+      } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+          useDark = true;
+      }
+  }
 
-    if (useDark) {
-        document.body.classList.add('dark-theme');
-    }
+  if (useDark) {
+      document.body.classList.add('dark-theme');
+  }
 
-    const themeBtn = document.getElementById('themeToggleBtn');
-    if (themeBtn) {
-        themeBtn.addEventListener('click', () => {
-            const isDark = document.body.classList.toggle('dark-theme');
-            try {
-                const themeStr = isDark ? 'dark' : 'light';
-                localStorage.setItem('vectomancy_theme', themeStr);
-                localStorage.setItem('vectomancy_user_settings', JSON.stringify({
-                    theme: themeStr
-                }));
-            } catch(e) {}
-        });
-    }
+  const themeBtn = document.getElementById('themeToggleBtn');
+  if (themeBtn) {
+      themeBtn.addEventListener('click', () => {
+          const isDark = document.body.classList.toggle('dark-theme');
+          try {
+              const themeStr = isDark ? 'dark' : 'light';
+              localStorage.setItem('vectomancy_theme', themeStr);
+              localStorage.setItem('vectomancy_user_settings', JSON.stringify({
+                  theme: themeStr
+              }));
+          } catch(e) {}
+      });
+  }
 </script>
 {% endblock content %}

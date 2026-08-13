@@ -10,40 +10,15 @@
     />
 
     <!-- Performance Optimization: Preload -->
-    <link
-      rel="preload"
-      href="/fonts/pressstart2p.woff2"
-      as="font"
-      type="font/woff2"
-      crossorigin
-    />
+    <link rel="preload" href="/fonts/pressstart2p.woff2" as="font" type="font/woff2" crossorigin />
     <link rel="preload" href="/css/nes.min.css" as="style" />
-    <link
-      rel="preload"
-      href="/wasm/wasm_engine_bg.wasm"
-      as="fetch"
-      crossorigin
-    />
+    <link rel="preload" href="/wasm/wasm_engine_bg.wasm" as="fetch" crossorigin />
 
     <script src="/js/fflate.min.js" defer></script>
 
-    <link
-      rel="apple-touch-icon"
-      sizes="180x180"
-      href="/favicons/apple-touch-icon.png"
-    />
-    <link
-      rel="icon"
-      type="image/png"
-      sizes="32x32"
-      href="/favicons/favicon-32x32.png"
-    />
-    <link
-      rel="icon"
-      type="image/png"
-      sizes="16x16"
-      href="/favicons/favicon-16x16.png"
-    />
+    <link rel="apple-touch-icon" sizes="180x180" href="/favicons/apple-touch-icon.png" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicons/favicon-32x32.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicons/favicon-16x16.png" />
     <link rel="shortcut icon" href="/favicons/favicon.ico" />
     <link href="/css/nes.min.css" rel="stylesheet" />
     <style>
@@ -469,43 +444,33 @@
   </head>
   <body>
     <script>
-        (function() {
-            const sharedTheme = localStorage.getItem('vectomancy_theme');
-            let useDark = false;
-            if (sharedTheme) {
-                useDark = (sharedTheme === 'dark');
-            } else {
-                const stored = localStorage.getItem('vectomancy_user_settings');
-                if (stored) {
-                    try {
-                        const settings = JSON.parse(stored);
-                        useDark = (settings.theme === 'dark');
-                    } catch(e) {}
-                } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-                    useDark = true;
-                }
-            }
-            if (useDark) {
-                document.body.classList.add('dark-theme');
-            }
-        })();
+      (function() {
+          const sharedTheme = localStorage.getItem('vectomancy_theme');
+          let useDark = false;
+          if (sharedTheme) {
+              useDark = (sharedTheme === 'dark');
+          } else {
+              const stored = localStorage.getItem('vectomancy_user_settings');
+              if (stored) {
+                  try {
+                      const settings = JSON.parse(stored);
+                      useDark = (settings.theme === 'dark');
+                  } catch(e) {}
+              } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+                  useDark = true;
+              }
+          }
+          if (useDark) {
+              document.body.classList.add('dark-theme');
+          }
+      })();
     </script>
     <div class="sidebar">
-      <div
-        class="nes-container with-title is-centered control-group"
-        style="padding: 15px 10px"
-      >
+      <div class="nes-container with-title is-centered control-group" style="padding: 15px 10px">
         <a href="/" style="text-decoration: none; color: inherit">
-          <p
-            class="title"
-            style="font-size: 12px; background: var(--container-bg)"
-          >
-            VECTOMANCY
-          </p>
+          <p class="title" style="font-size: 12px; background: var(--container-bg)">VECTOMANCY</p>
         </a>
-        <p style="font-size: 8px; margin: 0; color: var(--accent-color)">
-          Typography Engine
-        </p>
+        <p style="font-size: 8px; margin: 0; color: var(--accent-color)">Typography Engine</p>
       </div>
 
       <div class="nes-container with-title control-group" style="padding: 15px">
@@ -529,12 +494,7 @@
             padding-top: 10px;
           "
         >
-          <span
-            id="filename-display"
-            class="truncate-text"
-            style="font-size: 8px; color: #aaa"
-            >No font selected</span
-          >
+          <span id="filename-display" class="truncate-text" style="font-size: 8px; color: #aaa">No font selected</span>
         </div>
       </div>
 
@@ -542,23 +502,11 @@
         <p class="title" style="font-size: 10px">Font Source</p>
 
         <!-- 1: System Font Access API -->
-        <button
-          class="nes-btn is-primary"
-          id="btnAccessLocalFonts"
-          style="width: 100%; font-size: 8px; margin-bottom: 8px; padding: 6px"
-        >
+        <button class="nes-btn is-primary" id="btnAccessLocalFonts" style="width: 100%; font-size: 8px; margin-bottom: 8px; padding: 6px">
           Access System Fonts
         </button>
-        <div
-          class="nes-select"
-          id="localFontSelectWrapper"
-          style="display: none; margin-bottom: 8px"
-        >
-          <select
-            id="localFontSelect"
-            style="font-size: 8px; padding: 4px"
-            aria-label="System Font Select"
-          ></select>
+        <div class="nes-select" id="localFontSelectWrapper" style="display: none; margin-bottom: 8px">
+          <select id="localFontSelect" style="font-size: 8px; padding: 4px" aria-label="System Font Select"></select>
         </div>
 
         <!-- 2: Upload -->
@@ -573,31 +521,16 @@
           "
         >
           <span style="font-size: 8px">Upload Font (.ttf/.otf/.zip)</span>
-          <input
-            type="file"
-            id="fontInput"
-            accept=".ttf,.otf,.woff,.woff2,.zip"
-            style="display: none"
-          />
+          <input type="file" id="fontInput" accept=".ttf,.otf,.woff,.woff2,.zip" style="display: none" />
         </label>
 
         <!-- 2.5: Web Font URL Import -->
         <div style="margin-bottom: 8px">
-          <input
-            type="text"
-            id="fontImportUrl"
-            class="nes-input"
-            style="font-size: 8px; padding: 4px; width: 100%"
-            placeholder="Import CSS/Web Font URL..."
-          />
+          <input type="text" id="fontImportUrl" class="nes-input" style="font-size: 8px; padding: 4px; width: 100%" placeholder="Import CSS/Web Font URL..." />
         </div>
 
         <!-- 3: Cloud Presets -->
-        <p
-          style="font-size: 8px; margin-bottom: 5px; color: var(--accent-color)"
-        >
-          ▶ Cloud Presets
-        </p>
+        <p style="font-size: 8px; margin-bottom: 5px; color: var(--accent-color)">▶ Cloud Presets</p>
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px">
           <button
             class="nes-btn font-preset-btn"
@@ -690,18 +623,11 @@
         </div>
       </div>
 
-      <div
-        class="nes-container with-title control-group"
-        style="padding: 15px; flex-grow: 1"
-      >
+      <div class="nes-container with-title control-group" style="padding: 15px; flex-grow: 1">
         <p class="title" style="font-size: 10px">Settings</p>
         <label for="modeSelect">Mode</label>
         <div class="nes-select" style="margin-bottom: 10px">
-          <select
-            id="modeSelect"
-            style="font-size: 8px; padding: 6px"
-            aria-label="Mode Select"
-          >
+          <select id="modeSelect" style="font-size: 8px; padding: 6px" aria-label="Mode Select">
             <option value="spline" selected>Spline (Bezier)</option>
             <option value="fourier">Fourier (Epicycle)</option>
             <option value="chaikin">Chaikin (Polyline)</option>
@@ -716,52 +642,20 @@
             margin-bottom: 10px;
           "
         >
+          <label style="margin: 0"><input type="checkbox" class="nes-checkbox" id="colorCheck" checked aria-label="Enable Colors" /><span>Colors</span></label>
+          <label style="margin: 0"><input type="checkbox" class="nes-checkbox" id="gridCheck" aria-label="Show Grid" /><span>Show Grid</span></label>
           <label style="margin: 0"
-            ><input
-              type="checkbox"
-              class="nes-checkbox"
-              id="colorCheck"
-              checked
-              aria-label="Enable Colors"
-            /><span>Colors</span></label
+            ><input type="checkbox" class="nes-checkbox" id="bgTransparentCheck" aria-label="Transparent Background" /><span>Transparent</span></label
           >
           <label style="margin: 0"
-            ><input
-              type="checkbox"
-              class="nes-checkbox"
-              id="gridCheck"
-              aria-label="Show Grid"
-            /><span>Show Grid</span></label
-          >
-          <label style="margin: 0"
-            ><input
-              type="checkbox"
-              class="nes-checkbox"
-              id="bgTransparentCheck"
-              aria-label="Transparent Background"
-            /><span>Transparent</span></label
-          >
-          <label style="margin: 0"
-            ><input
-              type="checkbox"
-              class="nes-checkbox"
-              id="hideHandlesCheck"
-              aria-label="Hide Controls"
-            /><span>Hide Controls</span></label
+            ><input type="checkbox" class="nes-checkbox" id="hideHandlesCheck" aria-label="Hide Controls" /><span>Hide Controls</span></label
           >
         </div>
 
-        <div
-          id="colorStyleControls"
-          style="margin-top: 10px; margin-bottom: 10px"
-        >
+        <div id="colorStyleControls" style="margin-top: 10px; margin-bottom: 10px">
           <label for="colorTypeSelect">Color Type</label>
           <div class="nes-select" style="margin-bottom: 10px">
-            <select
-              id="colorTypeSelect"
-              style="font-size: 8px; padding: 6px"
-              aria-label="Color Type Select"
-            >
+            <select id="colorTypeSelect" style="font-size: 8px; padding: 6px" aria-label="Color Type Select">
               <option value="solid">Solid Color</option>
               <option value="gradient" selected>Linear Gradient</option>
             </select>
@@ -777,9 +671,7 @@
             "
             class="hidden"
           >
-            <label for="solidColorInput" style="margin: 0; font-size: 8px"
-              >Solid Color:</label
-            >
+            <label for="solidColorInput" style="margin: 0; font-size: 8px">Solid Color:</label>
             <input
               type="color"
               id="solidColorInput"
@@ -830,10 +722,7 @@
             >
               Custom Stops
             </p>
-            <div
-              id="customStopsContainer"
-              style="display: flex; flex-direction: column; gap: 6px"
-            ></div>
+            <div id="customStopsContainer" style="display: flex; flex-direction: column; gap: 6px"></div>
             <button
               class="nes-btn is-success"
               id="addStopBtn"
@@ -849,165 +738,48 @@
           </div>
 
           <div id="flow-controls">
-            <label for="flowSpeedRange"
-              >Flow Speed:
-              <span id="flowSpeedVal" style="color: var(--accent-color)"
-                >0</span
-              ></label
-            >
-            <input
-              type="range"
-              id="flowSpeedRange"
-              min="0"
-              max="10"
-              value="0"
-              class="nes-range"
-              aria-label="Flow Speed"
-            />
+            <label for="flowSpeedRange">Flow Speed: <span id="flowSpeedVal" style="color: var(--accent-color)">0</span></label>
+            <input type="range" id="flowSpeedRange" min="0" max="10" value="0" class="nes-range" aria-label="Flow Speed" />
           </div>
         </div>
 
-        <label for="detailRange"
-          >Detail Level:
-          <span id="detailVal" style="color: var(--accent-color)"
-            >50</span
-          ></label
-        >
-        <input
-          type="range"
-          id="detailRange"
-          min="10"
-          max="100"
-          value="50"
-          class="nes-range"
-          aria-label="Detail Level"
-        />
+        <label for="detailRange">Detail Level: <span id="detailVal" style="color: var(--accent-color)">50</span></label>
+        <input type="range" id="detailRange" min="10" max="100" value="50" class="nes-range" aria-label="Detail Level" />
 
-        <label for="minPathRange"
-          >Min Path Len:
-          <span id="minPathVal" style="color: var(--accent-color)"
-            >5</span
-          ></label
-        >
-        <input
-          type="range"
-          id="minPathRange"
-          min="1"
-          max="50"
-          value="5"
-          class="nes-range"
-          aria-label="Minimum Path Length"
-        />
+        <label for="minPathRange">Min Path Len: <span id="minPathVal" style="color: var(--accent-color)">5</span></label>
+        <input type="range" id="minPathRange" min="1" max="50" value="5" class="nes-range" aria-label="Minimum Path Length" />
 
-        <label for="strokeRange"
-          >Stroke Weight:
-          <span id="strokeVal" style="color: var(--accent-color)"
-            >1.0</span
-          >px</label
-        >
-        <input
-          type="range"
-          id="strokeRange"
-          min="0.1"
-          max="5.0"
-          step="0.1"
-          value="1.0"
-          class="nes-range"
-          aria-label="Stroke Weight"
-        />
+        <label for="strokeRange">Stroke Weight (px):</label>
+        <input type="number" id="strokeRange" min="0.01" max="5.00" step="0.01" value="2.00" class="nes-input" style="width:100%;" aria-label="Stroke Weight" />
 
-        <label for="letterSpacingRange"
-          >Letter Spacing:
-          <span id="letterSpacingVal" style="color: var(--accent-color)"
-            >0</span
-          ></label
-        >
-        <input
-          type="range"
-          id="letterSpacingRange"
-          min="-20"
-          max="100"
-          value="0"
-          class="nes-range"
-          aria-label="Letter Spacing"
-        />
+        <label for="letterSpacingRange">Letter Spacing: <span id="letterSpacingVal" style="color: var(--accent-color)">0</span></label>
+        <input type="range" id="letterSpacingRange" min="-20" max="100" value="0" class="nes-range" aria-label="Letter Spacing" />
 
         <div id="fourier-controls" class="hidden">
-          <label for="termsRange"
-            >Terms:
-            <span id="termsVal" style="color: var(--accent-color)"
-              >50</span
-            ></label
-          >
-          <input
-            type="range"
-            id="termsRange"
-            min="5"
-            max="200"
-            value="50"
-            class="nes-range"
-            aria-label="Fourier Terms"
-          />
+          <label for="termsRange">Terms: <span id="termsVal" style="color: var(--accent-color)">50</span></label>
+          <input type="range" id="termsRange" min="5" max="200" value="50" class="nes-range" aria-label="Fourier Terms" />
         </div>
         <div id="chaikin-controls" class="hidden">
-          <label for="chaikinRange"
-            >Iters:
-            <span id="chaikinVal" style="color: var(--accent-color)"
-              >1</span
-            ></label
-          >
-          <input
-            type="range"
-            id="chaikinRange"
-            min="0"
-            max="5"
-            value="1"
-            class="nes-range"
-            aria-label="Chaikin Iterations"
-          />
+          <label for="chaikinRange">Iters: <span id="chaikinVal" style="color: var(--accent-color)">1</span></label>
+          <input type="range" id="chaikinRange" min="0" max="5" value="1" class="nes-range" aria-label="Chaikin Iterations" />
         </div>
 
         <!-- Output Size Settings -->
         <hr style="border: 1px dashed var(--text-color); margin: 12px 0" />
-        <p
-          style="font-size: 8px; margin-bottom: 5px; color: var(--accent-color)"
-        >
-          ▶ Output Size
-        </p>
+        <p style="font-size: 8px; margin-bottom: 5px; color: var(--accent-color)">▶ Output Size</p>
         <div class="nes-select" style="margin-bottom: 10px">
-          <select
-            id="sizeModeSelect"
-            style="font-size: 8px; padding: 6px"
-            aria-label="Size Mode Select"
-          >
+          <select id="sizeModeSelect" style="font-size: 8px; padding: 6px" aria-label="Size Mode Select">
             <option value="auto" selected>Auto (Text Aspect Ratio)</option>
             <option value="custom">Custom Dimensions</option>
           </select>
         </div>
 
         <div id="auto-size-controls" style="margin-bottom: 10px">
-          <label for="resolutionScaleRange"
-            >Resolution Scale:
-            <span id="resScaleVal" style="color: var(--accent-color)"
-              >2x</span
-            ></label
-          >
-          <input
-            type="range"
-            id="resolutionScaleRange"
-            min="1"
-            max="8"
-            value="2"
-            class="nes-range"
-            aria-label="Resolution Scale"
-          />
+          <label for="resolutionScaleRange">Resolution Scale: <span id="resScaleVal" style="color: var(--accent-color)">2x</span></label>
+          <input type="range" id="resolutionScaleRange" min="1" max="8" value="2" class="nes-range" aria-label="Resolution Scale" />
         </div>
 
-        <div
-          id="custom-size-controls"
-          class="hidden"
-          style="margin-bottom: 10px"
-        >
+        <div id="custom-size-controls" class="hidden" style="margin-bottom: 10px">
           <div
             style="
               display: flex;
@@ -1017,32 +789,12 @@
             "
           >
             <div>
-              <label
-                for="customWidthInput"
-                style="font-size: 8px; margin-bottom: 2px; display: block"
-                >Width (px)</label
-              >
-              <input
-                type="number"
-                id="customWidthInput"
-                class="nes-input"
-                style="font-size: 8px; padding: 4px; width: 100%"
-                value="1024"
-              />
+              <label for="customWidthInput" style="font-size: 8px; margin-bottom: 2px; display: block">Width (px)</label>
+              <input type="number" id="customWidthInput" class="nes-input" style="font-size: 8px; padding: 4px; width: 100%" value="1024" />
             </div>
             <div>
-              <label
-                for="customHeightInput"
-                style="font-size: 8px; margin-bottom: 2px; display: block"
-                >Height (px)</label
-              >
-              <input
-                type="number"
-                id="customHeightInput"
-                class="nes-input"
-                style="font-size: 8px; padding: 4px; width: 100%"
-                value="256"
-              />
+              <label for="customHeightInput" style="font-size: 8px; margin-bottom: 2px; display: block">Height (px)</label>
+              <input type="number" id="customHeightInput" class="nes-input" style="font-size: 8px; padding: 4px; width: 100%" value="256" />
             </div>
           </div>
           <label
@@ -1054,61 +806,31 @@
               gap: 4px;
             "
           >
-            <input
-              type="checkbox"
-              class="nes-checkbox"
-              id="keepAspectRatioCheck"
-              checked
-              aria-label="Keep Aspect Ratio"
-            />
+            <input type="checkbox" class="nes-checkbox" id="keepAspectRatioCheck" checked aria-label="Keep Aspect Ratio" />
             <span>Lock Ratio</span>
           </label>
         </div>
         <div style="font-size: 7px; color: #aaa; margin-bottom: 10px">
           Target Size:
-          <span
-            id="targetSizeDisplay"
-            style="color: var(--accent-color); font-weight: bold"
-            >-</span
-          >
+          <span id="targetSizeDisplay" style="color: var(--accent-color); font-weight: bold">-</span>
         </div>
 
-        <div
-          id="status-text"
-          style="font-size: 8px; margin-top: 8px; text-align: center"
-        >
-          READY
-        </div>
+        <div id="status-text" style="font-size: 8px; margin-top: 8px; text-align: center">READY</div>
       </div>
 
       <div class="nes-container with-title control-group" style="padding: 15px">
         <p class="title" style="font-size: 10px">Export</p>
         <div class="nes-select" style="width: 100%; margin-bottom: 10px">
-          <select
-            id="exportFormat"
-            style="font-size: 8px"
-            aria-label="Export Format"
-          >
+          <select id="exportFormat" style="font-size: 8px" aria-label="Export Format">
             <option value="png">PNG (Transparent OK)</option>
             <option value="jpg">JPG (Solid background)</option>
             <option value="json">JSON (AST Vector)</option>
           </select>
         </div>
-        <button
-          class="nes-btn is-success"
-          id="downloadBtn"
-          style="width: 100%; font-size: 10px"
-          aria-label="Download File"
-        >
-          DOWNLOAD
-        </button>
+        <button class="nes-btn is-success" id="downloadBtn" style="width: 100%; font-size: 10px" aria-label="Download File">DOWNLOAD</button>
       </div>
 
-      <div
-        class="nes-container with-title control-group"
-        id="partnerWidget"
-        style="padding: 15px; text-align: center"
-      >
+      <div class="nes-container with-title control-group" id="partnerWidget" style="padding: 15px; text-align: center">
         <p class="title" style="font-size: 10px">Font Resources</p>
         <div
           style="
@@ -1118,48 +840,18 @@
             font-size: 10px;
           "
         >
-          <a
-            href="https://fonts.google.com"
-            target="_blank"
-            class="nes-btn"
-            style="font-size: 10px; padding: 4px"
-            >Google Fonts</a
-          >
-          <a
-            href="https://fontdasu.com"
-            target="_blank"
-            class="nes-btn"
-            style="font-size: 10px; padding: 4px"
-            >FontDasu (JP)</a
-          >
-          <a
-            href="https://fonts.adobe.com"
-            target="_blank"
-            class="nes-btn is-primary"
-            style="font-size: 10px; padding: 4px"
-            >Adobe Fonts</a
-          >
-          <a
-            href="https://www.freejapanesefont.com"
-            target="_blank"
-            class="nes-btn is-warning"
-            style="font-size: 10px; padding: 4px"
-            >Free JP Fonts</a
-          >
+          <a href="https://fonts.google.com" target="_blank" class="nes-btn" style="font-size: 10px; padding: 4px">Google Fonts</a>
+          <a href="https://fontdasu.com" target="_blank" class="nes-btn" style="font-size: 10px; padding: 4px">FontDasu (JP)</a>
+          <a href="https://fonts.adobe.com" target="_blank" class="nes-btn is-primary" style="font-size: 10px; padding: 4px">Adobe Fonts</a>
+          <a href="https://www.freejapanesefont.com" target="_blank" class="nes-btn is-warning" style="font-size: 10px; padding: 4px">Free JP Fonts</a>
         </div>
       </div>
     </div>
 
     <div class="viewport-wrapper">
       <div class="top-bar">
-        <div
-          style="flex-grow: 1; display: flex; align-items: center; gap: 10px"
-        >
-          <a
-            href="/"
-            style="color: inherit; text-decoration: none; font-size: 8px"
-            >← Home</a
-          >
+        <div style="flex-grow: 1; display: flex; align-items: center; gap: 10px">
+          <a href="/" style="color: inherit; text-decoration: none; font-size: 8px">← Home</a>
           <a
             href="/image"
             style="
@@ -1171,116 +863,30 @@
           >
         </div>
         <div style="display: flex; gap: 10px">
-          <button
-            class="nes-btn is-warning"
-            id="helpBtn"
-            style="font-size: 8px"
-            aria-label="Help"
-          >
-            ?
-          </button>
-          <button
-            class="nes-btn is-error"
-            id="clearAllBtn"
-            style="font-size: 8px"
-            aria-label="Clear All"
-          >
-            Clear All
-          </button>
-          <button
-            class="nes-btn"
-            id="themeToggleBtn"
-            style="font-size: 8px"
-            aria-label="Toggle Theme"
-          >
-            Theme
-          </button>
-          <button
-            class="nes-btn"
-            id="resetViewBtn"
-            style="font-size: 8px"
-            aria-label="Reset View"
-          >
-            Reset View
-          </button>
-          <button
-            class="nes-btn is-error"
-            id="resetSettingsBtn"
-            style="font-size: 8px"
-            aria-label="Reset Settings"
-          >
-            Reset Config
-          </button>
+          <button class="nes-btn is-warning" id="helpBtn" style="font-size: 8px" aria-label="Help">?</button>
+          <button class="nes-btn is-error" id="clearAllBtn" style="font-size: 8px" aria-label="Clear All">Clear All</button>
+          <button class="nes-btn" id="themeToggleBtn" style="font-size: 8px" aria-label="Toggle Theme">Theme</button>
+          <button class="nes-btn" id="resetViewBtn" style="font-size: 8px" aria-label="Reset View">Reset View</button>
+          <button class="nes-btn is-error" id="resetSettingsBtn" style="font-size: 8px" aria-label="Reset Settings">Reset Config</button>
         </div>
       </div>
 
       <div class="canvas-area" id="canvasArea">
         <canvas id="mainCanvas" aria-label="Main Drawing Canvas"></canvas>
-        <div
-          class="overlay-stats nes-container is-rounded"
-          id="overlayStats"
-          aria-live="polite"
-        >
-          Waiting for input...
-        </div>
+        <div class="overlay-stats nes-container is-rounded" id="overlayStats" aria-live="polite">Waiting for input...</div>
 
-        <button
-          class="nes-btn is-primary canvas-generate-btn"
-          id="generateBtn"
-          aria-label="Generate Image"
-        >
-          GENERATE
-        </button>
+        <button class="nes-btn is-primary canvas-generate-btn" id="generateBtn" aria-label="Generate Image">GENERATE</button>
 
         <div class="canvas-controls">
-          <button
-            class="nes-btn"
-            id="btnZoomIn"
-            title="Zoom In"
-            aria-label="Zoom In"
-          >
-            +
-          </button>
-          <button
-            class="nes-btn"
-            id="btnZoomOut"
-            title="Zoom Out"
-            aria-label="Zoom Out"
-          >
-            -
-          </button>
-          <button
-            class="nes-btn"
-            id="btnResetViewObj"
-            title="Fit Screen"
-            aria-label="Fit Screen"
-          >
-            ▣
-          </button>
-          <button
-            class="nes-btn is-primary"
-            id="btnFocus"
-            title="Focus Mode"
-            aria-label="Focus Mode"
-          >
-            F
-          </button>
+          <button class="nes-btn" id="btnZoomIn" title="Zoom In" aria-label="Zoom In">+</button>
+          <button class="nes-btn" id="btnZoomOut" title="Zoom Out" aria-label="Zoom Out">-</button>
+          <button class="nes-btn" id="btnResetViewObj" title="Fit Screen" aria-label="Fit Screen">▣</button>
+          <button class="nes-btn is-primary" id="btnFocus" title="Focus Mode" aria-label="Focus Mode">F</button>
         </div>
 
         <div id="progressContainer" class="progress-overlay hidden">
-          <p
-            id="progressText"
-            style="font-size: 8px; color: var(--accent-color)"
-          >
-            COMPUTING...
-          </p>
-          <progress
-            class="nes-progress is-primary"
-            value="0"
-            max="100"
-            id="progressBar"
-            style="height: 15px"
-          ></progress>
+          <p id="progressText" style="font-size: 8px; color: var(--accent-color)">COMPUTING...</p>
+          <progress class="nes-progress is-primary" value="0" max="100" id="progressBar" style="height: 15px"></progress>
         </div>
       </div>
 
@@ -1298,14 +904,7 @@
         <p class="title">Confirm Delete</p>
         <p style="font-size: 8px">Erase snapshot?</p>
         <menu class="dialog-menu">
-          <button class="nes-btn" value="cancel">No</button
-          ><button
-            class="nes-btn is-error"
-            id="confirmDeleteBtn"
-            value="confirm"
-          >
-            Yes
-          </button>
+          <button class="nes-btn" value="cancel">No</button><button class="nes-btn is-error" id="confirmDeleteBtn" value="confirm">Yes</button>
         </menu>
       </form>
     </dialog>
@@ -1313,10 +912,7 @@
       <form method="dialog">
         <p class="title">Clear All</p>
         <p style="font-size: 8px">Erase all?</p>
-        <menu class="dialog-menu">
-          <button class="nes-btn" value="cancel">No</button
-          ><button class="nes-btn is-error" value="confirm">Yes</button>
-        </menu>
+        <menu class="dialog-menu"><button class="nes-btn" value="cancel">No</button><button class="nes-btn is-error" value="confirm">Yes</button></menu>
       </form>
     </dialog>
     <dialog class="nes-dialog" id="error-dialog">
@@ -1329,15 +925,9 @@
       </form>
     </dialog>
 
-    <dialog
-      class="nes-dialog"
-      id="help-dialog"
-      style="width: 90vw; max-width: 600px"
-    >
+    <dialog class="nes-dialog" id="help-dialog" style="width: 90vw; max-width: 600px">
       <form method="dialog">
-        <p class="title" style="color: var(--accent-color); font-size: 10px">
-          Typography Engine Guide
-        </p>
+        <p class="title" style="color: var(--accent-color); font-size: 10px">Typography Engine Guide</p>
         <div
           style="
             font-size: 8px;
@@ -1350,20 +940,16 @@
         >
           <p>
             <strong>Font Sources:</strong><br />
-            - <b>System Fonts</b>: Chrome/Edge only. Instantly loads ALL fonts
-            installed on your OS (including CJK).<br />
+            - <b>System Fonts</b>: Chrome/Edge only. Instantly loads ALL fonts installed on your OS (including CJK).<br />
             - <b>Upload Font</b>: Drag any .ttf/.otf file from your computer.<br />
-            - <b>Cloud Presets</b>: Curated small-size fonts fetched instantly
-            from our CDN.<br />
-            - <b>IndexedDB Cache</b>: Your last font is remembered across
-            sessions automatically.
+            - <b>Cloud Presets</b>: Curated small-size fonts fetched instantly from our CDN.<br />
+            - <b>IndexedDB Cache</b>: Your last font is remembered across sessions automatically.
           </p>
 
           <p>
             <strong>Algorithms:</strong><br />
             - <b>Spline</b>: Precise Bezier curves per glyph contour.<br />
-            - <b>Fourier</b>: Continuous epicycle loops for each character
-            path.<br />
+            - <b>Fourier</b>: Continuous epicycle loops for each character path.<br />
             - <b>Chaikin</b>: Smooth polyline corner-cutting per contour.
           </p>
 
@@ -1372,10 +958,8 @@
             - Use Shift + Enter to input a newline.<br />
             - Some fonts may require a space at the start or end of the text to prevent missing shapes.<br />
             - If 'Access System Fonts' fails, switch to Chrome/Edge, as Firefox/Safari block local resource access.<br />
-            - For CJK text, use "System Fonts" API (Chrome) or upload a Noto CJK
-            font.<br />
-            - Large CJK fonts (10-30MB) are cached in IndexedDB after first
-            load.<br />
+            - For CJK text, use "System Fonts" API (Chrome) or upload a Noto CJK font.<br />
+            - Large CJK fonts (10-30MB) are cached in IndexedDB after first load.<br />
             - Use transparent background + PNG for best overlay results.
           </p>
         </div>
@@ -1479,7 +1063,6 @@
         chaikinControls: document.getElementById("chaikin-controls"),
         detailVal: document.getElementById("detailVal"),
         minPathVal: document.getElementById("minPathVal"),
-        strokeVal: document.getElementById("strokeVal"),
         letterSpacingVal: document.getElementById("letterSpacingVal"),
         termsVal: document.getElementById("termsVal"),
         chaikinVal: document.getElementById("chaikinVal"),
@@ -1754,7 +1337,6 @@
       function updateLabels() {
         els.detailVal.innerText = els.detailRange.value;
         els.minPathVal.innerText = els.minPathRange.value;
-        els.strokeVal.innerText = els.strokeRange.value;
         els.letterSpacingVal.innerText = els.letterSpacingRange.value;
         els.termsVal.innerText = els.termsRange.value;
         els.chaikinVal.innerText = els.chaikinRange.value;
@@ -1809,7 +1391,6 @@
       [
         els.detailRange,
         els.minPathRange,
-        els.strokeRange,
         els.letterSpacingRange,
         els.termsRange,
         els.chaikinRange,
@@ -3762,47 +3343,28 @@
       requestAnimationFrame(animationLoop);
     </script>
 
-    <dialog
-      class="nes-dialog"
-      id="zipFontDialog"
-      style="width: 90vw; max-width: 450px"
-    >
+    <dialog class="nes-dialog" id="zipFontDialog" style="width: 90vw; max-width: 450px">
       <form method="dialog">
-        <p class="title" style="font-size: 10px; color: var(--accent-color)">
-          Select Font
-        </p>
-        <p style="font-size: 8px">
-          Multiple fonts found in ZIP. Please choose one:
-        </p>
+        <p class="title" style="font-size: 10px; color: var(--accent-color)">Select Font</p>
+        <p style="font-size: 8px">Multiple fonts found in ZIP. Please choose one:</p>
         <div class="nes-select" style="margin-bottom: 12px">
-          <select
-            id="zipFontSelect"
-            style="font-size: 8px; padding: 4px"
-            aria-label="Select Font from ZIP"
-          >
+          <select id="zipFontSelect" style="font-size: 8px; padding: 4px" aria-label="Select Font from ZIP">
             <!-- Dynamically populated -->
           </select>
         </div>
-        <menu
-          class="dialog-menu"
-          style="display: flex; justify-content: flex-end; gap: 8px"
-        >
-          <button class="nes-btn" value="cancel" style="font-size: 8px">
-            Cancel
-          </button>
-          <button
-            class="nes-btn is-primary"
-            value="confirm"
-            style="font-size: 8px"
-          >
-            Load
-          </button>
+        <menu class="dialog-menu" style="display: flex; justify-content: flex-end; gap: 8px">
+          <button class="nes-btn" value="cancel" style="font-size: 8px">Cancel</button>
+          <button class="nes-btn is-primary" value="confirm" style="font-size: 8px">Load</button>
         </menu>
       </form>
     </dialog>
 
     <!-- Custom Styled Alert Dialog -->
-    <dialog class="nes-dialog is-rounded" id="custom-alert-dialog" style="z-index: 10000; font-family: 'Press Start 2P', cursive; font-size: 10px; max-width: 450px; text-align: left;">
+    <dialog
+      class="nes-dialog is-rounded"
+      id="custom-alert-dialog"
+      style="z-index: 10000; font-family: 'Press Start 2P', cursive; font-size: 10px; max-width: 450px; text-align: left;"
+    >
       <form method="dialog">
         <p class="title" style="font-size: 10px; margin-bottom: 15px; color: var(--text-color);">NOTIFICATION</p>
         <p id="custom-alert-message" style="font-size: 8px; line-height: 1.6; margin-bottom: 25px; word-break: break-word;"></p>
