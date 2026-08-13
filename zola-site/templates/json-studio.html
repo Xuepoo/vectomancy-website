@@ -1,0 +1,703 @@
+{% extends "base.html" %} {% block title %}JSON Studio — Vectomancy{% endblock title %} {% block extra_head %}
+<style>
+  body { overflow: hidden; }
+
+  .studio-layout {
+    display: flex;
+    height: 100vh;
+    width: 100vw;
+    overflow: hidden;
+    font-family: 'Press Start 2P', cursive;
+  }
+
+  /* ── Sidebar ── */
+  .sidebar {
+    width: 260px;
+    min-width: 220px;
+    max-width: 300px;
+    background: var(--container-bg);
+    border-right: 4px solid var(--text-color);
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 10px 8px;
+    gap: 8px;
+    box-sizing: border-box;
+    flex-shrink: 0;
+  }
+
+  .sidebar .top-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-bottom: 4px;
+  }
+
+  .control-group {
+    font-size: 8px;
+    padding: 10px !important;
+  }
+
+  .control-group .title {
+    font-size: 8px !important;
+  }
+
+  .control-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px;
+    margin-bottom: 8px;
+  }
+
+  .control-row label {
+    font-size: 7px;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  /* drop zone */
+  .drop-zone {
+    border: 3px dashed var(--text-color);
+    padding: 16px 8px;
+    text-align: center;
+    font-size: 7px;
+    line-height: 1.6;
+    cursor: pointer;
+    transition: background 0.15s;
+    position: relative;
+  }
+  .drop-zone.drag-over {
+    background: rgba(32, 156, 238, 0.12);
+    border-color: #209cee;
+  }
+  .drop-zone input[type="file"] {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    cursor: pointer;
+    width: 100%;
+    height: 100%;
+  }
+
+  /* paste textarea */
+  #pasteArea {
+    width: 100%;
+    min-height: 60px;
+    font-family: monospace;
+    font-size: 7px;
+    resize: vertical;
+    box-sizing: border-box;
+    margin-top: 6px;
+  }
+
+  .color-preview {
+    width: 28px;
+    height: 20px;
+    border: 2px solid var(--text-color);
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+
+  .ast-info {
+    font-size: 7px;
+    line-height: 1.8;
+    color: var(--text-color);
+    opacity: 0.85;
+  }
+
+  .ast-info span { color: #209cee; }
+
+  /* ── Canvas area ── */
+  .canvas-area {
+    flex: 1;
+    position: relative;
+    background: #f0f0f0;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  body.dark-theme .canvas-area { background: #111; }
+
+  #mainCanvas {
+    display: block;
+    image-rendering: pixelated;
+    cursor: crosshair;
+  }
+
+  .placeholder-msg {
+    position: absolute;
+    text-align: center;
+    font-size: 9px;
+    opacity: 0.4;
+    pointer-events: none;
+    line-height: 1.8;
+  }
+
+  .status-bar {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    background: rgba(0,0,0,0.55);
+    color: #fff;
+    font-size: 7px;
+    padding: 3px 8px;
+    pointer-events: none;
+  }
+
+  /* scrollbar styling for sidebar */
+  .sidebar::-webkit-scrollbar { width: 6px; }
+  .sidebar::-webkit-scrollbar-thumb { background: #888; }
+
+  /* responsive: stack on narrow screens */
+  @media (max-width: 600px) {
+    .studio-layout { flex-direction: column; }
+    .sidebar { width: 100%; max-width: 100%; height: 50vh; border-right: none; border-bottom: 4px solid var(--text-color); }
+    .canvas-area { height: 50vh; }
+  }
+</style>
+{% endblock extra_head %} {% block content %}
+<div class="studio-layout">
+  <!-- ═══════════════════  SIDEBAR  ═══════════════════ -->
+  <div class="sidebar">
+    <!-- top bar -->
+    <div class="top-bar">
+      <a href="/" class="nes-btn" style="font-size: 7px; padding: 2px 6px;">← Home</a>
+      <span style="font-size: 8px; font-weight: bold;">JSON Studio</span>
+      <button type="button" class="nes-btn" id="themeBtn" style="font-size: 7px; padding: 2px 5px;">Theme</button>
+    </div>
+
+    <!-- INPUT section -->
+    <div class="nes-container with-title control-group">
+      <p class="title">Input</p>
+
+      <div class="drop-zone" id="dropZone">
+        <input type="file" id="jsonFileInput" accept=".json,application/json" />
+        &#128194; Drop .json here<br />or click to browse
+      </div>
+
+      <div style="text-align:center; font-size:7px; margin: 6px 0; opacity:0.6;">— or paste JSON —</div>
+
+      <textarea id="pasteArea" class="nes-textarea" placeholder='{"type":"Polyline",...}' rows="4" aria-label="Paste JSON here"></textarea>
+      <button type="button" class="nes-btn is-primary" id="loadPasteBtn" style="width:100%; font-size:7px; margin-top:6px;">LOAD</button>
+    </div>
+
+    <!-- AST INFO -->
+    <div class="nes-container with-title control-group" id="astInfoBox" style="display:none;">
+      <p class="title">AST Info</p>
+      <div class="ast-info" id="astInfo"></div>
+    </div>
+
+    <!-- VISUAL PARAMS -->
+    <div class="nes-container with-title control-group">
+      <p class="title">Visual</p>
+
+      <div class="control-row">
+        <label for="strokeInput">Stroke (px)</label>
+        <input
+          type="number"
+          id="strokeInput"
+          min="0.001"
+          max="100"
+          step="0.001"
+          value="2"
+          class="nes-input"
+          style="width:80px; font-size:7px;"
+          aria-label="Stroke Weight"
+        />
+      </div>
+
+      <div class="control-row" style="margin-bottom:4px;">
+        <label>Color</label>
+        <div style="display:flex; gap:6px; align-items:center;">
+          <label style="font-size:7px;"><input type="radio" class="nes-radio" name="colorMode" value="source" checked /> <span>Source</span></label>
+          <label style="font-size:7px;"><input type="radio" class="nes-radio" name="colorMode" value="override" /> <span>Override</span></label>
+        </div>
+      </div>
+      <div id="overrideColorRow" class="control-row" style="display:none;">
+        <label for="overrideColor">Color</label>
+        <input type="color" id="overrideColor" value="#000000" class="color-preview" />
+      </div>
+
+      <div class="control-row">
+        <label for="bgTransparent">Transparent BG</label>
+        <input type="checkbox" class="nes-checkbox" id="bgTransparent" />
+      </div>
+      <div class="control-row" id="bgColorRow">
+        <label for="bgColor">BG Color</label>
+        <input type="color" id="bgColor" value="#ffffff" class="color-preview" />
+      </div>
+    </div>
+
+    <!-- OUTPUT SIZE -->
+    <div class="nes-container with-title control-group">
+      <p class="title">Output</p>
+
+      <div class="control-row">
+        <label for="scaleSelect">Scale</label>
+        <select id="scaleSelect" class="nes-select" style="font-size:7px; width:90px;" aria-label="Output scale">
+          <option value="1">1× (native)</option>
+          <option value="2" selected>2× HiDPI</option>
+          <option value="4">4×</option>
+          <option value="custom">Custom</option>
+        </select>
+      </div>
+      <div id="customSizeRow" style="display:none;">
+        <div class="control-row" style="margin-top:4px;">
+          <label for="customW">W</label>
+          <input type="number" id="customW" min="1" max="8192" value="1600" class="nes-input" style="width:70px; font-size:7px;" />
+        </div>
+        <div class="control-row">
+          <label for="customH">H</label>
+          <input type="number" id="customH" min="1" max="8192" value="900" class="nes-input" style="width:70px; font-size:7px;" />
+        </div>
+      </div>
+
+      <div class="control-row" style="margin-top:4px;">
+        <label for="formatSelect">Format</label>
+        <select id="formatSelect" class="nes-select" style="font-size:7px; width:90px;" aria-label="Export format">
+          <option value="png" selected>PNG</option>
+          <option value="jpg">JPG</option>
+          <option value="svg">SVG</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- ACTIONS -->
+    <div class="nes-container with-title control-group">
+      <p class="title">Actions</p>
+      <button type="button" class="nes-btn is-success" id="downloadBtn" style="width:100%; font-size:8px;">DOWNLOAD</button>
+      <button type="button" class="nes-btn" id="copyBtn" style="width:100%; font-size:8px; margin-top:6px;">COPY PNG</button>
+    </div>
+  </div>
+  <!-- /sidebar -->
+
+  <!-- ═══════════════════  CANVAS AREA  ═══════════════════ -->
+  <div class="canvas-area" id="canvasArea">
+    <div class="placeholder-msg" id="placeholder">&#128196; Load a Vectomancy JSON file<br />to start rendering</div>
+    <canvas id="mainCanvas" style="display:none;"></canvas>
+    <div class="status-bar" id="statusBar" style="display:none;"></div>
+  </div>
+</div>
+
+<script>
+  // ── Theme toggle ────────────────────────────────────────
+  document.getElementById('themeBtn').addEventListener('click', () => {
+    const dark = document.body.classList.toggle('dark-theme');
+    localStorage.setItem('vectomancy_theme', dark ? 'dark' : 'light');
+    if (currentAst) render();
+  });
+
+  // ── State ───────────────────────────────────────────────
+  let currentAst = null;
+  let nativeW = 800, nativeH = 600;
+
+  // ── Helpers ─────────────────────────────────────────────
+  function setStatus(msg) {
+    const bar = document.getElementById('statusBar');
+    bar.style.display = msg ? '' : 'none';
+    bar.textContent = msg;
+  }
+
+  function showAstInfo(ast, filename) {
+    let pathCount = '—';
+    if (ast.type === 'Polyline' || ast.type === 'polyline') pathCount = (ast.paths||[]).length + ' paths';
+    else if (ast.type === 'Spline'   || ast.type === 'spline')   pathCount = (ast.equations||[]).length + ' paths';
+    else if (ast.type === 'Fourier'  || ast.type === 'fourier')  pathCount = (ast.strokes||[]).length + ' strokes';
+    const bb = ast.bounding_box;
+    const sizeStr = bb ? `${Math.round(Math.abs(bb[2]-bb[0]))}×${Math.round(Math.abs(bb[3]-bb[1]))}` : 'unknown';
+    document.getElementById('astInfo').innerHTML =
+      `Type: <span>${ast.type}</span><br>` +
+      `Paths: <span>${pathCount}</span><br>` +
+      `Size: <span>${sizeStr}</span><br>` +
+      (filename ? `File: <span>${filename.substring(0,20)}</span>` : '');
+    document.getElementById('astInfoBox').style.display = '';
+  }
+
+  function inferDimensions(ast) {
+    const bb = ast.bounding_box;
+    if (bb && bb.length >= 4) {
+      const w = Math.abs(bb[2] - bb[0]);
+      const h = Math.abs(bb[3] - bb[1]);
+      if (w > 0 && h > 0 && isFinite(w) && isFinite(h)) return { w: Math.round(w), h: Math.round(h) };
+    }
+    // Fallback: scan all points
+    let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+    const collect = (x, y) => {
+      if (!isFinite(x) || !isFinite(y)) return;
+      if (x < minX) minX = x; if (x > maxX) maxX = x;
+      if (y < minY) minY = y; if (y > maxY) maxY = y;
+    };
+    try {
+      if (ast.paths) ast.paths.forEach(p => p.data.forEach(pt => collect(pt.x, pt.y)));
+      else if (ast.equations) ast.equations.forEach(p => p.data.forEach(eq => {
+        for (let t = 0; t <= 1; t += 0.1) {
+          collect(eq.x_poly[0]+eq.x_poly[1]*t+eq.x_poly[2]*t*t+eq.x_poly[3]*t*t*t,
+                  eq.y_poly[0]+eq.y_poly[1]*t+eq.y_poly[2]*t*t+eq.y_poly[3]*t*t*t);
+        }
+      }));
+      else if (ast.strokes) ast.strokes.forEach(s => {
+        for (let i = 0; i <= 60; i++) {
+          const t = (i/60)*Math.PI*2; let x=0, y=0;
+          s.data.forEach(term => { x+=term.amplitude*Math.cos(term.frequency*t+term.phase); y+=term.amplitude*Math.sin(term.frequency*t+term.phase); });
+          collect(x, y);
+        }
+      });
+    } catch(e) {}
+    if (isFinite(minX) && isFinite(maxX)) return { w: Math.max(1, Math.round(maxX-minX)), h: Math.max(1, Math.round(maxY-minY)) };
+    return { w: 800, h: 600 };
+  }
+
+  // ── processColor (from image.html) ──────────────────────
+  function processColor(colorArray) {
+    if (!Array.isArray(colorArray) || colorArray.length < 3) return [0, 0, 0];
+    return colorArray.slice(0, 3).map(v => Math.min(255, Math.max(0, Math.round(v))));
+  }
+
+  // ── drawAST ─────────────────────────────────────────────
+  function drawASTToCtx(ctx, ast, strokePx, isDark, overrideColor) {
+    ctx.lineJoin = 'round';
+    ctx.lineCap = 'round';
+    ctx.lineWidth = strokePx;
+    const defCol = isDark ? '#ffffff' : '#000000';
+    const useSource = !overrideColor;
+
+    function getStroke(colorStyle) {
+      if (overrideColor) return overrideColor;
+      if (!colorStyle) return defCol;
+      const bb = ast.bounding_box || [0,0,nativeW,nativeH];
+      if (Array.isArray(colorStyle)) {
+        const rgb = processColor(colorStyle);
+        return `rgb(${rgb.join(',')})`;
+      }
+      if (colorStyle.stops) {
+        const sp = colorStyle.start_pos || [0.0,0.5], ep = colorStyle.end_pos || [1.0,0.5];
+        const w = bb[2]-bb[0], h = bb[3]-bb[1];
+        const x0 = bb[0]+(parseFloat(sp[0])||0)*w, y0 = bb[1]+(parseFloat(sp[1])||0.5)*h;
+        const x1 = bb[0]+(parseFloat(ep[0])||1)*w, y1 = bb[1]+(parseFloat(ep[1])||0.5)*h;
+        if (!isFinite(x0)||!isFinite(y0)||!isFinite(x1)||!isFinite(y1)) return defCol;
+        const grad = ctx.createLinearGradient(x0,y0,x1,y1);
+        colorStyle.stops.forEach(stop => {
+          let off = parseFloat(stop[0]); if (!isFinite(off)) off = 0;
+          off = Math.max(0,Math.min(1,off));
+          const rgb = processColor(stop[1]);
+          grad.addColorStop(off, `rgb(${rgb.join(',')})`);
+        });
+        return grad;
+      }
+      if (colorStyle.LinearGradient) {
+        const s = processColor(colorStyle.LinearGradient.start);
+        const e = processColor(colorStyle.LinearGradient.end);
+        const ang = (colorStyle.LinearGradient.angle||0)*Math.PI/180;
+        const w = bb[2]-bb[0], h = bb[3]-bb[1];
+        const cx = bb[0]+w/2, cy = bb[1]+h/2, r = Math.sqrt(w*w+h*h)/2;
+        const gx1 = cx-Math.cos(ang)*r, gy1 = cy-Math.sin(ang)*r;
+        const gx2 = cx+Math.cos(ang)*r, gy2 = cy+Math.sin(ang)*r;
+        const grad = ctx.createLinearGradient(gx1,gy1,gx2,gy2);
+        grad.addColorStop(0, `rgb(${s.join(',')})`);
+        grad.addColorStop(1, `rgb(${e.join(',')})`);
+        return grad;
+      }
+      return defCol;
+    }
+
+    if (ast.type==='Polyline'||ast.type==='polyline') {
+      ast.paths.forEach(path => {
+        ctx.strokeStyle = getStroke(path.color_style||path.color_rgb);
+        ctx.beginPath(); let first=true;
+        path.data.forEach(pt => { if(first){ctx.moveTo(pt.x,pt.y);first=false;}else ctx.lineTo(pt.x,pt.y); });
+        ctx.stroke();
+      });
+    } else if (ast.type==='Spline'||ast.type==='spline') {
+      ast.equations.forEach(path => {
+        ctx.strokeStyle = getStroke(path.color_style||path.color_rgb);
+        path.data.forEach(eq => {
+          ctx.beginPath(); let first=true;
+          for(let t=0;t<=1;t+=0.03){
+            const x=eq.x_poly[0]+eq.x_poly[1]*t+eq.x_poly[2]*t*t+eq.x_poly[3]*t*t*t;
+            const y=eq.y_poly[0]+eq.y_poly[1]*t+eq.y_poly[2]*t*t+eq.y_poly[3]*t*t*t;
+            if(first){ctx.moveTo(x,y);first=false;}else ctx.lineTo(x,y);
+          }
+          ctx.stroke();
+        });
+      });
+    } else if (ast.type==='Fourier'||ast.type==='fourier') {
+      ast.strokes.forEach(stroke => {
+        ctx.strokeStyle = getStroke(stroke.color_style||stroke.color_rgb);
+        ctx.beginPath(); let first=true;
+        const steps = Math.min(stroke.data.length*4, 2000);
+        for(let i=0;i<=steps;i++){
+          const t=(i/steps)*Math.PI*2; let x=0,y=0;
+          stroke.data.forEach(term=>{x+=term.amplitude*Math.cos(term.frequency*t+term.phase);y+=term.amplitude*Math.sin(term.frequency*t+term.phase);});
+          if(first){ctx.moveTo(x,y);first=false;}else ctx.lineTo(x,y);
+        }
+        ctx.stroke();
+      });
+    }
+  }
+
+  // ── astToSvg ────────────────────────────────────────────
+  function astToSvg(ast, w, h, strokePx, isDark, overrideColor) {
+    const defCol = isDark ? '#ffffff' : '#000000';
+    const bb = (ast.bounding_box && !ast.bounding_box.some(v=>!isFinite(v))) ? ast.bounding_box : [0,0,w,h];
+    const defs=[]; let gradIdx=0;
+    const fmt = v => (Math.round(v*1e4)/1e4).toString();
+
+    function resolveStroke(cs) {
+      if (overrideColor) return overrideColor;
+      if (!cs) return defCol;
+      if (Array.isArray(cs)) return `rgb(${processColor(cs).join(',')})`;
+      if (cs.stops) {
+        const id=`sg${gradIdx++}`;
+        const sp=cs.start_pos||[0,0.5],ep=cs.end_pos||[1,0.5],bw=bb[2]-bb[0],bh=bb[3]-bb[1];
+        const x0=bb[0]+(parseFloat(sp[0])||0)*bw,y0=bb[1]+(parseFloat(sp[1])||0.5)*bh;
+        const x1=bb[0]+(parseFloat(ep[0])||1)*bw,y1=bb[1]+(parseFloat(ep[1])||0.5)*bh;
+        const stops=cs.stops.map(s=>{let off=parseFloat(s[0]);if(!isFinite(off))off=0;off=Math.max(0,Math.min(1,off));return `<stop offset="${fmt(off)}" stop-color="rgb(${processColor(s[1]).join(',')})"/>`;}).join('');
+        defs.push(`<linearGradient id="${id}" gradientUnits="userSpaceOnUse" x1="${fmt(x0)}" y1="${fmt(y0)}" x2="${fmt(x1)}" y2="${fmt(y1)}">${stops}</linearGradient>`);
+        return `url(#${id})`;
+      }
+      if (cs.LinearGradient) {
+        const id=`sg${gradIdx++}`;
+        const s=processColor(cs.LinearGradient.start),e=processColor(cs.LinearGradient.end);
+        const ang=(cs.LinearGradient.angle||0)*Math.PI/180,bw=bb[2]-bb[0],bh=bb[3]-bb[1];
+        const cx=bb[0]+bw/2,cy=bb[1]+bh/2,r=Math.sqrt(bw*bw+bh*bh)/2;
+        const gx1=cx-Math.cos(ang)*r,gy1=cy-Math.sin(ang)*r,gx2=cx+Math.cos(ang)*r,gy2=cy+Math.sin(ang)*r;
+        defs.push(`<linearGradient id="${id}" gradientUnits="userSpaceOnUse" x1="${fmt(gx1)}" y1="${fmt(gy1)}" x2="${fmt(gx2)}" y2="${fmt(gy2)}"><stop offset="0" stop-color="rgb(${s.join(',')})"/><stop offset="1" stop-color="rgb(${e.join(',')})"/></linearGradient>`);
+        return `url(#${id})`;
+      }
+      return defCol;
+    }
+
+    function pathTag(pts, stroke) {
+      if (!pts.length) return '';
+      let d=`M ${fmt(pts[0][0])} ${fmt(pts[0][1])}`;
+      for(let i=1;i<pts.length;i++) d+=` L ${fmt(pts[i][0])} ${fmt(pts[i][1])}`;
+      return `<path d="${d}" fill="none" stroke="${stroke}" stroke-width="${fmt(strokePx)}"/>`;
+    }
+
+    let body='';
+    if (ast.type==='Polyline'||ast.type==='polyline') {
+      ast.paths.forEach(p=>{ body+=pathTag(p.data.map(pt=>[pt.x,pt.y]), resolveStroke(p.color_style||p.color_rgb)); });
+    } else if (ast.type==='Spline'||ast.type==='spline') {
+      ast.equations.forEach(p=>p.data.forEach(eq=>{
+        const pts=[];
+        for(let t=0;t<=1;t+=0.02){pts.push([eq.x_poly[0]+eq.x_poly[1]*t+eq.x_poly[2]*t*t+eq.x_poly[3]*t*t*t,eq.y_poly[0]+eq.y_poly[1]*t+eq.y_poly[2]*t*t+eq.y_poly[3]*t*t*t]);}
+        body+=pathTag(pts, resolveStroke(p.color_style||p.color_rgb));
+      }));
+    } else if (ast.type==='Fourier'||ast.type==='fourier') {
+      ast.strokes.forEach(s=>{
+        const pts=[],steps=Math.min(s.data.length*4,2000);
+        for(let i=0;i<=steps;i++){const t=(i/steps)*Math.PI*2;let x=0,y=0;s.data.forEach(term=>{x+=term.amplitude*Math.cos(term.frequency*t+term.phase);y+=term.amplitude*Math.sin(term.frequency*t+term.phase);});pts.push([x,y]);}
+        body+=pathTag(pts, resolveStroke(s.color_style||s.color_rgb));
+      });
+    }
+    const defsMarkup=defs.length?`<defs>${defs.join('')}</defs>`:'';
+    return `<?xml version="1.0" encoding="UTF-8"?>\n<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">\n${defsMarkup}${body}\n</svg>\n`;
+  }
+
+  // ── Core render ─────────────────────────────────────────
+  let renderTimer = null;
+  function scheduleRender() {
+    clearTimeout(renderTimer);
+    renderTimer = setTimeout(render, 50);
+  }
+
+  function render() {
+    if (!currentAst) return;
+    const isDark = document.body.classList.contains('dark-theme');
+    const transparent = document.getElementById('bgTransparent').checked;
+    const bgColor = document.getElementById('bgColor').value;
+    const strokePx = parseFloat(document.getElementById('strokeInput').value) || 2.0;
+    const colorMode = document.querySelector('input[name="colorMode"]:checked').value;
+    const overrideColor = colorMode === 'override' ? document.getElementById('overrideColor').value : null;
+
+    // output dimensions
+    const scaleVal = document.getElementById('scaleSelect').value;
+    let outW, outH;
+    if (scaleVal === 'custom') {
+      outW = parseInt(document.getElementById('customW').value) || nativeW;
+      outH = parseInt(document.getElementById('customH').value) || nativeH;
+    } else {
+      const s = parseFloat(scaleVal);
+      outW = Math.round(nativeW * s);
+      outH = Math.round(nativeH * s);
+    }
+
+    const canvas = document.getElementById('mainCanvas');
+    canvas.width = outW;
+    canvas.height = outH;
+    canvas.style.display = '';
+    document.getElementById('placeholder').style.display = 'none';
+    document.getElementById('statusBar').style.display = '';
+
+    const ctx = canvas.getContext('2d');
+    if (!transparent) {
+      ctx.fillStyle = bgColor;
+      ctx.fillRect(0, 0, outW, outH);
+    } else {
+      ctx.clearRect(0, 0, outW, outH);
+    }
+
+    // scale from native AST coords to output size
+    const scaleX = outW / nativeW;
+    const scaleY = outH / nativeH;
+    const sc = Math.min(scaleX, scaleY);
+    const ox = (outW - nativeW * sc) / 2;
+    const oy = (outH - nativeH * sc) / 2;
+    ctx.save();
+    ctx.translate(ox, oy);
+    ctx.scale(sc, sc);
+    drawASTToCtx(ctx, currentAst, strokePx / sc, isDark, overrideColor);
+    ctx.restore();
+
+    setStatus(`${outW}×${outH} | stroke ${strokePx}px | ${currentAst.type}`);
+  }
+
+  // ── Load AST from parsed object ──────────────────────────
+  function loadAst(ast, filename) {
+    if (!ast || !ast.type) { alert('Invalid JSON: missing "type" field.'); return; }
+    const dims = inferDimensions(ast);
+    nativeW = dims.w; nativeH = dims.h;
+    currentAst = ast;
+    showAstInfo(ast, filename);
+    render();
+  }
+
+  // ── File input & drag-drop ───────────────────────────────
+  document.getElementById('jsonFileInput').addEventListener('change', async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    try {
+      const text = await file.text();
+      loadAst(JSON.parse(text), file.name);
+    } catch(err) { alert('Failed to parse JSON: ' + err.message); }
+    e.target.value = '';
+  });
+
+  const dropZone = document.getElementById('dropZone');
+  dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
+  dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
+  dropZone.addEventListener('drop', async (e) => {
+    e.preventDefault();
+    dropZone.classList.remove('drag-over');
+    const file = e.dataTransfer.files[0];
+    if (!file) return;
+    try {
+      const text = await file.text();
+      loadAst(JSON.parse(text), file.name);
+    } catch(err) { alert('Failed to parse JSON: ' + err.message); }
+  });
+
+  // paste + LOAD button
+  document.getElementById('loadPasteBtn').addEventListener('click', () => {
+    const text = document.getElementById('pasteArea').value.trim();
+    if (!text) { alert('Paste JSON above first.'); return; }
+    try { loadAst(JSON.parse(text), 'pasted'); } catch(err) { alert('Parse error: ' + err.message); }
+  });
+
+  // ── Parameter change listeners ───────────────────────────
+  ['strokeInput', 'bgColor', 'overrideColor', 'customW', 'customH'].forEach(id => {
+    document.getElementById(id).addEventListener('input', scheduleRender);
+  });
+  ['bgTransparent'].forEach(id => {
+    document.getElementById(id).addEventListener('change', scheduleRender);
+  });
+  document.querySelectorAll('input[name="colorMode"]').forEach(el => {
+    el.addEventListener('change', () => {
+      document.getElementById('overrideColorRow').style.display =
+        document.querySelector('input[name="colorMode"]:checked').value === 'override' ? '' : 'none';
+      scheduleRender();
+    });
+  });
+  document.getElementById('bgTransparent').addEventListener('change', () => {
+    document.getElementById('bgColorRow').style.display =
+      document.getElementById('bgTransparent').checked ? 'none' : '';
+    scheduleRender();
+  });
+  document.getElementById('scaleSelect').addEventListener('change', () => {
+    document.getElementById('customSizeRow').style.display =
+      document.getElementById('scaleSelect').value === 'custom' ? '' : 'none';
+    scheduleRender();
+  });
+  document.getElementById('formatSelect').addEventListener('change', () => {
+    const fmt = document.getElementById('formatSelect').value;
+    if (fmt === 'svg') {
+      document.getElementById('bgTransparent').checked = false;
+      document.getElementById('bgColorRow').style.display = '';
+    }
+  });
+
+  // ── DOWNLOAD ─────────────────────────────────────────────
+  document.getElementById('downloadBtn').addEventListener('click', () => {
+    if (!currentAst) { alert('Load a JSON file first.'); return; }
+    const format = document.getElementById('formatSelect').value;
+    const strokePx = parseFloat(document.getElementById('strokeInput').value) || 2.0;
+    const isDark = document.body.classList.contains('dark-theme');
+    const overrideColor = document.querySelector('input[name="colorMode"]:checked').value === 'override'
+      ? document.getElementById('overrideColor').value : null;
+
+    const scaleVal = document.getElementById('scaleSelect').value;
+    let outW, outH;
+    if (scaleVal === 'custom') {
+      outW = parseInt(document.getElementById('customW').value) || nativeW;
+      outH = parseInt(document.getElementById('customH').value) || nativeH;
+    } else {
+      const s = parseFloat(scaleVal);
+      outW = Math.round(nativeW * s);
+      outH = Math.round(nativeH * s);
+    }
+
+    const name = `vecto_studio_${currentAst.type.toLowerCase()}`;
+
+    if (format === 'svg') {
+      const svg = astToSvg(currentAst, outW, outH, strokePx, isDark, overrideColor);
+      const blob = new Blob([svg], { type: 'image/svg+xml' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a'); a.download = `${name}.svg`; a.href = url; a.click();
+      setTimeout(() => URL.revokeObjectURL(url), 100);
+      return;
+    }
+
+    const offscreen = document.createElement('canvas');
+    offscreen.width = outW; offscreen.height = outH;
+    const ctx = offscreen.getContext('2d');
+    const transparent = document.getElementById('bgTransparent').checked;
+    if (!transparent || format === 'jpg') {
+      ctx.fillStyle = document.getElementById('bgColor').value;
+      ctx.fillRect(0, 0, outW, outH);
+    }
+    const sc = Math.min(outW/nativeW, outH/nativeH);
+    const ox = (outW - nativeW*sc)/2, oy = (outH - nativeH*sc)/2;
+    ctx.save(); ctx.translate(ox,oy); ctx.scale(sc,sc);
+    drawASTToCtx(ctx, currentAst, strokePx/sc, isDark, overrideColor);
+    ctx.restore();
+
+    const mime = format === 'jpg' ? 'image/jpeg' : 'image/png';
+    const a = document.createElement('a');
+    a.download = `${name}.${format}`;
+    a.href = offscreen.toDataURL(mime);
+    a.click();
+  });
+
+  // ── COPY ─────────────────────────────────────────────────
+  document.getElementById('copyBtn').addEventListener('click', async () => {
+    if (!currentAst) { alert('Load a JSON file first.'); return; }
+    const canvas = document.getElementById('mainCanvas');
+    if (!canvas || canvas.style.display === 'none') { render(); }
+    try {
+      const cnv = document.getElementById('mainCanvas');
+      cnv.toBlob(async (blob) => {
+        await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+        const btn = document.getElementById('copyBtn');
+        const orig = btn.innerText;
+        btn.innerText = 'COPIED!';
+        setTimeout(() => { btn.innerText = orig; }, 1500);
+      }, 'image/png');
+    } catch(e) { alert('Copy failed: ' + e.message); }
+  });
+</script>
+{% endblock content %}
