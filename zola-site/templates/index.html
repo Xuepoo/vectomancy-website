@@ -292,6 +292,25 @@
         </p>
         <div style="font-size: 8px; line-height: 1.6; color: var(--text-color); max-height: 320px; overflow-y: auto; padding-right: 6px;">
           <div style="margin-bottom: 20px;">
+            <span class="nes-text is-error" style="font-weight: bold; display: block; margin-bottom: 5px;">[v8.0.0] - 2026-08-14</span>
+            <ul style="margin: 0; padding-left: 20px; list-style-type: square;">
+              <li style="margin-bottom: 5px;">
+                <strong>CLI v2.0.0 Released:</strong> Core <code>vectomancy</code> CLI updated to v2.0.0 with critical SVG export and JSON rendering fixes.
+              </li>
+              <li style="margin-bottom: 5px;">
+                <strong>SVG stroke-width fix (#132):</strong> <code>vectomancy image -f svg --stroke-width X</code> was silently ignoring <code>X</code> — all
+                SVG <code>&lt;path&gt;</code> elements had a hardcoded <code>stroke-width="1"</code>. Now correctly threads the value through the entire emitter
+                pipeline (<code>emit_file</code> → <code>to_svg_string</code>).
+              </li>
+              <li>
+                <strong>New <code>render</code> subcommand (#133):</strong> Load a previously exported JSON and re-render without re-running the analysis
+                pipeline. Supports all output formats (<code>svg</code>, <code>png</code>, <code>jpg</code>, <code>webp</code>, <code>python</code>,
+                <code>html</code>, <code>desmos</code>). Example:
+                <code>vectomancy render output.json -f svg --stroke-width 0.005 -o thin.svg</code>
+              </li>
+            </ul>
+          </div>
+          <div style="margin-bottom: 20px;">
             <span class="nes-text is-warning" style="font-weight: bold; display: block; margin-bottom: 5px;">[v7.1.5] - 2026-08-13</span>
             <ul style="margin: 0; padding-left: 20px; list-style-type: square;">
               <li style="margin-bottom: 5px;">
