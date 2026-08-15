@@ -355,7 +355,14 @@
   // ── processColor (from image.html) ──────────────────────
   function processColor(colorArray) {
     if (!Array.isArray(colorArray) || colorArray.length < 3) return [0, 0, 0];
-    return colorArray.slice(0, 3).map(v => Math.min(255, Math.max(0, Math.round(v))));
+    let [r, g, b] = colorArray;
+    const isFloat = colorArray.slice(0, 3).every(v => v <= 1.0001);
+    if (isFloat) {
+      r *= 255.0;
+      g *= 255.0;
+      b *= 255.0;
+    }
+    return [r, g, b].map(v => Math.min(255, Math.max(0, Math.round(v))));
   }
 
   // ── drawAST ─────────────────────────────────────────────
@@ -653,11 +660,20 @@
 
     const name = `vecto_studio_${currentAst.type.toLowerCase()}`;
 
+    function triggerDownload(href, filename) {
+      const a = document.createElement('a');
+      a.download = filename;
+      a.href = href;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    }
+
     if (format === 'svg') {
       const svg = astToSvg(currentAst, outW, outH, strokePx, isDark, overrideColor);
       const blob = new Blob([svg], { type: 'image/svg+xml' });
       const url = URL.createObjectURL(blob);
-      const a = document.createElement('a'); a.download = `${name}.svg`; a.href = url; a.click();
+      triggerDownload(url, `${name}.svg`);
       setTimeout(() => URL.revokeObjectURL(url), 100);
       return;
     }
@@ -677,10 +693,7 @@
     ctx.restore();
 
     const mime = format === 'jpg' ? 'image/jpeg' : 'image/png';
-    const a = document.createElement('a');
-    a.download = `${name}.${format}`;
-    a.href = offscreen.toDataURL(mime);
-    a.click();
+    triggerDownload(offscreen.toDataURL(mime), `${name}.${format}`);
   });
 
   // ── COPY ─────────────────────────────────────────────────

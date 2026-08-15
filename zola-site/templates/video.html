@@ -295,6 +295,7 @@
     <script type="module">
       import init, { process_image } from '/wasm/wasm_engine.js';
       import { VideoFramePool } from '/js/worker-pool.js';
+      import { drawAST } from '/js/renderer.js';
 
       let wasmReady = false;
       let videoFile = null;
@@ -304,6 +305,14 @@
       let processedFrames = [];
       let isProcessing = false;
       let framePool = null;
+      let playbackTimer = null;
+
+      function stopPlayback() {
+        if (playbackTimer) {
+          clearTimeout(playbackTimer);
+          playbackTimer = null;
+        }
+      }
 
       async function initWasm() {
         try {
@@ -345,6 +354,7 @@
       });
 
       document.getElementById('resetViewBtn').addEventListener('click', () => {
+        stopPlayback();
         videoFile = null;
         processedFrames = [];
         videoElement.src = '';
@@ -392,6 +402,7 @@
       });
 
       function loadVideo(file) {
+        stopPlayback();
         videoFile = file;
         const url = URL.createObjectURL(file);
         videoElement.src = url;
@@ -492,25 +503,36 @@
 
       document.getElementById('export-btn').addEventListener('click', () => {
         if (processedFrames.length === 0) return;
+        stopPlayback();
         setStatus('Playing processed frames...');
         canvas.style.display = 'block';
         videoElement.style.display = 'none';
-        const fps = parseInt(document.getElementById('fps-slider').value);
+        const fps = parseInt(document.getElementById('fps-slider').value) || 30;
+        const strokeInput = document.getElementById('stroke-input');
+        const strokeWidth = strokeInput ? (parseFloat(strokeInput.value) || 2.0) : 2.0;
+        const isDark = document.body.classList.contains('dark-theme');
+        const transparent = document.getElementById('transparent-checkbox').checked;
+        const extractColor = document.getElementById('color-checkbox').checked;
         let frameIndex = 0;
+
         function showNextFrame() {
+          if (processedFrames.length === 0) return;
           if (frameIndex >= processedFrames.length) frameIndex = 0;
           const frame = processedFrames[frameIndex];
           canvas.width = frame.width;
           canvas.height = frame.height;
-          const transparent = document.getElementById('transparent-checkbox').checked;
-          ctx.fillStyle = transparent ? 'rgba(0,0,0,0)' : 'white';
-          ctx.fillRect(0, 0, frame.width, frame.height);
-          ctx.fillStyle = 'var(--accent-color)';
-          ctx.font = '12px "Press Start 2P"';
-          ctx.textAlign = 'center';
-          ctx.fillText('Frame ' + (frameIndex + 1) + '/' + processedFrames.length, frame.width / 2, frame.height / 2);
+          ctx.clearRect(0, 0, frame.width, frame.height);
+          if (!transparent) {
+            ctx.fillStyle = isDark ? '#212529' : '#ffffff';
+            ctx.fillRect(0, 0, frame.width, frame.height);
+          }
+          const ast = frame.data?.ast || frame.data;
+          if (ast) {
+            drawAST(ctx, ast, { isDark, strokeWidth, extractColor, isExport: true });
+          }
+          document.getElementById('current-frame').textContent = String(frameIndex + 1);
           frameIndex++;
-          setTimeout(showNextFrame, 1000 / fps);
+          playbackTimer = setTimeout(showNextFrame, 1000 / fps);
         }
         showNextFrame();
         setStatus('Preview active. Use CLI for full export: vectomancy video input.mp4 -o output.mp4');
@@ -553,38 +575,18 @@
         canvas.style.display = 'block';
         videoElement.style.display = 'none';
         const transparent = document.getElementById('transparent-checkbox').checked;
-        ctx.fillStyle = transparent ? 'rgba(0,0,0,0)' : 'white';
-        ctx.fillRect(0, 0, width, height);
+        const isDark = document.body.classList.contains('dark-theme');
+        ctx.clearRect(0, 0, width, height);
+        if (!transparent) {
+          ctx.fillStyle = isDark ? '#212529' : '#ffffff';
+          ctx.fillRect(0, 0, width, height);
+        }
         try {
-          const data = JSON.parse(result);
-          ctx.strokeStyle = document.body.classList.contains('dark-theme') ? 'white' : 'black';
+          const ast = result?.ast || result;
           const strokeInput = document.getElementById('stroke-input');
-          ctx.lineWidth = strokeInput ? (parseFloat(strokeInput.value) || 2.0) : 2.0;
-          if (data.paths) {
-            for (const path of data.paths) {
-              if (path.data && path.data.length > 0) {
-                ctx.beginPath();
-                ctx.moveTo(path.data[0].x, path.data[0].y);
-                for (let i = 1; i < path.data.length; i++) ctx.lineTo(path.data[i].x, path.data[i].y);
-                ctx.stroke();
-              }
-            }
-          } else if (data.equations) {
-            for (const eq of data.equations) {
-              if (eq.data) {
-                for (const seg of eq.data) {
-                  ctx.beginPath();
-                  for (let t = 0; t <= 20; t++) {
-                    const tt = t / 20;
-                    const x = seg.x_poly[0] + seg.x_poly[1] * tt + seg.x_poly[2] * tt * tt + seg.x_poly[3] * tt * tt * tt;
-                    const y = seg.y_poly[0] + seg.y_poly[1] * tt + seg.y_poly[2] * tt * tt + seg.y_poly[3] * tt * tt * tt;
-                    if (t === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
-                  }
-                  ctx.stroke();
-                }
-              }
-            }
-          }
+          const strokeWidth = strokeInput ? (parseFloat(strokeInput.value) || 2.0) : 2.0;
+          const extractColor = document.getElementById('color-checkbox').checked;
+          drawAST(ctx, ast, { isDark, strokeWidth, extractColor, isExport: true });
         } catch (e) {
           ctx.fillStyle = 'var(--accent-color)';
           ctx.font = '10px "Press Start 2P"';

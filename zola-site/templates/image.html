@@ -821,12 +821,18 @@
               return showError(`Unsupported file: .${ext}\nPlease use PNG, JPG, WebP or SVG.`);
           }
 
+          let prevBlobUrl = originalImageObj?.dataset?.blobUrl;
+          if (prevBlobUrl) {
+              try { URL.revokeObjectURL(prevBlobUrl); } catch (_) {}
+          }
           const blob = new Blob([buffer]);
           const blobUrl = URL.createObjectURL(blob);
 
           const tempImg = new Image();
+          tempImg.dataset.blobUrl = blobUrl;
           tempImg.onerror = () => {
               showError("Invalid Image Data!\nThe file could not be parsed as an image.");
+              try { URL.revokeObjectURL(blobUrl); } catch (_) {}
               els.loaderOverlay.classList.add('hidden');
           };
           tempImg.onload = () => {
@@ -1378,19 +1384,26 @@
 
       els.downloadBtn.addEventListener('click', () => {
           if (!activePreviewId) return showError("No Image Selected!");
+          const format = els.exportFormat.value;
           const isOriginal = activePreviewId === 'original';
           const res = isOriginal ? { width: originalImageObj.width, height: originalImageObj.height } : previewDataStore.get(activePreviewId);
           const baseName = currentFilename.split('.')[0] || "image";
           let finalFilename = baseName + (isOriginal ? "_original" : `_vecto_${els.modeSelect.value.toUpperCase()}_D${els.detailRange.value}`);
 
+          function triggerDownload(href, filename) {
+              const link = document.createElement('a');
+              link.download = filename;
+              link.href = href;
+              document.body.appendChild(link);
+              link.click();
+              document.body.removeChild(link);
+          }
+
           if (format === 'json') {
               if (isOriginal) return showError("No JSON for original!");
               const blob = new Blob([JSON.stringify(res.ast)], { type: 'application/json' });
               const url = URL.createObjectURL(blob);
-              const link = document.createElement('a');
-              link.download = `${finalFilename}.json`;
-              link.href = url;
-              link.click();
+              triggerDownload(url, `${finalFilename}.json`);
               setTimeout(() => URL.revokeObjectURL(url), 100);
               return;
           }
@@ -1400,10 +1413,7 @@
               const svgString = astToSvgString(res.ast, res.width, res.height, document.body.classList.contains('dark-theme'));
               const blob = new Blob([svgString], { type: 'image/svg+xml' });
               const url = URL.createObjectURL(blob);
-              const link = document.createElement('a');
-              link.download = `${finalFilename}.svg`;
-              link.href = url;
-              link.click();
+              triggerDownload(url, `${finalFilename}.svg`);
               setTimeout(() => URL.revokeObjectURL(url), 100);
               return;
           }
@@ -1417,8 +1427,7 @@
           }
           if (isOriginal) eCtx.drawImage(originalImageObj, 0, 0);
           else drawAST(eCtx, res.ast, false, document.body.classList.contains('dark-theme'), true);
-          const link = document.createElement('a'); link.download = `${finalFilename}.${format}`;
-          link.href = canvas.toDataURL(format === 'jpg' ? 'image/jpeg' : 'image/png'); link.click();
+          triggerDownload(canvas.toDataURL(format === 'jpg' ? 'image/jpeg' : 'image/png'), `${finalFilename}.${format}`);
       });
 
       // ── COPY to clipboard ─────────────────────────────────────────────────
