@@ -3143,21 +3143,26 @@
           els.textInput.value.substring(0, 12).replace(/\s+/g, "_") ||
           "text_render";
         let finalFilename = `${baseName}_vecto_${els.modeSelect.value.toUpperCase()}_D${els.detailRange.value}`;
+
+        function triggerDownload(href, filename) {
+          const link = document.createElement("a");
+          link.download = filename;
+          link.href = href;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+        }
+
         if (format === "json") {
           const dataStr =
             "data:text/json;charset=utf-8," +
             encodeURIComponent(JSON.stringify(res.ast));
-          const link = document.createElement("a");
-          link.download = `${finalFilename}.json`;
-          link.href = dataStr;
-          link.click();
+          triggerDownload(dataStr, `${finalFilename}.json`);
         } else {
-          const link = document.createElement("a");
-          link.download = `${finalFilename}.${format}`;
-          link.href = canvas.toDataURL(
-            format === "jpg" ? "image/jpeg" : "image/png",
+          triggerDownload(
+            canvas.toDataURL(format === "jpg" ? "image/jpeg" : "image/png"),
+            `${finalFilename}.${format}`,
           );
-          link.click();
         }
       });
 

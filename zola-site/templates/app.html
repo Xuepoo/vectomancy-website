@@ -6,39 +6,14 @@
     <title>Vectomancy Pro - Retro Lab</title>
 
     <!-- Performance Optimization: Preload -->
-    <link
-      rel="preload"
-      href="/fonts/pressstart2p.woff2"
-      as="font"
-      type="font/woff2"
-      crossorigin
-    />
+    <link rel="preload" href="/fonts/pressstart2p.woff2" as="font" type="font/woff2" crossorigin />
     <link rel="preload" href="/css/nes.min.css" as="style" />
-    <link
-      rel="preload"
-      href="/wasm/wasm_engine_bg.wasm"
-      as="fetch"
-      crossorigin
-    />
+    <link rel="preload" href="/wasm/wasm_engine_bg.wasm" as="fetch" crossorigin />
     <link rel="preload" href="/img/logo.svg" as="image" />
 
-    <link
-      rel="apple-touch-icon"
-      sizes="180x180"
-      href="/favicons/apple-touch-icon.png"
-    />
-    <link
-      rel="icon"
-      type="image/png"
-      sizes="32x32"
-      href="/favicons/favicon-32x32.png"
-    />
-    <link
-      rel="icon"
-      type="image/png"
-      sizes="16x16"
-      href="/favicons/favicon-16x16.png"
-    />
+    <link rel="apple-touch-icon" sizes="180x180" href="/favicons/apple-touch-icon.png" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicons/favicon-32x32.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicons/favicon-16x16.png" />
     <link rel="shortcut icon" href="/favicons/favicon.ico" />
     <link href="/css/nes.min.css" rel="stylesheet" />
     <style>
@@ -460,39 +435,31 @@
   </head>
   <body>
     <script>
-        (function() {
-            const sharedTheme = localStorage.getItem('vectomancy_theme');
-            let useDark = false;
-            if (sharedTheme) {
-                useDark = (sharedTheme === 'dark');
-            } else {
-                const stored = localStorage.getItem('vectomancy_user_settings');
-                if (stored) {
-                    try {
-                        const settings = JSON.parse(stored);
-                        useDark = (settings.theme === 'dark');
-                    } catch(e) {}
-                } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-                    useDark = true;
-                }
-            }
-            if (useDark) {
-                document.body.classList.add('dark-theme');
-            }
-        })();
+      (function() {
+          const sharedTheme = localStorage.getItem('vectomancy_theme');
+          let useDark = false;
+          if (sharedTheme) {
+              useDark = (sharedTheme === 'dark');
+          } else {
+              const stored = localStorage.getItem('vectomancy_user_settings');
+              if (stored) {
+                  try {
+                      const settings = JSON.parse(stored);
+                      useDark = (settings.theme === 'dark');
+                  } catch(e) {}
+              } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+                  useDark = true;
+              }
+          }
+          if (useDark) {
+              document.body.classList.add('dark-theme');
+          }
+      })();
     </script>
     <div class="sidebar">
-      <div
-        class="nes-container with-title is-centered control-group"
-        style="padding: 15px 10px"
-      >
+      <div class="nes-container with-title is-centered control-group" style="padding: 15px 10px">
         <a href="/" style="text-decoration: none; color: inherit">
-          <p
-            class="title"
-            style="font-size: 12px; background: var(--container-bg)"
-          >
-            VECTOMANCY
-          </p>
+          <p class="title" style="font-size: 12px; background: var(--container-bg)">VECTOMANCY</p>
         </a>
         <p style="font-size: 8px; margin: 0; color: #888">Pixel Math Engine</p>
       </div>
@@ -508,32 +475,10 @@
             justify-content: center;
           "
         >
-          <label
-            ><input
-              type="radio"
-              class="nes-radio"
-              name="inputType"
-              value="local"
-              checked
-            /><span>Local</span></label
-          >
-          <label
-            ><input
-              type="radio"
-              class="nes-radio"
-              name="inputType"
-              value="url"
-            /><span>URL</span></label
-          >
+          <label><input type="radio" class="nes-radio" name="inputType" value="local" checked /><span>Local</span></label>
+          <label><input type="radio" class="nes-radio" name="inputType" value="url" /><span>URL</span></label>
 
-          <label
-            ><input
-              type="radio"
-              class="nes-radio"
-              name="inputType"
-              value="text"
-            /><span>Text</span></label
-          >
+          <label><input type="radio" class="nes-radio" name="inputType" value="text" /><span>Text</span></label>
         </div>
 
         <div id="localInputWrapper">
@@ -547,43 +492,18 @@
             "
           >
             <span style="font-size: 8px">Upload Image</span>
-            <input
-              type="file"
-              id="fileInput"
-              accept="image/*,.svg"
-              style="display: none"
-              aria-label="Upload Image"
-            />
+            <input type="file" id="fileInput" accept="image/*,.svg" style="display: none" aria-label="Upload Image" />
           </label>
         </div>
         <div id="urlInputWrapper" class="hidden">
           <div style="display: flex; gap: 8px">
-            <input
-              type="text"
-              id="urlInput"
-              class="nes-input"
-              style="font-size: 8px"
-              placeholder="https://..."
-              aria-label="Image URL"
-            />
-            <button
-              id="fetchUrlBtn"
-              class="nes-btn is-primary"
-              style="font-size: 8px"
-              aria-label="Fetch URL"
-            >
-              GO
-            </button>
+            <input type="text" id="urlInput" class="nes-input" style="font-size: 8px" placeholder="https://..." aria-label="Image URL" />
+            <button id="fetchUrlBtn" class="nes-btn is-primary" style="font-size: 8px" aria-label="Fetch URL">GO</button>
           </div>
         </div>
 
         <div id="textInputWrapper" class="hidden">
-          <textarea
-            id="textInput"
-            class="nes-textarea"
-            style="font-size: 8px; margin-bottom: 5px"
-            placeholder="Enter text..."
-          ></textarea>
+          <textarea id="textInput" class="nes-textarea" style="font-size: 8px; margin-bottom: 5px" placeholder="Enter text..."></textarea>
 
           <button
             class="nes-btn is-primary"
@@ -597,15 +517,8 @@
           >
             Access System Fonts
           </button>
-          <div
-            class="nes-select"
-            id="localFontSelectWrapper"
-            style="display: none; margin-bottom: 5px"
-          >
-            <select
-              id="localFontSelect"
-              style="font-size: 8px; padding: 4px"
-            ></select>
+          <div class="nes-select" id="localFontSelectWrapper" style="display: none; margin-bottom: 5px">
+            <select id="localFontSelect" style="font-size: 8px; padding: 4px"></select>
           </div>
 
           <label
@@ -619,17 +532,10 @@
             "
           >
             <span style="font-size: 8px">Upload Custom Font (.ttf)</span>
-            <input
-              type="file"
-              id="fontInput"
-              accept=".ttf,.otf,.woff,.woff2"
-              style="display: none"
-            />
+            <input type="file" id="fontInput" accept=".ttf,.otf,.woff,.woff2" style="display: none" />
           </label>
 
-          <p style="font-size: 8px; margin-top: 10px; margin-bottom: 5px">
-            Cloud Presets:
-          </p>
+          <p style="font-size: 8px; margin-top: 10px; margin-bottom: 5px">Cloud Presets:</p>
           <div
             style="
               display: flex;
@@ -672,27 +578,15 @@
             padding-top: 10px;
           "
         >
-          <span
-            id="filename-display"
-            class="truncate-text"
-            style="font-size: 8px; color: #aaa"
-            >No file selected</span
-          >
+          <span id="filename-display" class="truncate-text" style="font-size: 8px; color: #aaa">No file selected</span>
         </div>
       </div>
 
-      <div
-        class="nes-container with-title control-group"
-        style="padding: 15px; flex-grow: 1"
-      >
+      <div class="nes-container with-title control-group" style="padding: 15px; flex-grow: 1">
         <p class="title" style="font-size: 10px">Settings</p>
         <label for="modeSelect">Mode</label>
         <div class="nes-select" style="margin-bottom: 10px">
-          <select
-            id="modeSelect"
-            style="font-size: 8px; padding: 6px"
-            aria-label="Mode Select"
-          >
+          <select id="modeSelect" style="font-size: 8px; padding: 6px" aria-label="Mode Select">
             <option value="spline" selected>Spline (Bezier)</option>
             <option value="fourier">Fourier (Epicycle)</option>
             <option value="chaikin">Chaikin (Polyline)</option>
@@ -707,23 +601,9 @@
             margin-bottom: 10px;
           "
         >
+          <label style="margin: 0"><input type="checkbox" class="nes-checkbox" id="colorCheck" checked aria-label="Enable Colors" /><span>Colors</span></label>
           <label style="margin: 0"
-            ><input
-              type="checkbox"
-              class="nes-checkbox"
-              id="colorCheck"
-              checked
-              aria-label="Enable Colors"
-            /><span>Colors</span></label
-          >
-          <label style="margin: 0"
-            ><input
-              type="checkbox"
-              class="nes-checkbox"
-              id="simplifyCheck"
-              checked
-              aria-label="Simplify Math"
-            /><span>Simplify</span></label
+            ><input type="checkbox" class="nes-checkbox" id="simplifyCheck" checked aria-label="Simplify Math" /><span>Simplify</span></label
           >
 
           <!-- Color options, toggled by Colors checkbox -->
@@ -739,15 +619,9 @@
             "
           >
             <div style="display: flex; flex-direction: column; gap: 4px">
-              <label for="colorDepthSelect" style="font-size: 8px; margin: 0"
-                >Bit Depth</label
-              >
+              <label for="colorDepthSelect" style="font-size: 8px; margin: 0">Bit Depth</label>
               <div class="nes-select" style="font-size: 8px">
-                <select
-                  id="colorDepthSelect"
-                  aria-label="Color Bit Depth"
-                  style="font-size: 8px; padding: 4px"
-                >
+                <select id="colorDepthSelect" aria-label="Color Bit Depth" style="font-size: 8px; padding: 4px">
                   <option value="24" selected>24-bit (True Color)</option>
                   <option value="16">16-bit (High Color)</option>
                   <option value="8">8-bit (256 Colors)</option>
@@ -757,15 +631,9 @@
               </div>
             </div>
             <div style="display: flex; flex-direction: column; gap: 4px">
-              <label for="colorSpaceSelect" style="font-size: 8px; margin: 0"
-                >Color Space</label
-              >
+              <label for="colorSpaceSelect" style="font-size: 8px; margin: 0">Color Space</label>
               <div class="nes-select" style="font-size: 8px">
-                <select
-                  id="colorSpaceSelect"
-                  aria-label="Color Space"
-                  style="font-size: 8px; padding: 4px"
-                >
+                <select id="colorSpaceSelect" aria-label="Color Space" style="font-size: 8px; padding: 4px">
                   <option value="srgb" selected>sRGB (Standard)</option>
                   <option value="grayscale">Grayscale (Mono)</option>
                 </select>
@@ -773,124 +641,42 @@
             </div>
           </div>
 
+          <label style="margin: 0"><input type="checkbox" class="nes-checkbox" id="gridCheck" aria-label="Show Grid" /><span>Show Grid</span></label>
           <label style="margin: 0"
-            ><input
-              type="checkbox"
-              class="nes-checkbox"
-              id="gridCheck"
-              aria-label="Show Grid"
-            /><span>Show Grid</span></label
-          >
-          <label style="margin: 0"
-            ><input
-              type="checkbox"
-              class="nes-checkbox"
-              id="bgTransparentCheck"
-              aria-label="Transparent Background"
-            /><span>Transparent</span></label
+            ><input type="checkbox" class="nes-checkbox" id="bgTransparentCheck" aria-label="Transparent Background" /><span>Transparent</span></label
           >
         </div>
 
-        <label for="detailRange"
-          >Detail Level:
-          <span id="detailVal" style="color: var(--accent-color)"
-            >50</span
-          ></label
-        >
-        <input
-          type="range"
-          id="detailRange"
-          min="10"
-          max="100"
-          value="50"
-          class="nes-range"
-          aria-label="Detail Level"
-        />
+        <label for="detailRange">Detail Level: <span id="detailVal" style="color: var(--accent-color)">50</span></label>
+        <input type="range" id="detailRange" min="10" max="100" value="50" class="nes-range" aria-label="Detail Level" />
 
-        <label for="minPathRange"
-          >Min Path Len:
-          <span id="minPathVal" style="color: var(--accent-color)"
-            >10</span
-          ></label
-        >
-        <input
-          type="range"
-          id="minPathRange"
-          min="1"
-          max="50"
-          value="10"
-          class="nes-range"
-          aria-label="Minimum Path Length"
-        />
+        <label for="minPathRange">Min Path Len: <span id="minPathVal" style="color: var(--accent-color)">10</span></label>
+        <input type="range" id="minPathRange" min="1" max="50" value="10" class="nes-range" aria-label="Minimum Path Length" />
 
         <div id="fourier-controls" class="hidden">
-          <label for="termsRange"
-            >Terms:
-            <span id="termsVal" style="color: var(--accent-color)"
-              >50</span
-            ></label
-          >
-          <input
-            type="range"
-            id="termsRange"
-            min="5"
-            max="200"
-            value="50"
-            class="nes-range"
-            aria-label="Fourier Terms"
-          />
+          <label for="termsRange">Terms: <span id="termsVal" style="color: var(--accent-color)">50</span></label>
+          <input type="range" id="termsRange" min="5" max="200" value="50" class="nes-range" aria-label="Fourier Terms" />
         </div>
         <div id="chaikin-controls" class="hidden">
-          <label for="chaikinRange"
-            >Iters:
-            <span id="chaikinVal" style="color: var(--accent-color)"
-              >1</span
-            ></label
-          >
-          <input
-            type="range"
-            id="chaikinRange"
-            min="0"
-            max="5"
-            value="1"
-            class="nes-range"
-            aria-label="Chaikin Iterations"
-          />
+          <label for="chaikinRange">Iters: <span id="chaikinVal" style="color: var(--accent-color)">1</span></label>
+          <input type="range" id="chaikinRange" min="0" max="5" value="1" class="nes-range" aria-label="Chaikin Iterations" />
         </div>
 
         <!-- Generate Button removed from here (moved to canvas area) -->
-        <div
-          id="status-text"
-          style="font-size: 8px; margin-top: 8px; text-align: center"
-        >
-          READY
-        </div>
+        <div id="status-text" style="font-size: 8px; margin-top: 8px; text-align: center">READY</div>
       </div>
 
       <div class="nes-container with-title control-group" style="padding: 15px">
         <p class="title" style="font-size: 10px">Export</p>
-        <label for="exportFormat" class="sr-only" style="display: none"
-          >Format</label
-        >
+        <label for="exportFormat" class="sr-only" style="display: none">Format</label>
         <div class="nes-select" style="width: 100%; margin-bottom: 10px">
-          <select
-            id="exportFormat"
-            style="font-size: 8px"
-            aria-label="Export Format"
-          >
+          <select id="exportFormat" style="font-size: 8px" aria-label="Export Format">
             <option value="png">PNG (Transparent OK)</option>
             <option value="jpg">JPG (Solid background)</option>
             <option value="json">JSON (AST Vector)</option>
           </select>
         </div>
-        <button
-          class="nes-btn is-success"
-          id="downloadBtn"
-          style="width: 100%; font-size: 10px"
-          aria-label="Download File"
-        >
-          DOWNLOAD
-        </button>
+        <button class="nes-btn is-success" id="downloadBtn" style="width: 100%; font-size: 10px" aria-label="Download File">DOWNLOAD</button>
         <button
           class="nes-btn is-warning"
           id="shareBtn"
@@ -901,11 +687,7 @@
         </button>
       </div>
 
-      <div
-        class="nes-container with-title control-group"
-        id="partnerWidget"
-        style="padding: 15px; text-align: center"
-      >
+      <div class="nes-container with-title control-group" id="partnerWidget" style="padding: 15px; text-align: center">
         <p class="title" style="font-size: 11px">Resources</p>
         <div id="partnerContent" style="font-size: 10px; line-height: 1.5">
           <!-- Dynamically Populated -->
@@ -916,126 +698,35 @@
     <div class="viewport-wrapper">
       <div class="top-bar">
         <div style="flex-grow: 1; display: flex; align-items: center">
-          <a
-            href="https://github.com/Xuepoo/vectomancy"
-            target="_blank"
-            style="color: inherit; text-decoration: none"
-            aria-label="GitHub Repository"
-          >
+          <a href="https://github.com/Xuepoo/vectomancy" target="_blank" style="color: inherit; text-decoration: none" aria-label="GitHub Repository">
             <i class="nes-icon github"></i>
           </a>
         </div>
         <div style="display: flex; gap: 10px">
-          <button
-            class="nes-btn is-warning"
-            id="helpBtn"
-            style="font-size: 8px"
-            aria-label="Help"
-          >
-            ?
-          </button>
-          <button
-            class="nes-btn is-error"
-            id="clearAllBtn"
-            style="font-size: 8px"
-            aria-label="Clear All"
-          >
-            Clear All
-          </button>
-          <button
-            class="nes-btn"
-            id="themeToggleBtn"
-            style="font-size: 8px"
-            aria-label="Toggle Theme"
-          >
-            Theme
-          </button>
-          <button
-            class="nes-btn"
-            id="resetViewBtn"
-            style="font-size: 8px"
-            aria-label="Reset View"
-          >
-            Reset View
-          </button>
-          <button
-            class="nes-btn is-error"
-            id="resetSettingsBtn"
-            style="font-size: 8px"
-            aria-label="Reset Settings"
-          >
-            Reset Config
-          </button>
+          <button class="nes-btn is-warning" id="helpBtn" style="font-size: 8px" aria-label="Help">?</button>
+          <button class="nes-btn is-error" id="clearAllBtn" style="font-size: 8px" aria-label="Clear All">Clear All</button>
+          <button class="nes-btn" id="themeToggleBtn" style="font-size: 8px" aria-label="Toggle Theme">Theme</button>
+          <button class="nes-btn" id="resetViewBtn" style="font-size: 8px" aria-label="Reset View">Reset View</button>
+          <button class="nes-btn is-error" id="resetSettingsBtn" style="font-size: 8px" aria-label="Reset Settings">Reset Config</button>
         </div>
       </div>
 
       <div class="canvas-area" id="canvasArea">
         <canvas id="mainCanvas" aria-label="Main Drawing Canvas"></canvas>
-        <div
-          class="overlay-stats nes-container is-rounded"
-          id="overlayStats"
-          aria-live="polite"
-        >
-          Waiting for input...
-        </div>
+        <div class="overlay-stats nes-container is-rounded" id="overlayStats" aria-live="polite">Waiting for input...</div>
 
-        <button
-          class="nes-btn is-primary canvas-generate-btn"
-          id="generateBtn"
-          aria-label="Generate Image"
-        >
-          GENERATE
-        </button>
+        <button class="nes-btn is-primary canvas-generate-btn" id="generateBtn" aria-label="Generate Image">GENERATE</button>
 
         <div class="canvas-controls">
-          <button
-            class="nes-btn"
-            id="btnZoomIn"
-            title="Zoom In"
-            aria-label="Zoom In"
-          >
-            +
-          </button>
-          <button
-            class="nes-btn"
-            id="btnZoomOut"
-            title="Zoom Out"
-            aria-label="Zoom Out"
-          >
-            -
-          </button>
-          <button
-            class="nes-btn"
-            id="btnResetViewObj"
-            title="Fit Screen"
-            aria-label="Fit Screen"
-          >
-            ▣
-          </button>
-          <button
-            class="nes-btn is-primary"
-            id="btnFocus"
-            title="Focus Mode"
-            aria-label="Focus Mode"
-          >
-            F
-          </button>
+          <button class="nes-btn" id="btnZoomIn" title="Zoom In" aria-label="Zoom In">+</button>
+          <button class="nes-btn" id="btnZoomOut" title="Zoom Out" aria-label="Zoom Out">-</button>
+          <button class="nes-btn" id="btnResetViewObj" title="Fit Screen" aria-label="Fit Screen">▣</button>
+          <button class="nes-btn is-primary" id="btnFocus" title="Focus Mode" aria-label="Focus Mode">F</button>
         </div>
 
         <div id="progressContainer" class="progress-overlay hidden">
-          <p
-            id="progressText"
-            style="font-size: 8px; color: var(--accent-color)"
-          >
-            COMPUTING...
-          </p>
-          <progress
-            class="nes-progress is-primary"
-            value="0"
-            max="100"
-            id="progressBar"
-            style="height: 15px"
-          ></progress>
+          <p id="progressText" style="font-size: 8px; color: var(--accent-color)">COMPUTING...</p>
+          <progress class="nes-progress is-primary" value="0" max="100" id="progressBar" style="height: 15px"></progress>
         </div>
       </div>
 
@@ -1053,14 +744,7 @@
         <p class="title">Confirm Delete</p>
         <p style="font-size: 8px">Erase snapshot?</p>
         <menu class="dialog-menu">
-          <button class="nes-btn" value="cancel">No</button
-          ><button
-            class="nes-btn is-error"
-            id="confirmDeleteBtn"
-            value="confirm"
-          >
-            Yes
-          </button>
+          <button class="nes-btn" value="cancel">No</button><button class="nes-btn is-error" id="confirmDeleteBtn" value="confirm">Yes</button>
         </menu>
       </form>
     </dialog>
@@ -1068,10 +752,7 @@
       <form method="dialog">
         <p class="title">Clear All</p>
         <p style="font-size: 8px">Erase all?</p>
-        <menu class="dialog-menu">
-          <button class="nes-btn" value="cancel">No</button
-          ><button class="nes-btn is-error" value="confirm">Yes</button>
-        </menu>
+        <menu class="dialog-menu"><button class="nes-btn" value="cancel">No</button><button class="nes-btn is-error" value="confirm">Yes</button></menu>
       </form>
     </dialog>
     <dialog class="nes-dialog" id="error-dialog">
@@ -1084,15 +765,9 @@
       </form>
     </dialog>
 
-    <dialog
-      class="nes-dialog"
-      id="help-dialog"
-      style="width: 90vw; max-width: 600px"
-    >
+    <dialog class="nes-dialog" id="help-dialog" style="width: 90vw; max-width: 600px">
       <form method="dialog">
-        <p class="title" style="color: var(--accent-color); font-size: 10px">
-          Vectomancy Pro Guide
-        </p>
+        <p class="title" style="color: var(--accent-color); font-size: 10px">Vectomancy Pro Guide</p>
         <div
           style="
             font-size: 8px;
@@ -1105,27 +780,21 @@
         >
           <p>
             <strong>Algorithms:</strong><br />
-            - <b>Spline</b>: Precise Bezier curves. Best for lineart and
-            logos.<br />
-            - <b>Fourier</b>: Continuous epicycle loops. Chaotic single-wire
-            aesthetic.<br />
-            - <b>Chaikin</b>: Smooth polylines using corner-cutting. Organic
-            "hand-drawn" look.
+            - <b>Spline</b>: Precise Bezier curves. Best for lineart and logos.<br />
+            - <b>Fourier</b>: Continuous epicycle loops. Chaotic single-wire aesthetic.<br />
+            - <b>Chaikin</b>: Smooth polylines using corner-cutting. Organic "hand-drawn" look.
           </p>
 
           <p>
             <strong>Parameters:</strong><br />
-            - <b>Detail</b>: 10-100. Lower = abstract/fast, Higher =
-            precise/heavy.<br />
-            - <b>Min Path</b>: Filters out noise and artifacts. Clean = 5, Noisy
-            = 15+.<br />
+            - <b>Detail</b>: 10-100. Lower = abstract/fast, Higher = precise/heavy.<br />
+            - <b>Min Path</b>: Filters out noise and artifacts. Clean = 5, Noisy = 15+.<br />
             - <b>Terms/Iters</b>: Controls complexity of Fourier/Chaikin modes.
           </p>
 
           <p>
             <strong>Pro Tips:</strong><br />
-            - <b>Clipboard</b>: You can paste (Ctrl+V) images directly
-            anywhere!<br />
+            - <b>Clipboard</b>: You can paste (Ctrl+V) images directly anywhere!<br />
             - <b>Focus Mode (F)</b>: Hides UI for pure viewing.<br />
             - <b>Transparent</b>: Toggle in settings. Disables JPG export.<br />
             - <b>Hotkeys</b>: Use mouse wheel to zoom, drag to pan.
@@ -1141,15 +810,15 @@
         <p class="title" style="font-size: 10px">Share to Gallery</p>
         <div class="nes-field" style="margin-bottom: 10px">
           <label for="share_title" style="font-size: 8px">Artwork Title *</label>
-          <input type="text" id="share_title" class="nes-input" maxlength="50" required style="font-size: 8px">
+          <input type="text" id="share_title" class="nes-input" maxlength="50" required style="font-size: 8px" />
         </div>
         <div class="nes-field" style="margin-bottom: 10px">
           <label for="share_author" style="font-size: 8px">Author Name *</label>
-          <input type="text" id="share_author" class="nes-input" maxlength="30" required style="font-size: 8px">
+          <input type="text" id="share_author" class="nes-input" maxlength="30" required style="font-size: 8px" />
         </div>
         <div class="nes-field" style="margin-bottom: 15px">
           <label for="share_source" style="font-size: 8px">Original Image Link (Optional)</label>
-          <input type="url" id="share_source" class="nes-input" placeholder="https://..." style="font-size: 8px">
+          <input type="url" id="share_source" class="nes-input" placeholder="https://..." style="font-size: 8px" />
         </div>
         <menu class="dialog-menu" style="display: flex; justify-content: space-between; padding: 0; margin: 0">
           <button class="nes-btn" type="button" onclick="document.getElementById('shareDialog').close()">Cancel</button>
@@ -2068,22 +1737,27 @@
           (isOriginal
             ? "_original"
             : `_vecto_${els.modeSelect.value.toUpperCase()}_D${els.detailRange.value}`);
+
+        function triggerDownload(href, filename) {
+          const link = document.createElement("a");
+          link.download = filename;
+          link.href = href;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+        }
+
         if (format === "json") {
           if (isOriginal) return showError("No JSON for original!");
           const dataStr =
             "data:text/json;charset=utf-8," +
             encodeURIComponent(JSON.stringify(res.ast));
-          const link = document.createElement("a");
-          link.download = `${finalFilename}.json`;
-          link.href = dataStr;
-          link.click();
+          triggerDownload(dataStr, `${finalFilename}.json`);
         } else {
-          const link = document.createElement("a");
-          link.download = `${finalFilename}.${format}`;
-          link.href = canvas.toDataURL(
-            format === "jpg" ? "image/jpeg" : "image/png",
+          triggerDownload(
+            canvas.toDataURL(format === "jpg" ? "image/jpeg" : "image/png"),
+            `${finalFilename}.${format}`,
           );
-          link.click();
         }
       });
 
@@ -2301,7 +1975,11 @@
     </script>
 
     <!-- Custom Styled Alert Dialog -->
-    <dialog class="nes-dialog is-rounded" id="custom-alert-dialog" style="z-index: 10000; font-family: 'Press Start 2P', cursive; font-size: 10px; max-width: 450px; text-align: left;">
+    <dialog
+      class="nes-dialog is-rounded"
+      id="custom-alert-dialog"
+      style="z-index: 10000; font-family: 'Press Start 2P', cursive; font-size: 10px; max-width: 450px; text-align: left;"
+    >
       <form method="dialog">
         <p class="title" style="font-size: 10px; margin-bottom: 15px; color: var(--text-color);">NOTIFICATION</p>
         <p id="custom-alert-message" style="font-size: 8px; line-height: 1.6; margin-bottom: 25px; word-break: break-word;"></p>

@@ -1,4 +1,16 @@
 export async function onRequest(context) {
+  // 0. Handle CORS Preflight OPTIONS
+  if (context.request.method === "OPTIONS") {
+    return new Response(null, {
+      status: 204,
+      headers: {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "GET, OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type",
+      },
+    });
+  }
+
   const urlStr = new URL(context.request.url).searchParams.get("url");
   if (!urlStr) {
     return new Response("Missing url parameter", { status: 400 });
@@ -23,27 +35,17 @@ export async function onRequest(context) {
       "metadata.google.internal", // Google Metadata
     ];
 
-    // Check if hostname matches any basic private/loopback string
+    // Check if hostname matches any basic private/loopback string or private subnet
     if (
       privateHostPatterns.includes(hostname) ||
+      hostname.startsWith("127.") ||
+      hostname.startsWith("0.") ||
       hostname.startsWith("10.") ||
+      hostname.startsWith("100.64.") || // Carrier-Grade NAT
       hostname.startsWith("192.168.") ||
-      hostname.startsWith("172.16.") ||
-      hostname.startsWith("172.17.") ||
-      hostname.startsWith("172.18.") ||
-      hostname.startsWith("172.19.") ||
-      hostname.startsWith("172.20.") ||
-      hostname.startsWith("172.21.") ||
-      hostname.startsWith("172.22.") ||
-      hostname.startsWith("172.23.") ||
-      hostname.startsWith("172.24.") ||
-      hostname.startsWith("172.25.") ||
-      hostname.startsWith("172.26.") ||
-      hostname.startsWith("172.27.") ||
-      hostname.startsWith("172.28.") ||
-      hostname.startsWith("172.29.") ||
-      hostname.startsWith("172.30.") ||
-      hostname.startsWith("172.31.")
+      hostname.startsWith("169.254.") || // Link-local
+      hostname.startsWith("::ffff:") ||
+      /^172\.(1[6-9]|2[0-9]|3[0-1])\./.test(hostname)
     ) {
       return new Response("SSRF Blocked: Local/Internal addresses are forbidden", { status: 403 });
     }
