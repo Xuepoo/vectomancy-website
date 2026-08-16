@@ -17,8 +17,6 @@ serde-wasm-bindgen = "0.6"
 vectomancy = { path = "../../vectomancy", default-features = false, features = ["image", "svg"] }
 vectomancy-text = { path = "../../vectomancy/text" }
 getrandom = { version = "0.2", features = ["js"] }
-bincode = "1.3"
-once_cell = "1.18"
 
 
 [features]
