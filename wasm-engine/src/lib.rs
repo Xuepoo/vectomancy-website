@@ -239,49 +239,6 @@ pub fn process_image(image_data: &[u8], options: JsValue) -> Result<JsValue, JsV
         .map_err(|e| JsValue::from_str(&format!("Serialization failed: {}", e)))
 }
 
-static FRAME_BUFFER: once_cell::sync::Lazy<std::sync::Mutex<Vec<u8>>> =
-    once_cell::sync::Lazy::new(|| std::sync::Mutex::new(Vec::new()));
-
-#[wasm_bindgen]
-pub fn get_frame_buffer_ptr(size: usize) -> *mut u8 {
-    let mut buffer = FRAME_BUFFER.lock().unwrap();
-    if buffer.len() < size {
-        buffer.resize(size, 0);
-    }
-    buffer.as_mut_ptr()
-}
-
-#[wasm_bindgen]
-pub fn process_frame_in_place(
-    size: usize,
-    options: JsValue,
-) -> Result<js_sys::Uint8Array, JsValue> {
-    let opts: ProcessOptions = serde_wasm_bindgen::from_value(options)
-        .map_err(|e| JsValue::from_str(&format!("Invalid options: {}", e)))?;
-
-    let buffer_data = {
-        let buffer = FRAME_BUFFER.lock().unwrap();
-        if buffer.len() < size {
-            return Err(JsValue::from_str(
-                "Buffer size requested is larger than allocated buffer",
-            ));
-        }
-        buffer[..size].to_vec()
-    };
-
-    let output = parse_memory(&buffer_data, &opts.format, opts.color)
-        .map_err(|e| JsValue::from_str(&format!("Failed to parse image: {}", e)))?;
-
-    let result = build_ast(output, &opts)?;
-
-    let encoded: Vec<u8> = bincode::serialize(&result)
-        .map_err(|e| JsValue::from_str(&format!("Bincode serialization failed: {}", e)))?;
-
-    let array = js_sys::Uint8Array::new_with_length(encoded.len() as u32);
-    array.copy_from(&encoded);
-    Ok(array)
-}
-
 #[wasm_bindgen]
 pub fn process_text(font_bytes: &[u8], text: &str, options: JsValue) -> Result<JsValue, JsValue> {
     if font_bytes.len() > 10 * 1024 * 1024 {
