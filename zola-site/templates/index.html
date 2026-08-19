@@ -290,6 +290,23 @@
         </p>
         <div style="font-size: 8px; line-height: 1.6; color: var(--text-color); max-height: 320px; overflow-y: auto; padding-right: 6px;">
           <div style="margin-bottom: 20px;">
+            <span class="nes-text is-success" style="font-weight: bold; display: block; margin-bottom: 5px;">[v8.1.0] - 2026-08-19</span>
+            <ul style="margin: 0; padding-left: 20px; list-style-type: square;">
+              <li style="margin-bottom: 5px;">
+                <strong>Compact HTML &amp; Desmos equations:</strong> zero terms, identity multipliers and redundant signs are removed, while malformed
+                concatenated Spline terms are now emitted as valid expressions.
+              </li>
+              <li style="margin-bottom: 5px;">
+                <strong>Correct domains and framing:</strong> Spline exports use their actual parameter intervals and endpoints; Desmos and SVG initialize from
+                the source bounding box instead of assuming zero-based coordinates.
+              </li>
+              <li>
+                <strong>Safer JSON &amp; SVG rendering:</strong> invalid non-finite AST values are rejected, and SVG Fourier sampling adapts to active
+                high-frequency terms to prevent aliased or collapsed paths.
+              </li>
+            </ul>
+          </div>
+          <div style="margin-bottom: 20px;">
             <span class="nes-text is-warning" style="font-weight: bold; display: block; margin-bottom: 5px;"
               >[2026-08-16] - Video &amp; JSON Studio moved to CLI</span
             >
