@@ -1071,6 +1071,13 @@
         }),
       );
 
+      els.revealStagedCheck.addEventListener("change", () => {
+        els.revealColorOptions.classList.toggle(
+          "hidden",
+          !els.revealStagedCheck.checked,
+        );
+      });
+
       els.replayBtn.addEventListener("click", () => {
         recacheViewportCanvas();
         requestRender();
