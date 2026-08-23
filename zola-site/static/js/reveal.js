@@ -267,9 +267,10 @@ const DEFAULTS = {
 
 // A single scheduled pass over all strokes (shape or color stage).
 class RevealPass {
-  constructor(strokes, keys, styleFor) {
+  constructor(strokes, keys, styleFor, hooks = {}) {
     this.strokes = strokes;
     this.styleFor = styleFor;
+    this.onStrokeStart = hooks.onStrokeStart || null;
     const n = keys.length;
     // Window width: how much of the timeline each individual stroke takes.
     const wf = Math.min(0.5, Math.max(0.06, 1.6 / Math.max(n, 1)));
@@ -291,6 +292,7 @@ class RevealPass {
       const prevP = clamp01((fromT - s0) / (s1 - s0));
       const curP = clamp01((toT - s0) / (s1 - s0));
       if (curP <= prevP || curP <= this.drawn[i]) continue;
+      if (this.drawn[i] === 0 && this.onStrokeStart) this.onStrokeStart(i);
       const from = Math.max(prevP, this.drawn[i]);
       ctx.strokeStyle = this.styleFor(this.strokes[i]);
       this.strokes[i].draw(ctx, from, curP);
@@ -300,6 +302,7 @@ class RevealPass {
       // Force-complete any rounding leftovers.
       for (let i = 0; i < this.strokes.length; i++) {
         if (this.drawn[i] < 1) {
+          if (this.drawn[i] === 0 && this.onStrokeStart) this.onStrokeStart(i);
           ctx.strokeStyle = this.styleFor(this.strokes[i]);
           this.strokes[i].draw(ctx, this.drawn[i], 1);
           this.drawn[i] = 1;
@@ -330,11 +333,39 @@ export class RevealAnimator {
     }
     this.cancel();
     const o = this.opts;
-    const bbox = validBBox(this.ast.bounding_box);
 
-    ctx.lineJoin = "round";
-    ctx.lineCap = "round";
-    ctx.lineWidth = o.lineWidth;
+    // Staged color composites two separate layers (mono + color) so a color
+    // stroke is never blended on top of its monochrome underlayer — stacking
+    // them darkens AA edges and stroke crossings, and the final clean repaint
+    // then visibly "pops" (colors suddenly look lighter). The mono copy of a
+    // stroke is retired from the mono layer the moment its color pass starts,
+    // so the composite at completion is exactly the color layer alone.
+    const staged = o.colorMode === "staged" && o.extractColor !== false;
+    const width = ctx.canvas.width;
+    const height = ctx.canvas.height;
+    const baseTransform = ctx.getTransform();
+    let monoCanvas = null;
+    let monoCtx = null;
+    let colorCanvas = null;
+    let colorCtx = null;
+    if (staged) {
+      monoCanvas = document.createElement("canvas");
+      colorCanvas = document.createElement("canvas");
+      monoCanvas.width = colorCanvas.width = width;
+      monoCanvas.height = colorCanvas.height = height;
+      monoCtx = monoCanvas.getContext("2d");
+      colorCtx = colorCanvas.getContext("2d");
+      for (const c of [monoCtx, colorCtx]) {
+        c.setTransform(baseTransform);
+        c.lineJoin = "round";
+        c.lineCap = "round";
+        c.lineWidth = o.lineWidth;
+      }
+    }
+    const shapeCtx = staged ? monoCtx : ctx;
+    const colorTargetCtx = staged ? colorCtx : ctx;
+
+    const bbox = validBBox(this.ast.bounding_box);
 
     const styleOpts = {
       bitDepth: o.bitDepth,
@@ -357,14 +388,33 @@ export class RevealAnimator {
     );
 
     this.colorPass = null;
-    if (o.colorMode === "staged" && o.extractColor !== false) {
+    if (staged) {
       const cMode = o.colorStrategy === "follow" ? o.mode : o.colorStrategy;
       const colorKeys = computeScheduleKeys(cMode, this.strokes, bbox, o.origin, rng);
       const lag = clamp01(o.colorLag);
       // Compress the color schedule into the tail of the timeline.
       const shifted = colorKeys.map((k) => lag + k * (1 - lag));
-      this.colorPass = new RevealPass(this.strokes, shifted, coloredStyle);
+      this.colorPass = new RevealPass(this.strokes, shifted, coloredStyle, {
+        onStrokeStart: (i) => {
+          monoCtx.save();
+          monoCtx.globalCompositeOperation = "destination-out";
+          monoCtx.strokeStyle = "#000";
+          monoCtx.lineWidth = o.lineWidth + 1.5;
+          this.strokes[i].draw(monoCtx, 0, 1);
+          monoCtx.restore();
+        },
+      });
     }
+
+    const composite = () => {
+      if (!staged) return;
+      ctx.save();
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.clearRect(0, 0, width, height);
+      ctx.drawImage(monoCanvas, 0, 0);
+      ctx.drawImage(colorCanvas, 0, 0);
+      ctx.restore();
+    };
 
     this.running = true;
     this._start = performance.now();
@@ -373,12 +423,14 @@ export class RevealAnimator {
       if (!this.running) return;
       const duration = Math.max(this.opts.durationMs, 1);
       const t = clamp01((now - this._start) / duration);
-      this.shapePass.drawRange(ctx, this._prevT, t);
-      if (this.colorPass) this.colorPass.drawRange(ctx, this._prevT, t);
+      this.shapePass.drawRange(shapeCtx, this._prevT, t);
+      if (this.colorPass) this.colorPass.drawRange(colorTargetCtx, this._prevT, t);
+      composite();
       this._prevT = t;
       if (hooks.onFrame) hooks.onFrame();
       if (t >= 1 && this.shapePass.complete && (!this.colorPass || this.colorPass.complete)) {
         this.running = false;
+        composite();
         if (hooks.onDone) hooks.onDone();
         return;
       }
