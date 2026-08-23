@@ -6,10 +6,11 @@
     <title>Vectomancy Pro - Retro Lab</title>
 
     <!-- Performance Optimization: Preload -->
-    <link rel="preload" href="/fonts/pressstart2p.woff2" as="font" type="font/woff2" crossorigin />
+    <!-- Note: no font/logo preload here — this WASM-heavy page consumes the font
+         after init, which trips Firefox's "preload not used" console warning;
+         logo.svg is only used on the homepage. -->
     <link rel="preload" href="/css/nes.min.css" as="style" />
     <link rel="preload" href="/wasm/wasm_engine_bg.wasm" as="fetch" crossorigin />
-    <link rel="preload" href="/img/logo.svg" as="image" />
 
     <link rel="apple-touch-icon" sizes="180x180" href="/favicons/apple-touch-icon.png" />
     <link rel="icon" type="image/png" sizes="32x32" href="/favicons/favicon-32x32.png" />
@@ -1735,10 +1736,10 @@
             (e.clientX - r.left - offsetX) / scale,
             (e.clientY - r.top - offsetY) / scale,
           ];
-          if (els.revealModeSelect.value !== "instant") {
-            els.revealModeSelect.value = "radial-origin";
-            saveSettings();
-          }
+          // Always switch so the action has visible feedback, even from the
+          // default Instant mode (otherwise ALT+click looks like a no-op).
+          els.revealModeSelect.value = "radial-origin";
+          saveSettings();
           els.statusText.innerText = "REVEAL ORIGIN SET";
           recacheViewportCanvas();
           requestRender();

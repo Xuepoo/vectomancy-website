@@ -10,10 +10,11 @@
     />
 
     <!-- Performance Optimization: Preload -->
-    <link rel="preload" href="/fonts/pressstart2p.woff2" as="font" type="font/woff2" crossorigin />
+    <!-- No font/logo preload: logo.svg is only used on the homepage, and the
+         font is fetched via @font-face after WASM init (preloading it trips
+         Firefox's "preload not used" console warning). -->
     <link rel="preload" href="/css/nes.min.css" as="style" />
     <link rel="preload" href="/wasm/wasm_engine_bg.wasm" as="fetch" crossorigin />
-    <link rel="preload" href="/img/logo.svg" as="image" />
 
     <link rel="apple-touch-icon" sizes="180x180" href="/favicons/apple-touch-icon.png" />
     <link rel="icon" type="image/png" sizes="32x32" href="/favicons/favicon-32x32.png" />
