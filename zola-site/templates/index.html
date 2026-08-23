@@ -290,6 +290,32 @@
         </p>
         <div style="font-size: 8px; line-height: 1.6; color: var(--text-color); max-height: 320px; overflow-y: auto; padding-right: 6px;">
           <div style="margin-bottom: 20px;">
+            <span class="nes-text is-success" style="font-weight: bold; display: block; margin-bottom: 5px;"
+              >[2026-08-23] - Progressive Reveal comes to Vectomancy Pro</span
+            >
+            <ul style="margin: 0; padding-left: 20px; list-style-type: square;">
+              <li style="margin-bottom: 5px;">
+                <strong>Delayed rendering is here:</strong> artwork no longer has to appear all at once. Open the <a href="/app/">Playground</a> and look for
+                the new <code>Reveal</code> panel in the left sidebar.
+              </li>
+              <li style="margin-bottom: 5px;">
+                <strong>Pick an animation:</strong> directional sweeps (L→R, R→L, T→B, B→T), diagonals (TL→BR / BR→TL), radial expansion from the center,
+                stroke-by-stroke <code>Sequential Draw</code>, or <code>Random Scatter</code>. Set the <code>Duration</code> slider and press
+                <code>REPLAY</code> to watch it again.
+              </li>
+              <li style="margin-bottom: 5px;">
+                <strong>Custom radial origin:</strong> hold <code>ALT</code> and click anywhere on the canvas — the reveal blooms outward from exactly that
+                point.
+              </li>
+              <li style="margin-bottom: 5px;">
+                <strong>Staged color:</strong> tick <code>Mono first, color spreads</code> to draw the whole piece in monochrome first, then let the real colors
+                bloom back in with their own strategy (<code>Color Spread</code>) and timing (<code>Color Lag</code>). Especially striking with colorful line
+                art and gradients!
+              </li>
+              <li><strong>Stability fix:</strong> repaired a long-standing script error that could silently break the whole Playground page.</li>
+            </ul>
+          </div>
+          <div style="margin-bottom: 20px;">
             <span class="nes-text is-success" style="font-weight: bold; display: block; margin-bottom: 5px;">[v8.1.0] - 2026-08-19</span>
             <ul style="margin: 0; padding-left: 20px; list-style-type: square;">
               <li style="margin-bottom: 5px;">

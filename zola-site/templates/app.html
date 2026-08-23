@@ -667,6 +667,72 @@
       </div>
 
       <div class="nes-container with-title control-group" style="padding: 15px">
+        <p class="title" style="font-size: 10px">Reveal</p>
+        <div style="font-size: 7px; line-height: 1.5; color: #999; margin-bottom: 8px">
+          Animate how your art appears: sweeps, radial bloom or stroke order — optionally monochrome first, then color spreads back in.
+        </div>
+        <label for="revealModeSelect">Animation</label>
+        <div class="nes-select" style="width: 100%; margin-bottom: 10px">
+          <select id="revealModeSelect" style="font-size: 8px" aria-label="Reveal Animation Mode">
+            <option value="instant" selected>Instant (Off)</option>
+            <option value="ltr">Sweep Left → Right</option>
+            <option value="rtl">Sweep Right → Left</option>
+            <option value="ttb">Sweep Top → Bottom</option>
+            <option value="btt">Sweep Bottom → Top</option>
+            <option value="diag-tlbr">Diagonal TL → BR</option>
+            <option value="diag-brtl">Diagonal BR → TL</option>
+            <option value="radial-center">Radial from Center</option>
+            <option value="radial-origin">Radial from Origin</option>
+            <option value="sequential">Sequential Draw</option>
+            <option value="random">Random Scatter</option>
+          </select>
+        </div>
+
+        <label for="revealDurationRange">Duration: <span id="revealDurationVal" style="color: var(--accent-color)">3.0s</span></label>
+        <input type="range" id="revealDurationRange" min="0.5" max="10" step="0.5" value="3" class="nes-range" aria-label="Reveal Duration" />
+
+        <label style="margin: 8px 0 0"
+          ><input type="checkbox" class="nes-checkbox" id="revealStagedCheck" aria-label="Mono First Then Color" /><span>Mono first, color spreads</span></label
+        >
+
+        <div
+          id="revealColorOptions"
+          class="hidden"
+          style="
+            margin-left: 15px;
+            border-left: 2px solid var(--accent-color);
+            padding-left: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+          "
+        >
+          <label for="revealColorStrategySelect" style="font-size: 8px; margin: 0">Color Spread</label>
+          <div class="nes-select" style="font-size: 8px; margin-bottom: 6px">
+            <select id="revealColorStrategySelect" aria-label="Color Spread Strategy" style="font-size: 8px; padding: 4px">
+              <option value="follow" selected>Follow shape reveal</option>
+              <option value="radial-center">Bloom from center</option>
+              <option value="radial-origin">Bloom from origin</option>
+              <option value="ltr">Left → Right</option>
+              <option value="rtl">Right → Left</option>
+              <option value="ttb">Top → Bottom</option>
+              <option value="btt">Bottom → Top</option>
+              <option value="random">Random bloom</option>
+            </select>
+          </div>
+          <label for="revealColorLagRange" style="font-size: 8px; margin: 0"
+            >Color Lag: <span id="revealColorLagVal" style="color: var(--accent-color)">45%</span></label
+          >
+          <input type="range" id="revealColorLagRange" min="10" max="90" step="5" value="45" class="nes-range" aria-label="Color Lag" />
+        </div>
+
+        <button class="nes-btn" id="replayBtn" type="button" style="width: 100%; font-size: 10px; margin-top: 10px" aria-label="Replay Reveal Animation">
+          REPLAY
+        </button>
+        <div id="revealHint" style="font-size: 7px; margin-top: 6px; text-align: center; color: #999">ALT+CLICK canvas sets radial origin</div>
+      </div>
+
+      <div class="nes-container with-title control-group" style="padding: 15px">
         <p class="title" style="font-size: 10px">Export</p>
         <label for="exportFormat" class="sr-only" style="display: none">Format</label>
         <div class="nes-select" style="width: 100%; margin-bottom: 10px">
@@ -793,6 +859,15 @@
           </p>
 
           <p>
+            <strong>Reveal (Delayed Rendering):</strong><br />
+            - <b>Sweeps</b>: Strokes appear along a direction (L→R, T→B, diagonal).<br />
+            - <b>Radial</b>: Expands from the center, or from a custom origin.<br />
+            - <b>Sequential / Random</b>: Stroke-by-stroke draw order, fixed or shuffled.<br />
+            - <b>Mono first</b>: Art appears in monochrome, then color spreads in with its own strategy and lag.<br />
+            - <b>ALT+CLICK</b> the canvas to set the radial origin.
+          </p>
+
+          <p>
             <strong>Pro Tips:</strong><br />
             - <b>Clipboard</b>: You can paste (Ctrl+V) images directly anywhere!<br />
             - <b>Focus Mode (F)</b>: Hides UI for pure viewing.<br />
@@ -830,6 +905,7 @@
     <script type="module">
       import init, { process_image, process_text } from "/wasm/wasm_engine.js";
       import { drawAST, processColor } from "/js/renderer.js";
+      import { RevealAnimator } from "/js/reveal.js";
 
       let isWasmLoaded = false;
       let originalImageObj = null;
@@ -849,6 +925,8 @@
       let isDragging = false,
         dragStart = { x: 0, y: 0 };
       let renderRequested = false;
+      let revealOrigin = null;
+      let revealAnimator = null;
 
       const SUPPORTED_EXTS = ["png", "jpg", "jpeg", "webp", "svg"];
 
@@ -886,6 +964,15 @@
         overlayStats: document.getElementById("overlayStats"),
         exportFormat: document.getElementById("exportFormat"),
         bgTransparentCheck: document.getElementById("bgTransparentCheck"),
+        revealModeSelect: document.getElementById("revealModeSelect"),
+        revealDurationRange: document.getElementById("revealDurationRange"),
+        revealDurationVal: document.getElementById("revealDurationVal"),
+        revealStagedCheck: document.getElementById("revealStagedCheck"),
+        revealColorOptions: document.getElementById("revealColorOptions"),
+        revealColorStrategySelect: document.getElementById("revealColorStrategySelect"),
+        revealColorLagRange: document.getElementById("revealColorLagRange"),
+        revealColorLagVal: document.getElementById("revealColorLagVal"),
+        replayBtn: document.getElementById("replayBtn"),
         downloadBtn: document.getElementById("downloadBtn"),
         shareBtn: document.getElementById("shareBtn"),
         shareDialog: document.getElementById("shareDialog"),
@@ -952,6 +1039,8 @@
         els.minPathVal.innerText = els.minPathRange.value;
         els.termsVal.innerText = els.termsRange.value;
         els.chaikinVal.innerText = els.chaikinRange.value;
+        els.revealDurationVal.innerText = `${parseFloat(els.revealDurationRange.value).toFixed(1)}s`;
+        els.revealColorLagVal.innerText = `${els.revealColorLagRange.value}%`;
         const mode = els.modeSelect.value;
         els.fourierControls.classList.toggle("hidden", mode !== "fourier");
         els.chaikinControls.classList.toggle("hidden", mode !== "chaikin");
@@ -963,7 +1052,28 @@
         els.termsRange,
         els.chaikinRange,
         els.modeSelect,
+        els.revealDurationRange,
+        els.revealColorLagRange,
       ].forEach((el) => el.addEventListener("input", updateLabels));
+
+      // Reveal controls restart the current animation when a value settles.
+      [
+        els.revealModeSelect,
+        els.revealStagedCheck,
+        els.revealColorStrategySelect,
+        els.revealColorLagRange,
+        els.revealDurationRange,
+      ].forEach((el) =>
+        el.addEventListener("change", () => {
+          recacheViewportCanvas();
+          requestRender();
+        }),
+      );
+
+      els.replayBtn.addEventListener("click", () => {
+        recacheViewportCanvas();
+        requestRender();
+      });
 
       els.themeToggleBtn.addEventListener("click", () => {
         document.body.classList.toggle("dark-theme");
@@ -1010,9 +1120,9 @@
         }
       });
 
+      // Initial viewport paint (leftover listener closer removed — was breaking
+      // the whole module script since #17).
       requestRender();
-      saveSettings();
-      });
 
       function updateInputView() {
         document
@@ -1499,6 +1609,20 @@
         els.helpDialog.showModal();
       });
 
+      function readRevealOptions(isDark) {
+        return {
+          mode: els.revealModeSelect.value,
+          durationMs: parseFloat(els.revealDurationRange.value) * 1000,
+          colorMode: els.revealStagedCheck.checked ? "staged" : "together",
+          colorStrategy: els.revealColorStrategySelect.value,
+          colorLag: parseInt(els.revealColorLagRange.value, 10) / 100,
+          monoColor: isDark ? "#fff" : "#000",
+          lineWidth: 1,
+          seed: 1,
+          origin: revealOrigin,
+        };
+      }
+
       function recacheViewportCanvas() {
         if (activePreviewId && activePreviewId !== "original") {
           const res = previewDataStore.get(activePreviewId);
@@ -1508,16 +1632,58 @@
           cachedViewportCanvas.width = res.width;
           cachedViewportCanvas.height = res.height;
           const cCtx = cachedViewportCanvas.getContext("2d");
+          const isDark = document.body.classList.contains("dark-theme");
+          if (revealAnimator) {
+            revealAnimator.cancel();
+            revealAnimator = null;
+          }
           const renderStart = performance.now();
-          drawAST(
-            cCtx,
-            res.ast,
-            false,
-            document.body.classList.contains("dark-theme"),
-            true,
-          );
-          res.renderTime = Math.round(performance.now() - renderStart);
+          const opts = readRevealOptions(isDark);
+          const finishInstant = () => {
+            drawAST(cCtx, res.ast, false, isDark, true);
+            res.renderTime = Math.round(performance.now() - renderStart);
+            updateStatsOverlay();
+          };
+          if (opts.mode === "instant") {
+            finishInstant();
+          } else {
+            revealAnimator = new RevealAnimator(res.ast, opts);
+            if (revealAnimator.isEmpty) {
+              revealAnimator = null;
+              finishInstant();
+            } else {
+              res.renderTime = Math.round(opts.durationMs);
+              updateStatsOverlay();
+              revealAnimator.play(cCtx, {
+                onFrame: () => requestRender(),
+                onDone: () => {
+                  revealAnimator = null;
+                  // Clean final repaint so the resting frame matches instant
+                  // rendering exactly (two-pass staged color leaves a bright
+                  // monochrome underlayer behind).
+                  cCtx.clearRect(0, 0, res.width, res.height);
+                  drawAST(cCtx, res.ast, false, isDark, true);
+                  res.renderTime = Math.round(performance.now() - renderStart);
+                  updateStatsOverlay();
+                },
+              });
+            }
+          }
         }
+      }
+
+      function updateStatsOverlay() {
+        if (!activePreviewId || activePreviewId === "original") return;
+        const res = previewDataStore.get(activePreviewId);
+        if (!res) return;
+        let stats = `RENDER STATS\nSIZE: ${res.width}x${res.height}\nCONVERT: ${res.computeTime}ms\nRENDER: ${res.renderTime || 0}ms`;
+        if (res.ast.type === "Spline" || res.ast.type === "spline")
+          stats += `\nPATHS: ${res.ast.equations.length}`;
+        else if (res.ast.type === "Fourier" || res.ast.type === "fourier")
+          stats += `\nSTROKES: ${res.ast.strokes.length}`;
+        else if (res.ast.type === "Polyline" || res.ast.type === "polyline")
+          stats += `\nPATHS: ${res.ast.paths.length}`;
+        els.overlayStats.innerText = stats;
       }
 
       function setActivePreview(id) {
@@ -1533,15 +1699,7 @@
 
         if (id !== "original") {
           recacheViewportCanvas();
-          const res = previewDataStore.get(id);
-          let stats = `RENDER STATS\nSIZE: ${res.width}x${res.height}\nCONVERT: ${res.computeTime}ms\nRENDER: ${res.renderTime || 0}ms`;
-          if (res.ast.type === "Spline" || res.ast.type === "spline")
-            stats += `\nPATHS: ${res.ast.equations.length}`;
-          else if (res.ast.type === "Fourier" || res.ast.type === "fourier")
-            stats += `\nSTROKES: ${res.ast.strokes.length}`;
-          else if (res.ast.type === "Polyline" || res.ast.type === "polyline")
-            stats += `\nPATHS: ${res.ast.paths.length}`;
-          els.overlayStats.innerText = stats;
+          updateStatsOverlay();
         } else {
           cachedViewportCanvas = null;
           if (originalImageObj) {
@@ -1571,6 +1729,22 @@
       }
 
       els.canvasArea.addEventListener("mousedown", (e) => {
+        if (e.altKey) {
+          const r = els.canvasArea.getBoundingClientRect();
+          revealOrigin = [
+            (e.clientX - r.left - offsetX) / scale,
+            (e.clientY - r.top - offsetY) / scale,
+          ];
+          if (els.revealModeSelect.value !== "instant") {
+            els.revealModeSelect.value = "radial-origin";
+            saveSettings();
+          }
+          els.statusText.innerText = "REVEAL ORIGIN SET";
+          recacheViewportCanvas();
+          requestRender();
+          e.preventDefault();
+          return;
+        }
         isDragging = true;
         dragStart = { x: e.clientX - offsetX, y: e.clientY - offsetY };
       });
@@ -1854,6 +2028,11 @@
             terms: els.termsRange.value,
             chaikin: els.chaikinRange.value,
             exportFormat: els.exportFormat.value,
+            revealMode: els.revealModeSelect.value,
+            revealDuration: els.revealDurationRange.value,
+            revealStaged: els.revealStagedCheck.checked,
+            revealColorStrategy: els.revealColorStrategySelect.value,
+            revealColorLag: els.revealColorLagRange.value,
             theme: document.body.classList.contains("dark-theme")
               ? "dark"
               : "light",
@@ -1901,6 +2080,21 @@
             els.chaikinRange.value = settings.chaikin;
           if (settings.exportFormat !== undefined)
             els.exportFormat.value = settings.exportFormat;
+          if (settings.revealMode !== undefined)
+            els.revealModeSelect.value = settings.revealMode;
+          if (settings.revealDuration !== undefined)
+            els.revealDurationRange.value = settings.revealDuration;
+          if (settings.revealStaged !== undefined) {
+            els.revealStagedCheck.checked = settings.revealStaged;
+            els.revealColorOptions.classList.toggle(
+              "hidden",
+              !els.revealStagedCheck.checked,
+            );
+          }
+          if (settings.revealColorStrategy !== undefined)
+            els.revealColorStrategySelect.value = settings.revealColorStrategy;
+          if (settings.revealColorLag !== undefined)
+            els.revealColorLagRange.value = settings.revealColorLag;
 
           if (settings.theme === "dark") {
             document.body.classList.add("dark-theme");
@@ -1952,6 +2146,11 @@
         els.termsRange,
         els.chaikinRange,
         els.exportFormat,
+        els.revealModeSelect,
+        els.revealDurationRange,
+        els.revealStagedCheck,
+        els.revealColorStrategySelect,
+        els.revealColorLagRange,
       ].forEach((el) => {
         el.addEventListener("input", saveSettings);
         el.addEventListener("change", saveSettings);

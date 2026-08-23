@@ -70,6 +70,81 @@ export function processColor(colorRgb, bitDepth, colorSpace) {
   return [r, g, b];
 }
 
+export function resolveStrokeStyle(ctx, colorStyle, bbox, opts = {}) {
+  const defCol = opts.defCol || "#000";
+  const bitDepth = opts.bitDepth || "24";
+  const colorSpace = opts.colorSpace || "srgb";
+  const extractColor = opts.extractColor !== false;
+  if (!bbox || bbox.some((val) => !isFinite(val))) {
+    bbox = [0, 0, 100, 100];
+  }
+  if (!colorStyle || !extractColor) return defCol;
+  if (Array.isArray(colorStyle)) {
+    const finalRgb = processColor(colorStyle, bitDepth, colorSpace);
+    return `rgb(${finalRgb.join(",")})`;
+  } else if (colorStyle.stops) {
+    const start_pos = colorStyle.start_pos || [0.0, 0.5];
+    const end_pos = colorStyle.end_pos || [1.0, 0.5];
+    const w = bbox[2] - bbox[0];
+    const h = bbox[3] - bbox[1];
+    const b0 = bbox[0];
+    const b1 = bbox[1];
+
+    let sx = parseFloat(start_pos[0]);
+    let sy = parseFloat(start_pos[1]);
+    let ex = parseFloat(end_pos[0]);
+    let ey = parseFloat(end_pos[1]);
+
+    if (isNaN(sx) || !isFinite(sx)) sx = 0.0;
+    if (isNaN(sy) || !isFinite(sy)) sy = 0.5;
+    if (isNaN(ex) || !isFinite(ex)) ex = 1.0;
+    if (isNaN(ey) || !isFinite(ey)) ey = 0.5;
+
+    const x0 = b0 + sx * w;
+    const y0 = b1 + sy * h;
+    const x1 = b0 + ex * w;
+    const y1 = b1 + ey * h;
+
+    if (!isFinite(x0) || !isFinite(y0) || !isFinite(x1) || !isFinite(y1)) {
+      return defCol;
+    }
+
+    const grad = ctx.createLinearGradient(x0, y0, x1, y1);
+    colorStyle.stops.forEach((stop) => {
+      let offset = parseFloat(stop[0]);
+      if (isNaN(offset) || !isFinite(offset)) offset = 0.0;
+      offset = Math.max(0.0, Math.min(1.0, offset));
+      const rgb = processColor(stop[1], bitDepth, colorSpace);
+      grad.addColorStop(offset, `rgb(${rgb.join(",")})`);
+    });
+    return grad;
+  } else if (colorStyle.LinearGradient) {
+    const start = processColor(colorStyle.LinearGradient.start, bitDepth, colorSpace);
+    const end = processColor(colorStyle.LinearGradient.end, bitDepth, colorSpace);
+    const angle = (colorStyle.LinearGradient.angle * Math.PI) / 180.0;
+    const w = bbox ? bbox[2] - bbox[0] : 0;
+    const h = bbox ? bbox[3] - bbox[1] : 0;
+    const cx = bbox ? bbox[0] + w / 2 : 0;
+    const cy = bbox ? bbox[1] + h / 2 : 0;
+    const r = Math.sqrt(w * w + h * h) / 2;
+    const x1 = cx - Math.cos(angle) * r,
+      y1 = cy - Math.sin(angle) * r;
+    const x2 = cx + Math.cos(angle) * r,
+      y2 = cy + Math.sin(angle) * r;
+
+    const fx1 = Number.isFinite(x1) ? x1 : 0;
+    const fy1 = Number.isFinite(y1) ? y1 : 0;
+    const fx2 = Number.isFinite(x2) ? x2 : 0;
+    const fy2 = Number.isFinite(y2) ? y2 : 0;
+
+    const grad = ctx.createLinearGradient(fx1, fy1, fx2, fy2);
+    grad.addColorStop(0, `rgb(${start.join(",")})`);
+    grad.addColorStop(1, `rgb(${end.join(",")})`);
+    return grad;
+  }
+  return defCol;
+}
+
 export function drawAST(ctx, ast, options = {}) {
   let isThumb = false;
   let isDark = false;
@@ -107,74 +182,12 @@ export function drawAST(ctx, ast, options = {}) {
   const defCol = isDark ? "#fff" : "#000";
 
   function getStrokeStyle(colorStyle, bbox) {
-    if (!bbox || bbox.some((val) => !isFinite(val))) {
-      bbox = [0, 0, 100, 100];
-    }
-    if (!colorStyle || !extractColor) return defCol;
-    if (Array.isArray(colorStyle)) {
-      const finalRgb = processColor(colorStyle, bitDepth, colorSpace);
-      return `rgb(${finalRgb.join(",")})`;
-    } else if (colorStyle.stops) {
-      const start_pos = colorStyle.start_pos || [0.0, 0.5];
-      const end_pos = colorStyle.end_pos || [1.0, 0.5];
-      const w = bbox[2] - bbox[0];
-      const h = bbox[3] - bbox[1];
-      const b0 = bbox[0];
-      const b1 = bbox[1];
-
-      let sx = parseFloat(start_pos[0]);
-      let sy = parseFloat(start_pos[1]);
-      let ex = parseFloat(end_pos[0]);
-      let ey = parseFloat(end_pos[1]);
-
-      if (isNaN(sx) || !isFinite(sx)) sx = 0.0;
-      if (isNaN(sy) || !isFinite(sy)) sy = 0.5;
-      if (isNaN(ex) || !isFinite(ex)) ex = 1.0;
-      if (isNaN(ey) || !isFinite(ey)) ey = 0.5;
-
-      const x0 = b0 + sx * w;
-      const y0 = b1 + sy * h;
-      const x1 = b0 + ex * w;
-      const y1 = b1 + ey * h;
-
-      if (!isFinite(x0) || !isFinite(y0) || !isFinite(x1) || !isFinite(y1)) {
-        return defCol;
-      }
-
-      const grad = ctx.createLinearGradient(x0, y0, x1, y1);
-      colorStyle.stops.forEach((stop) => {
-        let offset = parseFloat(stop[0]);
-        if (isNaN(offset) || !isFinite(offset)) offset = 0.0;
-        offset = Math.max(0.0, Math.min(1.0, offset));
-        const rgb = processColor(stop[1], bitDepth, colorSpace);
-        grad.addColorStop(offset, `rgb(${rgb.join(",")})`);
-      });
-      return grad;
-    } else if (colorStyle.LinearGradient) {
-      const start = processColor(colorStyle.LinearGradient.start, bitDepth, colorSpace);
-      const end = processColor(colorStyle.LinearGradient.end, bitDepth, colorSpace);
-      const angle = (colorStyle.LinearGradient.angle * Math.PI) / 180.0;
-      const w = bbox ? bbox[2] - bbox[0] : 0;
-      const h = bbox ? bbox[3] - bbox[1] : 0;
-      const cx = bbox ? bbox[0] + w / 2 : 0;
-      const cy = bbox ? bbox[1] + h / 2 : 0;
-      const r = Math.sqrt(w * w + h * h) / 2;
-      const x1 = cx - Math.cos(angle) * r,
-        y1 = cy - Math.sin(angle) * r;
-      const x2 = cx + Math.cos(angle) * r,
-        y2 = cy + Math.sin(angle) * r;
-
-      const fx1 = Number.isFinite(x1) ? x1 : 0;
-      const fy1 = Number.isFinite(y1) ? y1 : 0;
-      const fx2 = Number.isFinite(x2) ? x2 : 0;
-      const fy2 = Number.isFinite(y2) ? y2 : 0;
-
-      const grad = ctx.createLinearGradient(fx1, fy1, fx2, fy2);
-      grad.addColorStop(0, `rgb(${start.join(",")})`);
-      grad.addColorStop(1, `rgb(${end.join(",")})`);
-      return grad;
-    }
-    return defCol;
+    return resolveStrokeStyle(ctx, colorStyle, bbox, {
+      defCol,
+      bitDepth,
+      colorSpace,
+      extractColor,
+    });
   }
 
   if (ast.type === "Spline" || ast.type === "spline") {
