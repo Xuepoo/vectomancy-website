@@ -1621,6 +1621,7 @@
           }
           recacheViewportCanvas();
           requestRender();
+          saveSettings();
         }),
       );
 
@@ -2754,7 +2755,10 @@
           colorStrategy: els.revealColorStrategySelect.value,
           colorLag: parseInt(els.revealColorLagRange.value, 10) / 100,
           monoColor: isDark ? "#fff" : "#000",
-          lineWidth: 1,
+          // Match drawCachedPaths' final paint width (isExport=true → raw
+          // stroke weight) so animated strokes are not thinner than the
+          // resting frame; a mismatch makes the final repaint visibly pop.
+          lineWidth: els.strokeRange ? parseFloat(els.strokeRange.value) || 1.5 : 1.5,
           seed: 1,
           origin: revealOrigin,
         };

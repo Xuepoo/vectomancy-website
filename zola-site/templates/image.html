@@ -975,7 +975,7 @@
       });
 
       // Reveal controls restart the current animation when a value settles.
-      [els.revealModeSelect, els.revealStagedCheck, els.revealColorStrategySelect, els.revealColorLagRange, els.revealDurationRange].forEach(el => el.addEventListener('change', () => { recacheViewportCanvas(); requestRender(); }));
+      [els.revealModeSelect, els.revealStagedCheck, els.revealColorStrategySelect, els.revealColorLagRange, els.revealDurationRange].forEach(el => el.addEventListener('change', () => { recacheViewportCanvas(); requestRender(); saveSettings(); }));
       // Toggling staged color also shows/hides the color spread sub-panel.
       els.revealStagedCheck.addEventListener('change', () => {
           els.revealColorOptions.classList.toggle('hidden', !els.revealStagedCheck.checked);
@@ -1200,7 +1200,11 @@
               colorStrategy: els.revealColorStrategySelect.value,
               colorLag: parseInt(els.revealColorLagRange.value, 10) / 100,
               monoColor: isDark ? '#fff' : '#000',
-              lineWidth: 1,
+              // Match the final paint exactly (drawAST runs with
+              // isExport=true, i.e. raw stroke weight): otherwise animated
+              // strokes render thinner than the resting frame and the last
+              // frame visibly "thickens" when the clean repaint lands.
+              lineWidth: els.strokeRange ? parseFloat(els.strokeRange.value) : 1.0,
               seed: 1,
               origin: revealOrigin,
           };
