@@ -9,7 +9,6 @@
     <!-- Performance Optimization: Preload -->
     <link rel="preload" href="/fonts/pressstart2p.woff2" as="font" type="font/woff2" crossorigin />
     <link rel="preload" href="/css/nes.min.css" as="style" />
-    <link rel="preload" href="/wasm/wasm_engine_bg.wasm" as="fetch" crossorigin />
 
     <script src="{{ get_url(path='/js/fflate.min.js', cachebust=true) }}" defer></script>
 
@@ -72,6 +71,9 @@
       }
       body.dark-theme #status-text {
         color: #aaa;
+      }
+      #filename-display {
+        color: #5a5f66;
       }
       body.dark-theme #filename-display {
         color: #aaa;
@@ -492,7 +494,7 @@
       >
     </div>
 
-    <div class="sidebar">
+    <div class="sidebar" role="complementary" aria-label="Tools">
       <div class="nes-container with-title is-centered control-group" style="padding: 15px 10px">
         <a href="/" style="text-decoration: none; color: inherit">
           <p class="title" style="font-size: 12px; background: var(--container-bg)">VECTOMANCY</p>
@@ -521,7 +523,7 @@
             padding-top: 10px;
           "
         >
-          <span id="filename-display" class="truncate-text" style="font-size: 8px; color: #aaa">{{ trans(key="typo_no_font") }}</span>
+          <span id="filename-display" class="truncate-text" style="font-size: 8px">{{ trans(key="typo_no_font") }}</span>
         </div>
       </div>
 
@@ -1052,7 +1054,7 @@
         </div>
       </div>
 
-      <div class="canvas-area" id="canvasArea">
+      <div class="canvas-area" id="canvasArea" role="main">
         <canvas id="mainCanvas" aria-label="{{ trans(key='typo_canvas_aria') }}"></canvas>
         <div class="overlay-stats nes-container is-rounded" id="overlayStats" aria-live="polite">{{ trans(key="typo_waiting") }}</div>
 
@@ -1151,6 +1153,13 @@
       </form>
     </dialog>
 
+    <script>
+      // Single eager fetch of the wasm bytes; handed to init() below so the
+      // generated glue never issues a second, differently-keyed download.
+      window.__wasmBytes = fetch("/wasm/wasm_engine_bg.wasm").then(function (r) {
+        return r.arrayBuffer();
+      });
+    </script>
     <script type="module">
       import init, { process_text } from "{{ get_url(path='/wasm/wasm_engine.js', cachebust=true) }}";
       import { RevealAnimator } from "{{ get_url(path='/js/reveal.js', cachebust=true) }}";
@@ -1318,7 +1327,7 @@
 
       async function run() {
         try {
-          await init();
+          await init(await window.__wasmBytes);
           isWasmLoaded = true;
           els.loaderOverlay.classList.add("hidden");
           console.log("WASM Initialized!");
@@ -1439,6 +1448,10 @@
           // Color picker input
           const colorInput = document.createElement("input");
           colorInput.type = "color";
+          colorInput.setAttribute(
+            "aria-label",
+            window.t8(`Gradient stop ${index + 1} color`, `渐变节点 ${index + 1} 颜色`),
+          );
           colorInput.value = hexColor;
           colorInput.style.padding = "0";
           colorInput.style.border = "none";
@@ -1458,6 +1471,10 @@
           offsetInput.max = "100";
           offsetInput.value = Math.round(offset * 100);
           offsetInput.style.flex = "1";
+          offsetInput.setAttribute(
+            "aria-label",
+            window.t8(`Gradient stop ${index + 1} position`, `渐变节点 ${index + 1} 位置`),
+          );
           offsetInput.className = "nes-range";
           offsetInput.oninput = (e) => {
             currentGradient.stops[index][0] =
@@ -2504,7 +2521,7 @@
         const div = document.createElement("div");
         div.className = "gallery-item";
         div.id = `gallery-${id}`;
-        div.innerHTML = `<img src="${src}"><div class="gallery-label">${label}</div><div class="gallery-delete">X</div>`;
+        div.innerHTML = `<img src="${src}" alt="${label}"><div class="gallery-label">${label}</div><div class="gallery-delete">X</div>`;
         div.onclick = (e) => {
           if (e.target.classList.contains("gallery-delete")) {
             e.stopPropagation();

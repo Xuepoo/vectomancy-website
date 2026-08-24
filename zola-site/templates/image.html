@@ -11,7 +11,6 @@
          font is fetched via @font-face after WASM init (preloading it trips
          Firefox's "preload not used" console warning). -->
     <link rel="preload" href="{{ get_url(path='/css/nes.min.css', cachebust=true) }}" as="style" />
-    <link rel="preload" href="/wasm/wasm_engine_bg.wasm" as="fetch" crossorigin />
 
     <link rel="apple-touch-icon" sizes="180x180" href="/favicons/apple-touch-icon.png" />
     <link rel="icon" type="image/png" sizes="32x32" href="/favicons/favicon-32x32.png" />
@@ -64,6 +63,7 @@
       body.dark-theme .nes-radio + span {
           color: var(--text-color);
       }
+      #filename-display { color: #5a5f66; }
       body.dark-theme #status-text { color: #aaa; }
       body.dark-theme #filename-display { color: #aaa; }
 
@@ -392,7 +392,7 @@
       >
     </div>
 
-    <div class="sidebar">
+    <div class="sidebar" role="complementary" aria-label="Tools">
       <div class="nes-container with-title is-centered control-group" style="padding: 15px 10px;">
         <a href="/" style="text-decoration: none; color: inherit;">
           <p class="title" style="font-size: 12px; background: var(--container-bg);">VECTOMANCY</p>
@@ -430,7 +430,7 @@
         </div>
 
         <div style="margin-top: 10px; text-align: center; border-top: 2px dashed #444; padding-top: 10px;">
-          <span id="filename-display" class="truncate-text" style="font-size: 8px; color: #aaa;">{{ trans(key="image_no_file") }}</span>
+          <span id="filename-display" class="truncate-text" style="font-size: 8px;">{{ trans(key="image_no_file") }}</span>
         </div>
       </div>
 
@@ -752,7 +752,7 @@
         </div>
       </div>
 
-      <div class="canvas-area" id="canvasArea">
+      <div class="canvas-area" id="canvasArea" role="main">
         <canvas id="mainCanvas" aria-label="{{ trans(key='image_canvas_aria') }}"></canvas>
         <div class="overlay-stats nes-container is-rounded" id="overlayStats" aria-live="polite">{{ trans(key="image_waiting") }}</div>
 
@@ -841,6 +841,13 @@
     </dialog>
 
     <script src="{{ get_url(path='/js/fflate.min.js', cachebust=true) }}"></script>
+    <script>
+      // Single eager fetch of the wasm bytes; handed to init() below so the
+      // generated glue never issues a second, differently-keyed download.
+      window.__wasmBytes = fetch("/wasm/wasm_engine_bg.wasm").then(function (r) {
+        return r.arrayBuffer();
+      });
+    </script>
     <script type="module">
       import init, { process_image, process_text } from "{{ get_url(path='/wasm/wasm_engine.js', cachebust=true) }}";
       import { RevealAnimator } from '{{ get_url(path='/js/reveal.js', cachebust=true) }}';
@@ -944,7 +951,7 @@
 
       async function run() {
           try {
-              await init();
+              await init(await window.__wasmBytes);
               isWasmLoaded = true;
               els.loaderOverlay.classList.add('hidden');
               console.log("WASM Initialized!");
