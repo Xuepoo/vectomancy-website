@@ -1771,11 +1771,12 @@
                 onFrame: () => requestRender(),
                 onDone: () => {
                   revealAnimator = null;
-                  // Clean final repaint so the resting frame matches instant
-                  // rendering exactly (two-pass staged color leaves a bright
-                  // monochrome underlayer behind).
-                  cCtx.clearRect(0, 0, res.width, res.height);
-                  drawAST(cCtx, res.ast, false, isDark, true);
+                  // Staged mode keeps its final accumulated frame as the resting
+                  // state (see image.html for rationale).
+                  if (opts.colorMode !== 'staged') {
+                      cCtx.clearRect(0, 0, res.width, res.height);
+                      drawAST(cCtx, res.ast, false, isDark, true);
+                  }
                   res.renderTime = Math.round(performance.now() - renderStart);
                   updateStatsOverlay();
                 },

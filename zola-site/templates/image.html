@@ -1245,11 +1245,16 @@
                           onFrame: () => requestRender(),
                           onDone: () => {
                               revealAnimator = null;
-                              // Clean final repaint so the resting frame matches instant
-                              // rendering exactly (two-pass staged color leaves a bright
-                              // monochrome underlayer behind).
-                              cCtx.clearRect(0, 0, res.width, res.height);
-                              drawAST(cCtx, res.ast, false, isDark, true);
+                              // Staged mode keeps its final accumulated frame as the
+                              // resting state: with dense art, a clean single-pass
+                              // repaint accumulates alpha differently than the animated
+                              // layers and reads as a sudden darkening jump. Non-staged
+                              // reveals still get the clean repaint (their last frame is
+                              // nearly identical to it).
+                              if (opts.colorMode !== 'staged') {
+                                  cCtx.clearRect(0, 0, res.width, res.height);
+                                  drawAST(cCtx, res.ast, false, isDark, true);
+                              }
                               res.renderTime = Math.round(performance.now() - renderStart);
                               updateStatsOverlay(res);
                           },

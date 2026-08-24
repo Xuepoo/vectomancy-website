@@ -2818,23 +2818,27 @@
                 onFrame: () => requestRender(),
                 onDone: () => {
                   revealAnimator = null;
-                  cCtx.setTransform(1, 0, 0, 1, 0, 0);
-                  cCtx.clearRect(0, 0, dims.width, dims.height);
-                  cCtx.save();
-                  cCtx.translate(offsetX, offsetY);
-                  cCtx.scale(scale, scale);
-                  if (!res.cachedPaths) {
-                    res.cachedPaths = buildPath2DCache(res.ast);
+                  // Staged mode keeps its final accumulated frame as the resting
+                  // state (see image.html for rationale).
+                  if (opts.colorMode !== 'staged') {
+                    cCtx.setTransform(1, 0, 0, 1, 0, 0);
+                    cCtx.clearRect(0, 0, dims.width, dims.height);
+                    cCtx.save();
+                    cCtx.translate(offsetX, offsetY);
+                    cCtx.scale(scale, scale);
+                    if (!res.cachedPaths) {
+                      res.cachedPaths = buildPath2DCache(res.ast);
+                    }
+                    drawCachedPaths(
+                      cCtx,
+                      res.cachedPaths,
+                      res.ast,
+                      false,
+                      isDark,
+                      true,
+                    );
+                    cCtx.restore();
                   }
-                  drawCachedPaths(
-                    cCtx,
-                    res.cachedPaths,
-                    res.ast,
-                    false,
-                    isDark,
-                    true,
-                  );
-                  cCtx.restore();
                   updateStatsOverlay(res);
                 },
               });
