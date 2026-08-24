@@ -431,6 +431,15 @@ export class RevealAnimator {
     }
     const shapeCtx = staged ? monoCtx : ctx;
     const colorTargetCtx = staged ? colorCtx : ctx;
+    if (!staged) {
+      // Non-staged draws straight onto the caller's canvas, which carries
+      // whatever lineWidth its last paint left behind (usually the default).
+      // Animated strokes must honor the requested width or the final repaint
+      // reads as a sudden thickening.
+      ctx.lineJoin = "round";
+      ctx.lineCap = "round";
+      ctx.lineWidth = o.lineWidth;
+    }
 
     const bbox = validBBox(this.ast.bounding_box);
 

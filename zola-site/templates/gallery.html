@@ -172,7 +172,7 @@
     font-size: 11px;
   }
 </style>
-<script type="module" src="/js/renderer.js"></script>
+<script type="module" src="{{ get_url(path='/js/renderer.js', cachebust=true) }}"></script>
 {% endblock extra_head %} {% block content %}
 <div class="container" style="max-width: 1200px;">
   <!-- Navigation Back -->
