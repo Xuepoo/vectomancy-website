@@ -9,16 +9,16 @@
     <!-- Note: no font/logo preload here — this WASM-heavy page consumes the font
          after init, which trips Firefox's "preload not used" console warning;
          logo.svg is only used on the homepage. -->
-    <link rel="preload" href="/css/nes.min.css" as="style" />
+    <link rel="preload" href="{{ get_url(path='/css/nes.min.css', cachebust=true) }}" as="style" />
     <link rel="preload" href="/wasm/wasm_engine_bg.wasm" as="fetch" crossorigin />
 
     <link rel="apple-touch-icon" sizes="180x180" href="/favicons/apple-touch-icon.png" />
     <link rel="icon" type="image/png" sizes="32x32" href="/favicons/favicon-32x32.png" />
     <link rel="icon" type="image/png" sizes="16x16" href="/favicons/favicon-16x16.png" />
     <link rel="shortcut icon" href="/favicons/favicon.ico" />
-    <link href="/css/nes.min.css" rel="stylesheet" />
-    <link rel="stylesheet" href="/css/fonts.css" />
-    <script src="/js/i18n.js" defer></script>
+    <link href="{{ get_url(path='/css/nes.min.css', cachebust=true) }}" rel="stylesheet" />
+    <link rel="stylesheet" href="{{ get_url(path='/css/fonts.css', cachebust=true) }}" />
+    <script src="{{ get_url(path='/js/i18n.js', cachebust=true) }}" defer></script>
     <style>
       @font-face {
         font-family: "Press Start 2P";
@@ -989,9 +989,9 @@
     </dialog>
 
     <script type="module">
-      import init, { process_image, process_text } from "/wasm/wasm_engine.js";
-      import { drawAST, processColor } from "/js/renderer.js";
-      import { RevealAnimator } from "/js/reveal.js";
+      import init, { process_image, process_text } from "{{ get_url(path='/wasm/wasm_engine.js', cachebust=true) }}";
+      import { drawAST, processColor } from "{{ get_url(path='/js/renderer.js', cachebust=true) }}";
+      import { RevealAnimator } from "{{ get_url(path='/js/reveal.js', cachebust=true) }}";
 
       let isWasmLoaded = false;
       let originalImageObj = null;
