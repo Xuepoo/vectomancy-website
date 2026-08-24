@@ -1,0 +1,23 @@
+/* Fusion Pixel Font (TakWolf) — SIL OFL 1.1 — hosted on R2 CDN */
+/* unicode-range limits download to pages actually rendering CJK glyphs;
+   Latin/digits intentionally excluded so EN pages keep Press Start 2P */
+/* Intended body font stack (templates to be updated by a later change):
+   font-family: 'Press Start 2P', 'Fusion Pixel', monospace; */
+@font-face {
+  font-family: "Fusion Pixel";
+  src: url("https://cdn.xuepoo.xyz/fonts/fusion-pixel-12px-monospaced-normal.woff2") format("woff2");
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+  unicode-range:
+    U+3000-303F, U+3041-30FF, U+3105-312F, U+3400-4DBF, U+4E00-9FFF, U+F900-FAFF, U+FE30-FE4F,
+    U+FF00-FFEF;
+}
+
+/* Any visible CJK glyph inside these EN-page elements would otherwise trigger
+   the ~894KB Fusion Pixel download; let the system fallback render them there.
+   Scoped to EN pages so zh keeps the pixel look everywhere. */
+html:lang(en) [data-lang-switch],
+html:lang(en) .font-preset-btn {
+  font-family: "Press Start 2P", monospace;
+}

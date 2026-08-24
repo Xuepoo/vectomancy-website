@@ -101,18 +101,27 @@
 {% endblock extra_head %} {% block content %}
 <main class="main-content-wrapper">
   <!-- Top-left GitHub Link -->
-  <a href="https://github.com/Xuepoo/vectomancy" target="_blank" style="position: absolute; top: 15px; left: 15px; z-index: 1000;" title="View on GitHub">
+  <a
+    href="https://github.com/Xuepoo/vectomancy"
+    target="_blank"
+    style="position: absolute; top: 15px; left: 15px; z-index: 1000;"
+    title="{{ trans(key='home_github_title') }}"
+  >
     <i class="nes-icon github"></i>
   </a>
 
   <!-- Top-right Controls -->
   <div style="position: absolute; top: 15px; right: 15px; z-index: 1000; display: flex; gap: 10px;">
-    <a href="https://blog.xuepoo.xyz/posts/vectomancy-jie-shao/" target="_blank" class="nes-btn is-primary" style="font-size: 8px;">Usage</a>
-    <button class="nes-btn" id="themeToggleBtn" style="font-size: 8px;" aria-label="Toggle Theme">Theme</button>
+    <a href="https://blog.xuepoo.xyz/posts/vectomancy-jie-shao/" target="_blank" class="nes-btn is-primary" style="font-size: 8px;"
+      >{{ trans(key='home_usage_btn') }}</a
+    >
+    <button class="nes-btn" id="themeToggleBtn" style="font-size: 8px;" aria-label="{{ trans(key='common_toggle_theme') }}">
+      {{ trans(key='common_theme') }}
+    </button>
   </div>
 
   <!-- Bottom-left Discord Link -->
-  <a href="https://discord.gg/mdXnZVRC" target="_blank" class="discord-link" title="Join our Discord">
+  <a href="https://discord.gg/mdXnZVRC" target="_blank" class="discord-link" title="{{ trans(key='home_discord_title') }}">
     <svg class="discord-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16">
       <!-- Body Blue -->
       <rect x="1" y="7" width="1" height="1" fill="#5865F2" />
@@ -272,13 +281,19 @@
 
   <div class="container" style="max-width: 1200px;">
     <header style="margin-top: 10px; margin-bottom: 10px;">
-      <img src="/img/logo.svg" alt="Vectomancy Logo" class="logo-img" style="width: 70px; height: 70px; margin-bottom: 5px;" fetchpriority="high" />
-      <h1 style="margin-bottom: 5px; font-size: 26px;">VECTOMANCY</h1>
-      <p style="line-height: 1.4; font-size: 11px; margin-bottom: 15px;">Transform images into pure mathematical equations and curves.</p>
+      <img
+        src="/img/logo.svg"
+        alt="{{ trans(key='home_logo_alt') }}"
+        class="logo-img"
+        style="width: 70px; height: 70px; margin-bottom: 5px;"
+        fetchpriority="high"
+      />
+      <h1 style="margin-bottom: 5px; font-size: 26px;">{{ trans(key='home_hero_title') }}</h1>
+      <p style="line-height: 1.4; font-size: 11px; margin-bottom: 15px;">{{ trans(key='home_hero_subtitle') }}</p>
 
       <div style="margin-top: 15px; display: flex; justify-content: center; gap: 15px; flex-wrap: wrap; margin-bottom: 25px;">
-        <a href="/image" class="nes-btn is-primary">Image</a>
-        <a href="/typography" class="nes-btn is-success">Text</a>
+        <a href="/image" class="nes-btn is-primary">{{ trans(key='home_btn_image') }}</a>
+        <a href="/typography" class="nes-btn is-success">{{ trans(key='home_btn_text') }}</a>
       </div>
 
       <div
@@ -286,180 +301,56 @@
         style="margin-top: 40px; margin-bottom: 25px; max-width: 700px; margin-left: auto; margin-right: auto; text-align: left; background: var(--container-bg);"
       >
         <p class="title" style="font-size: 9px; margin-bottom: 10px; background: var(--container-bg) !important; color: var(--text-color) !important;">
-          Recent Updates
+          {{ trans(key='home_updates_title') }}
         </p>
         <div style="font-size: 8px; line-height: 1.6; color: var(--text-color); max-height: 320px; overflow-y: auto; padding-right: 6px;">
           <div style="margin-bottom: 20px;">
-            <span class="nes-text is-success" style="font-weight: bold; display: block; margin-bottom: 5px;"
-              >[2026-08-23] - Progressive Reveal comes to Vectomancy Pro</span
-            >
-            <ul style="margin: 0; padding-left: 20px; list-style-type: square;">
-              <li style="margin-bottom: 5px;">
-                <strong>Delayed rendering is here:</strong> artwork no longer has to appear all at once. Open the <a href="/image/">Image</a> or
-                <a href="/typography/">Text</a> tool and look for the new <code>Reveal</code> panel in the left sidebar.
-              </li>
-              <li style="margin-bottom: 5px;">
-                <strong>Pick an animation:</strong> directional sweeps (L→R, R→L, T→B, B→T), diagonals (TL→BR / BR→TL), radial expansion from the center,
-                stroke-by-stroke <code>Sequential Draw</code>, or <code>Random Scatter</code>. Set the <code>Duration</code> slider and press
-                <code>REPLAY</code> to watch it again.
-              </li>
-              <li style="margin-bottom: 5px;">
-                <strong>Custom radial origin:</strong> hold <code>ALT</code> and click anywhere on the canvas — the reveal blooms outward from exactly that
-                point.
-              </li>
-              <li style="margin-bottom: 5px;">
-                <strong>Staged color:</strong> tick <code>Mono first, color spreads</code> to draw the whole piece in monochrome first, then let the real colors
-                bloom back in with their own strategy (<code>Color Spread</code>) and timing (<code>Color Lag</code>). Especially striking with colorful line
-                art and gradients!
-              </li>
-              <li><strong>Stability fix:</strong> repaired a long-standing script error that could silently break the whole Playground page.</li>
-            </ul>
+            <span class="nes-text is-success" style="font-weight: bold; display: block; margin-bottom: 5px;">{{ trans(key='changelog_20260823_title') }}</span>
+            {{ trans(key='changelog_20260823_body') | safe }}
           </div>
           <div style="margin-bottom: 20px;">
-            <span class="nes-text is-success" style="font-weight: bold; display: block; margin-bottom: 5px;">[v8.1.0] - 2026-08-19</span>
-            <ul style="margin: 0; padding-left: 20px; list-style-type: square;">
-              <li style="margin-bottom: 5px;">
-                <strong>Compact HTML &amp; Desmos equations:</strong> zero terms, identity multipliers and redundant signs are removed, while malformed
-                concatenated Spline terms are now emitted as valid expressions.
-              </li>
-              <li style="margin-bottom: 5px;">
-                <strong>Correct domains and framing:</strong> Spline exports use their actual parameter intervals and endpoints; Desmos and SVG initialize from
-                the source bounding box instead of assuming zero-based coordinates.
-              </li>
-              <li>
-                <strong>Safer JSON &amp; SVG rendering:</strong> invalid non-finite AST values are rejected, and SVG Fourier sampling adapts to active
-                high-frequency terms to prevent aliased or collapsed paths.
-              </li>
-            </ul>
+            <span class="nes-text is-success" style="font-weight: bold; display: block; margin-bottom: 5px;">{{ trans(key='changelog_20260819_title') }}</span>
+            {{ trans(key='changelog_20260819_body') | safe }}
+          </div>
+          <div style="margin-bottom: 20px;">
+            <span class="nes-text is-warning" style="font-weight: bold; display: block; margin-bottom: 5px;">{{ trans(key='changelog_20260816_title') }}</span>
+            {{ trans(key='changelog_20260816_body') | safe }}
+          </div>
+          <div style="margin-bottom: 20px;">
+            <span class="nes-text is-error" style="font-weight: bold; display: block; margin-bottom: 5px;">{{ trans(key='changelog_20260814_title') }}</span>
+            {{ trans(key='changelog_20260814_body') | safe }}
           </div>
           <div style="margin-bottom: 20px;">
             <span class="nes-text is-warning" style="font-weight: bold; display: block; margin-bottom: 5px;"
-              >[2026-08-16] - Video &amp; JSON Studio moved to CLI</span
+              >{{ trans(key='changelog_20260813_v715_title') }}</span
             >
-            <ul style="margin: 0; padding-left: 20px; list-style-type: square;">
-              <li style="margin-bottom: 5px;">
-                <strong>Video and JSON Studio web pages removed:</strong> to keep the site lightweight, these two tools are no longer available in the browser.
-                Both features remain fully available in the CLI — run <code>vectomancy video input.mp4 -o output.mp4</code> for video, and
-                <code>vectomancy render output.json -f svg -o out.svg</code> to re-render an exported JSON locally in your terminal.
-              </li>
-            </ul>
+            {{ trans(key='changelog_20260813_v715_body') | safe }}
           </div>
           <div style="margin-bottom: 20px;">
-            <span class="nes-text is-error" style="font-weight: bold; display: block; margin-bottom: 5px;">[v8.0.0] - 2026-08-14</span>
-            <ul style="margin: 0; padding-left: 20px; list-style-type: square;">
-              <li style="margin-bottom: 5px;">
-                <strong>CLI v2.0.0 Released:</strong> Core <code>vectomancy</code> CLI updated to v2.0.0 with critical SVG export and JSON rendering fixes.
-              </li>
-              <li style="margin-bottom: 5px;">
-                <strong>SVG stroke-width fix (#132):</strong> <code>vectomancy image -f svg --stroke-width X</code> was silently ignoring <code>X</code> — all
-                SVG <code>&lt;path&gt;</code> elements had a hardcoded <code>stroke-width="1"</code>. Now correctly threads the value through the entire emitter
-                pipeline (<code>emit_file</code> → <code>to_svg_string</code>).
-              </li>
-              <li>
-                <strong>New <code>render</code> subcommand (#133):</strong> Load a previously exported JSON and re-render without re-running the analysis
-                pipeline. Supports all output formats (<code>svg</code>, <code>png</code>, <code>jpg</code>, <code>webp</code>, <code>python</code>,
-                <code>html</code>, <code>desmos</code>). Example:
-                <code>vectomancy render output.json -f svg --stroke-width 0.005 -o thin.svg</code>
-              </li>
-            </ul>
+            <span class="nes-text is-primary" style="font-weight: bold; display: block; margin-bottom: 5px;"
+              >{{ trans(key='changelog_20260813_maintenance_title') }}</span
+            >
+            {{ trans(key='changelog_20260813_maintenance_body') | safe }}
           </div>
           <div style="margin-bottom: 20px;">
-            <span class="nes-text is-warning" style="font-weight: bold; display: block; margin-bottom: 5px;">[v7.1.5] - 2026-08-13</span>
-            <ul style="margin: 0; padding-left: 20px; list-style-type: square;">
-              <li style="margin-bottom: 5px;">
-                <strong>JSON Studio:</strong> New dedicated page at <code>/json-studio</code> — load an exported JSON AST, then freely adjust stroke weight,
-                color, background and output size with instant re-render, zero WASM overhead.
-              </li>
-              <li style="margin-bottom: 5px;">
-                <strong>Stroke Weight expanded (0.001 – 100 px):</strong> All three tools (Image, Text, Video) now accept values down to 0.001 px. At such thin
-                strokes the output is invisible to the human eye yet remains fully decodable by multimodal LLMs via the raw PNG pixel values.
-              </li>
-              <li style="margin-bottom: 5px;"><strong>COPY button:</strong> One-click PNG copy to clipboard on the Image and Text pages.</li>
-              <li style="margin-bottom: 5px;">
-                <strong>RESTORE FROM JSON:</strong> Load a previously exported JSON file directly into the Image or Text gallery to re-render with different
-                visual parameters.
-              </li>
-              <li style="margin-bottom: 5px;">
-                <strong>Video stroke fix:</strong> Video page now has a Stroke Weight input; <code>vectomancy video --stroke-width</code> also wired to frame
-                exports.
-              </li>
-              <li>
-                <strong>Typography stroke fix:</strong> The <code>drawCachedPaths()</code> renderer was ignoring the Stroke Weight input. Now correctly reads
-                the user-supplied value.
-              </li>
-            </ul>
+            <span class="nes-text is-primary" style="font-weight: bold; display: block; margin-bottom: 5px;">{{ trans(key='changelog_20260731_title') }}</span>
+            {{ trans(key='changelog_20260731_body') | safe }}
           </div>
           <div style="margin-bottom: 20px;">
-            <span class="nes-text is-primary" style="font-weight: bold; display: block; margin-bottom: 5px;">[2026-08-13] - Maintenance &amp; UX</span>
-            <ul style="margin: 0; padding-left: 20px; list-style-type: square;">
-              <li style="margin-bottom: 5px;">
-                <strong>SVG Export Coordinates Fixed:</strong> Exported images no longer appear only in the top-left corner &mdash; the engine now correctly
-                maps the SVG viewBox into the output canvas, honouring <code>preserveAspectRatio</code> (xMidYMid meet).
-              </li>
-              <li style="margin-bottom: 5px;">
-                <strong>Dependency Upgrade:</strong> Upgraded to <code>usvg 0.48</code> and <code>kiddo 6</code>, bringing the latest SVG parser improvements
-                and faster nearest-neighbour queries for the TSP routing pass.
-              </li>
-              <li style="margin-bottom: 5px;">
-                <strong>Stroke Weight default 2.0px:</strong> The default stroke width is now 2.0 px (was 1.0 px) across the CLI and both web tools for better
-                out-of-the-box output quality.
-              </li>
-              <li>
-                <strong>Stroke Weight input:</strong> The Stroke Weight control is now a number input instead of a slider &mdash; type any value from 0.01 to
-                5.00 without accidental redraws on drag.
-              </li>
-            </ul>
+            <span class="nes-text is-success" style="font-weight: bold; display: block; margin-bottom: 5px;">{{ trans(key='changelog_20260729_title') }}</span>
+            {{ trans(key='changelog_20260729_body') | safe }}
           </div>
           <div style="margin-bottom: 20px;">
-            <span class="nes-text is-primary" style="font-weight: bold; display: block; margin-bottom: 5px;">[v7.1.3] - 2026-07-31</span>
-            <ul style="margin: 0; padding-left: 20px; list-style-type: square;">
-              <li style="margin-bottom: 5px;">
-                <strong>Skeleton Extraction Quality:</strong> The raster pipeline now runs full Zhang-Suen thinning with endpoint/loop-aware path tracing,
-                matching the reference parser &mdash; previously a simplified greedy walk produced fragmented, noisy skeletons that stopped at the first branch
-                point.
-              </li>
-              <li>
-                <strong>Release Pipeline Hardening:</strong> All workspace crate manifests now bump in lockstep, and the release workflow fails fast on
-                manifest/tag version mismatch before publishing anything.
-              </li>
-            </ul>
+            <span class="nes-text is-success" style="font-weight: bold; display: block; margin-bottom: 5px;"
+              >{{ trans(key='changelog_20260724_v700_title') }}</span
+            >
+            {{ trans(key='changelog_20260724_v700_body') | safe }}
           </div>
           <div style="margin-bottom: 20px;">
-            <span class="nes-text is-success" style="font-weight: bold; display: block; margin-bottom: 5px;">[v7.1.0] - 2026-07-29</span>
-            <ul style="margin: 0; padding-left: 20px; list-style-type: square;">
-              <li style="margin-bottom: 5px;">
-                <strong>Workspace Crate Decoupling:</strong> The engine is split into six standalone publishable crates &mdash;
-                <code>vectomancy-geometry</code>, <code>vectomancy-transform</code>, <code>vectomancy-raster</code>, <code>vectomancy-svg</code>,
-                <code>vectomancy-export</code>, <code>vectomancy-pipeline</code> &mdash; each independently versioned and tested, with the facade preserving
-                drop-in compatibility.
-              </li>
-            </ul>
-          </div>
-          <div style="margin-bottom: 20px;">
-            <span class="nes-text is-success" style="font-weight: bold; display: block; margin-bottom: 5px;">[v7.0.0] - 2026-07-24</span>
-            <ul style="margin: 0; padding-left: 20px; list-style-type: square;">
-              <li style="margin-bottom: 5px;">
-                <strong>Multi-Core Raster Pipeline:</strong> Sobel edge detection and skeleton thinning now run in parallel across all CPU cores. Single-image
-                processing on a multi-megapixel photo dropped from ~1.4s to ~0.5s on a 24-core machine.
-              </li>
-              <li>
-                <strong>Parallel Video Frames:</strong> The <code>video</code> subcommand now processes multiple frames concurrently instead of one at a time
-                &mdash; a 10s/301-frame 1080p clip went from 22.4s to 4.5s (4.98x faster) on the same machine.
-              </li>
-            </ul>
-          </div>
-          <div style="margin-bottom: 20px;">
-            <span class="nes-text is-success" style="font-weight: bold; display: block; margin-bottom: 5px;">[v6.3.0] - 2026-07-24</span>
-            <ul style="margin: 0; padding-left: 20px; list-style-type: square;">
-              <li style="margin-bottom: 5px;">
-                <strong>SVG Export:</strong> New vector export option for the Image Engine. Flattens Spline, Fourier, and Chaikin curves into a clean, scalable
-                SVG document with full color and gradient support.
-              </li>
-              <li>
-                <strong>CLI Parity:</strong> The core <code>vectomancy</code> CLI (v6.3.0) now also supports <code>--format svg</code> for the
-                <code>image</code>, <code>video</code>, and <code>text</code> subcommands.
-              </li>
-            </ul>
+            <span class="nes-text is-success" style="font-weight: bold; display: block; margin-bottom: 5px;"
+              >{{ trans(key='changelog_20260724_v630_title') }}</span
+            >
+            {{ trans(key='changelog_20260724_v630_body') | safe }}
           </div>
         </div>
       </div>
@@ -467,10 +358,7 @@
       <div
         style="margin-top: 35px; font-size: 8px; color: var(--text-color); opacity: 0.6; text-align: center; line-height: 1.8; max-width: 600px; margin-left: auto; margin-right: auto; padding: 0 10px;"
       >
-        <p style="margin-bottom: 5px;">
-          ⚠️ Please respect the original creators. As a mathematical visualization tool, this website does not assume copyright liabilities.
-        </p>
-        <p style="margin: 0;">请尊重原创作者版权。本网站仅为数学参数化转换工具，不承担因用户行为产生的任何版权风险。</p>
+        <p style="margin: 0;">{{ trans(key='home_disclaimer') }}</p>
       </div>
     </header>
   </div>
@@ -478,7 +366,7 @@
 
 <div class="container" style="max-width: 1200px; padding-bottom: 20px;">
   <footer style="margin-top: 20px;">
-    <p>&copy; 2026 Vectomancy Project. Open-sourced under the MIT License.</p>
+    <p>{{ trans(key='home_footer_copyright') }}</p>
   </footer>
 </div>
 

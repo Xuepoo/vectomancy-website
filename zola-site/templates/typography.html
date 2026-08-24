@@ -1,13 +1,10 @@
 <!doctype html>
-<html lang="en">
+<html lang="{% if lang == 'zh' %}zh-CN{% else %}en{% endif %}">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Vectomancy - Typography Engine</title>
-    <meta
-      name="description"
-      content="Convert text and custom fonts into mathematical Bezier spline curves using WebAssembly. Supports CJK fonts, system fonts, and cloud font presets."
-    />
+    <title>{{ trans(key="typo_title") }}</title>
+    <meta name="description" content="{{ trans(key='typo_meta_desc') }}" />
 
     <!-- Performance Optimization: Preload -->
     <link rel="preload" href="/fonts/pressstart2p.woff2" as="font" type="font/woff2" crossorigin />
@@ -21,6 +18,8 @@
     <link rel="icon" type="image/png" sizes="16x16" href="/favicons/favicon-16x16.png" />
     <link rel="shortcut icon" href="/favicons/favicon.ico" />
     <link href="/css/nes.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="/css/fonts.css" />
+    <script src="/js/i18n.js" defer></script>
     <style>
       @font-face {
         font-family: "Press Start 2P";
@@ -86,7 +85,7 @@
       body {
         margin: 0;
         padding: 0;
-        font-family: "Press Start 2P", cursive;
+        font-family: "Press Start 2P", "Fusion Pixel", cursive;
         background-color: var(--bg-color);
         color: var(--text-color);
         display: flex;
@@ -163,7 +162,7 @@
         left: 15px;
         z-index: 60;
         box-shadow: 0 4px 0 rgba(0, 0, 0, 0.2);
-        font-family: "Press Start 2P", cursive;
+        font-family: "Press Start 2P", "Fusion Pixel", cursive;
         font-size: 11px;
         padding: 6px 12px;
       }
@@ -385,7 +384,7 @@
       }
 
       dialog {
-        font-family: "Press Start 2P", cursive;
+        font-family: "Press Start 2P", "Fusion Pixel", cursive;
         border: 4px solid var(--text-color);
         background: var(--container-bg);
         color: var(--text-color);
@@ -465,16 +464,44 @@
           }
       })();
     </script>
+
+    <!-- Language Switcher -->
+    <div
+      id="lang-switcher"
+      role="group"
+      aria-label="{{ trans(key='nav_change_language') }}"
+      style="position: fixed; top: 46px; right: 15px; z-index: 1001; display: flex; gap: 4px;"
+    >
+      <a
+        href="{{ current_path | replace(from='/zh', to='') }}"
+        data-lang-switch="en"
+        id="lang-switch-en"
+        class="nes-btn {% if lang == 'en' %}is-disabled{% endif %}"
+        aria-current="{% if lang == 'en' %}true{% else %}false{% endif %}"
+        style="font-size: 8px; padding: 4px 8px;"
+        >EN</a
+      >
+      <a
+        href="/zh{{ current_path | replace(from='/zh', to='') }}"
+        data-lang-switch="zh"
+        id="lang-switch-zh"
+        class="nes-btn {% if lang == 'zh' %}is-disabled{% endif %}"
+        aria-current="{% if lang == 'zh' %}true{% else %}false{% endif %}"
+        style="font-size: 8px; padding: 4px 8px;"
+        >中文</a
+      >
+    </div>
+
     <div class="sidebar">
       <div class="nes-container with-title is-centered control-group" style="padding: 15px 10px">
         <a href="/" style="text-decoration: none; color: inherit">
           <p class="title" style="font-size: 12px; background: var(--container-bg)">VECTOMANCY</p>
         </a>
-        <p style="font-size: 8px; margin: 0; color: var(--accent-color)">Typography Engine</p>
+        <p style="font-size: 8px; margin: 0; color: var(--accent-color)">{{ trans(key="typo_tagline") }}</p>
       </div>
 
       <div class="nes-container with-title control-group" style="padding: 15px">
-        <p class="title" style="font-size: 10px">Text Input</p>
+        <p class="title" style="font-size: 10px">{{ trans(key="typo_panel_text") }}</p>
         <textarea
           id="textInput"
           class="nes-textarea"
@@ -484,7 +511,7 @@
             margin-bottom: 10px;
             min-height: 60px;
           "
-          placeholder="Enter text to render..."
+          placeholder="{{ trans(key='typo_input_ph') }}"
         ></textarea>
         <div
           style="
@@ -494,19 +521,19 @@
             padding-top: 10px;
           "
         >
-          <span id="filename-display" class="truncate-text" style="font-size: 8px; color: #aaa">No font selected</span>
+          <span id="filename-display" class="truncate-text" style="font-size: 8px; color: #aaa">{{ trans(key="typo_no_font") }}</span>
         </div>
       </div>
 
       <div class="nes-container with-title control-group" style="padding: 15px">
-        <p class="title" style="font-size: 10px">Font Source</p>
+        <p class="title" style="font-size: 10px">{{ trans(key="typo_panel_font_source") }}</p>
 
         <!-- 1: System Font Access API -->
         <button class="nes-btn is-primary" id="btnAccessLocalFonts" style="width: 100%; font-size: 8px; margin-bottom: 8px; padding: 6px">
-          Access System Fonts
+          {{ trans(key="typo_access_fonts") }}
         </button>
         <div class="nes-select" id="localFontSelectWrapper" style="display: none; margin-bottom: 8px">
-          <select id="localFontSelect" style="font-size: 8px; padding: 4px" aria-label="System Font Select"></select>
+          <select id="localFontSelect" style="font-size: 8px; padding: 4px" aria-label="{{ trans(key='typo_system_font_aria') }}"></select>
         </div>
 
         <!-- 2: Upload -->
@@ -520,17 +547,23 @@
             margin-bottom: 8px;
           "
         >
-          <span style="font-size: 8px">Upload Font (.ttf/.otf/.zip)</span>
+          <span style="font-size: 8px">{{ trans(key="typo_upload_font") }}</span>
           <input type="file" id="fontInput" accept=".ttf,.otf,.woff,.woff2,.zip" style="display: none" />
         </label>
 
         <!-- 2.5: Web Font URL Import -->
         <div style="margin-bottom: 8px">
-          <input type="text" id="fontImportUrl" class="nes-input" style="font-size: 8px; padding: 4px; width: 100%" placeholder="Import CSS/Web Font URL..." />
+          <input
+            type="text"
+            id="fontImportUrl"
+            class="nes-input"
+            style="font-size: 8px; padding: 4px; width: 100%"
+            placeholder="{{ trans(key='typo_font_url_ph') }}"
+          />
         </div>
 
         <!-- 3: Cloud Presets -->
-        <p style="font-size: 8px; margin-bottom: 5px; color: var(--accent-color)">▶ Cloud Presets</p>
+        <p style="font-size: 8px; margin-bottom: 5px; color: var(--accent-color)">{{ trans(key="typo_cloud_presets") }}</p>
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px">
           <button
             class="nes-btn font-preset-btn"
@@ -624,13 +657,13 @@
       </div>
 
       <div class="nes-container with-title control-group" style="padding: 15px; flex-grow: 1">
-        <p class="title" style="font-size: 10px">Settings</p>
-        <label for="modeSelect">Mode</label>
+        <p class="title" style="font-size: 10px">{{ trans(key="common_settings") }}</p>
+        <label for="modeSelect">{{ trans(key="typo_mode_label") }}</label>
         <div class="nes-select" style="margin-bottom: 10px">
-          <select id="modeSelect" style="font-size: 8px; padding: 6px" aria-label="Mode Select">
-            <option value="spline" selected>Spline (Bezier)</option>
-            <option value="fourier">Fourier (Epicycle)</option>
-            <option value="chaikin">Chaikin (Polyline)</option>
+          <select id="modeSelect" style="font-size: 8px; padding: 6px" aria-label="{{ trans(key='typo_mode_select_aria') }}">
+            <option value="spline" selected>{{ trans(key="typo_mode_spline") }}</option>
+            <option value="fourier">{{ trans(key="typo_mode_fourier") }}</option>
+            <option value="chaikin">{{ trans(key="typo_mode_chaikin") }}</option>
           </select>
         </div>
 
@@ -642,22 +675,34 @@
             margin-bottom: 10px;
           "
         >
-          <label style="margin: 0"><input type="checkbox" class="nes-checkbox" id="colorCheck" checked aria-label="Enable Colors" /><span>Colors</span></label>
-          <label style="margin: 0"><input type="checkbox" class="nes-checkbox" id="gridCheck" aria-label="Show Grid" /><span>Show Grid</span></label>
           <label style="margin: 0"
-            ><input type="checkbox" class="nes-checkbox" id="bgTransparentCheck" checked aria-label="Transparent Background" /><span>Transparent</span></label
+            ><input type="checkbox" class="nes-checkbox" id="colorCheck" checked aria-label="{{ trans(key='typo_colors_aria') }}" /><span
+              >{{ trans(key="typo_colors") }}</span
+            ></label
           >
           <label style="margin: 0"
-            ><input type="checkbox" class="nes-checkbox" id="hideHandlesCheck" aria-label="Hide Controls" /><span>Hide Controls</span></label
+            ><input type="checkbox" class="nes-checkbox" id="gridCheck" aria-label="{{ trans(key='typo_show_grid_aria') }}" /><span
+              >{{ trans(key="typo_show_grid") }}</span
+            ></label
+          >
+          <label style="margin: 0"
+            ><input type="checkbox" class="nes-checkbox" id="bgTransparentCheck" checked aria-label="{{ trans(key='typo_transparent_aria') }}" /><span
+              >{{ trans(key="typo_transparent") }}</span
+            ></label
+          >
+          <label style="margin: 0"
+            ><input type="checkbox" class="nes-checkbox" id="hideHandlesCheck" aria-label="{{ trans(key='typo_hide_controls_aria') }}" /><span
+              >{{ trans(key="typo_hide_controls") }}</span
+            ></label
           >
         </div>
 
         <div id="colorStyleControls" style="margin-top: 10px; margin-bottom: 10px">
-          <label for="colorTypeSelect">Color Type</label>
+          <label for="colorTypeSelect">{{ trans(key="typo_color_type") }}</label>
           <div class="nes-select" style="margin-bottom: 10px">
-            <select id="colorTypeSelect" style="font-size: 8px; padding: 6px" aria-label="Color Type Select">
-              <option value="solid">Solid Color</option>
-              <option value="gradient" selected>Linear Gradient</option>
+            <select id="colorTypeSelect" style="font-size: 8px; padding: 6px" aria-label="{{ trans(key='typo_color_type_select_aria') }}">
+              <option value="solid">{{ trans(key="typo_color_solid") }}</option>
+              <option value="gradient" selected>{{ trans(key="typo_color_gradient") }}</option>
             </select>
           </div>
 
@@ -671,7 +716,7 @@
             "
             class="hidden"
           >
-            <label for="solidColorInput" style="margin: 0; font-size: 8px">Solid Color:</label>
+            <label for="solidColorInput" style="margin: 0; font-size: 8px">{{ trans(key="typo_solid_color_label") }}</label>
             <input
               type="color"
               id="solidColorInput"
@@ -701,7 +746,7 @@
                 color: var(--accent-color);
               "
             >
-              Preset Palettes
+              {{ trans(key="typo_preset_palettes") }}
             </p>
             <div
               id="palettePresets"
@@ -720,7 +765,7 @@
                 color: var(--accent-color);
               "
             >
-              Custom Stops
+              {{ trans(key="typo_custom_stops") }}
             </p>
             <div id="customStopsContainer" style="display: flex; flex-direction: column; gap: 6px"></div>
             <button
@@ -733,51 +778,61 @@
                 width: 100%;
               "
             >
-              Add Stop
+              {{ trans(key="typo_add_stop") }}
             </button>
           </div>
 
           <div id="flow-controls">
-            <label for="flowSpeedRange">Flow Speed: <span id="flowSpeedVal" style="color: var(--accent-color)">0</span></label>
-            <input type="range" id="flowSpeedRange" min="0" max="10" value="0" class="nes-range" aria-label="Flow Speed" />
+            <label for="flowSpeedRange">{{ trans(key="typo_flow_speed") }} <span id="flowSpeedVal" style="color: var(--accent-color)">0</span></label>
+            <input type="range" id="flowSpeedRange" min="0" max="10" value="0" class="nes-range" aria-label="{{ trans(key='typo_flow_speed_aria') }}" />
           </div>
         </div>
 
-        <label for="detailRange">Detail Level: <span id="detailVal" style="color: var(--accent-color)">75</span></label>
-        <input type="range" id="detailRange" min="10" max="100" value="75" class="nes-range" aria-label="Detail Level" />
+        <label for="detailRange">{{ trans(key="typo_detail_label") }} <span id="detailVal" style="color: var(--accent-color)">75</span></label>
+        <input type="range" id="detailRange" min="10" max="100" value="75" class="nes-range" aria-label="{{ trans(key='typo_detail_aria') }}" />
 
-        <label for="minPathRange">Min Path Len: <span id="minPathVal" style="color: var(--accent-color)">5</span></label>
-        <input type="range" id="minPathRange" min="1" max="50" value="5" class="nes-range" aria-label="Minimum Path Length" />
+        <label for="minPathRange">{{ trans(key="typo_min_path_label") }} <span id="minPathVal" style="color: var(--accent-color)">5</span></label>
+        <input type="range" id="minPathRange" min="1" max="50" value="5" class="nes-range" aria-label="{{ trans(key='typo_min_path_aria') }}" />
 
-        <label for="strokeRange">Stroke Weight (px):</label>
-        <input type="number" id="strokeRange" min="0" max="10" step="0.1" value="2.00" class="nes-input" style="width:100%;" aria-label="Stroke Weight" />
-        <div id="strokeError" style="display:none; color:#e76e55; font-size:8px; margin-top:4px;">Invalid! Use 0-10 (default 2.00px)</div>
+        <label for="strokeRange">{{ trans(key="typo_stroke_weight") }}</label>
+        <input
+          type="number"
+          id="strokeRange"
+          min="0"
+          max="10"
+          step="0.1"
+          value="2.00"
+          class="nes-input"
+          style="width:100%;"
+          aria-label="{{ trans(key='typo_stroke_weight') }}"
+        />
+        <div id="strokeError" style="display:none; color:#e76e55; font-size:8px; margin-top:4px;">{{ trans(key="typo_stroke_invalid") }}</div>
 
-        <label for="letterSpacingRange">Letter Spacing: <span id="letterSpacingVal" style="color: var(--accent-color)">0</span></label>
-        <input type="range" id="letterSpacingRange" min="-20" max="100" value="0" class="nes-range" aria-label="Letter Spacing" />
+        <label for="letterSpacingRange">{{ trans(key="typo_letter_spacing") }} <span id="letterSpacingVal" style="color: var(--accent-color)">0</span></label>
+        <input type="range" id="letterSpacingRange" min="-20" max="100" value="0" class="nes-range" aria-label="{{ trans(key='typo_letter_spacing_aria') }}" />
 
         <div id="fourier-controls" class="hidden">
-          <label for="termsRange">Terms: <span id="termsVal" style="color: var(--accent-color)">50</span></label>
-          <input type="range" id="termsRange" min="5" max="200" value="50" class="nes-range" aria-label="Fourier Terms" />
+          <label for="termsRange">{{ trans(key="typo_terms_label") }} <span id="termsVal" style="color: var(--accent-color)">50</span></label>
+          <input type="range" id="termsRange" min="5" max="200" value="50" class="nes-range" aria-label="{{ trans(key='typo_terms_aria') }}" />
         </div>
         <div id="chaikin-controls" class="hidden">
-          <label for="chaikinRange">Iters: <span id="chaikinVal" style="color: var(--accent-color)">2</span></label>
-          <input type="range" id="chaikinRange" min="0" max="5" value="2" class="nes-range" aria-label="Chaikin Iterations" />
+          <label for="chaikinRange">{{ trans(key="typo_iters_label") }} <span id="chaikinVal" style="color: var(--accent-color)">2</span></label>
+          <input type="range" id="chaikinRange" min="0" max="5" value="2" class="nes-range" aria-label="{{ trans(key='typo_iters_aria') }}" />
         </div>
 
         <!-- Output Size Settings -->
         <hr style="border: 1px dashed var(--text-color); margin: 12px 0" />
-        <p style="font-size: 8px; margin-bottom: 5px; color: var(--accent-color)">▶ Output Size</p>
+        <p style="font-size: 8px; margin-bottom: 5px; color: var(--accent-color)">{{ trans(key="typo_output_size") }}</p>
         <div class="nes-select" style="margin-bottom: 10px">
-          <select id="sizeModeSelect" style="font-size: 8px; padding: 6px" aria-label="Size Mode Select">
-            <option value="auto" selected>Auto (Text Aspect Ratio)</option>
-            <option value="custom">Custom Dimensions</option>
+          <select id="sizeModeSelect" style="font-size: 8px; padding: 6px" aria-label="{{ trans(key='typo_size_mode_select_aria') }}">
+            <option value="auto" selected>{{ trans(key="typo_size_auto") }}</option>
+            <option value="custom">{{ trans(key="typo_size_custom") }}</option>
           </select>
         </div>
 
         <div id="auto-size-controls" style="margin-bottom: 10px">
-          <label for="resolutionScaleRange">Resolution Scale: <span id="resScaleVal" style="color: var(--accent-color)">2x</span></label>
-          <input type="range" id="resolutionScaleRange" min="1" max="8" value="2" class="nes-range" aria-label="Resolution Scale" />
+          <label for="resolutionScaleRange">{{ trans(key="typo_res_scale") }} <span id="resScaleVal" style="color: var(--accent-color)">2x</span></label>
+          <input type="range" id="resolutionScaleRange" min="1" max="8" value="2" class="nes-range" aria-label="{{ trans(key='typo_res_scale_aria') }}" />
         </div>
 
         <div id="custom-size-controls" class="hidden" style="margin-bottom: 10px">
@@ -790,11 +845,11 @@
             "
           >
             <div>
-              <label for="customWidthInput" style="font-size: 8px; margin-bottom: 2px; display: block">Width (px)</label>
+              <label for="customWidthInput" style="font-size: 8px; margin-bottom: 2px; display: block">{{ trans(key="typo_width_px") }}</label>
               <input type="number" id="customWidthInput" class="nes-input" style="font-size: 8px; padding: 4px; width: 100%" value="1024" />
             </div>
             <div>
-              <label for="customHeightInput" style="font-size: 8px; margin-bottom: 2px; display: block">Height (px)</label>
+              <label for="customHeightInput" style="font-size: 8px; margin-bottom: 2px; display: block">{{ trans(key="typo_height_px") }}</label>
               <input type="number" id="customHeightInput" class="nes-input" style="font-size: 8px; padding: 4px; width: 100%" value="256" />
             </div>
           </div>
@@ -807,45 +862,54 @@
               gap: 4px;
             "
           >
-            <input type="checkbox" class="nes-checkbox" id="keepAspectRatioCheck" checked aria-label="Keep Aspect Ratio" />
-            <span>Lock Ratio</span>
+            <input type="checkbox" class="nes-checkbox" id="keepAspectRatioCheck" checked aria-label="{{ trans(key='typo_keep_ratio_aria') }}" />
+            <span>{{ trans(key="typo_lock_ratio") }}</span>
           </label>
         </div>
         <div style="font-size: 7px; color: #aaa; margin-bottom: 10px">
-          Target Size:
+          {{ trans(key="typo_target_size") }}
           <span id="targetSizeDisplay" style="color: var(--accent-color); font-weight: bold">-</span>
         </div>
 
-        <div id="status-text" style="font-size: 8px; margin-top: 8px; text-align: center">READY</div>
+        <div id="status-text" style="font-size: 8px; margin-top: 8px; text-align: center">{{ trans(key="common_status_ready") }}</div>
       </div>
 
       <div class="nes-container with-title control-group" style="padding: 15px">
-        <p class="title" style="font-size: 10px">Reveal</p>
-        <div style="font-size: 7px; line-height: 1.5; color: #999; margin-bottom: 8px">
-          Animate how your art appears: sweeps, radial bloom or stroke order — optionally monochrome first, then color spreads back in.
-        </div>
-        <label for="revealModeSelect">Animation</label>
+        <p class="title" style="font-size: 10px">{{ trans(key="common_reveal") }}</p>
+        <div style="font-size: 7px; line-height: 1.5; color: #999; margin-bottom: 8px">{{ trans(key="reveal_desc") }}</div>
+        <label for="revealModeSelect">{{ trans(key="typo_anim_label") }}</label>
         <div class="nes-select" style="width: 100%; margin-bottom: 10px">
-          <select id="revealModeSelect" style="font-size: 8px" aria-label="Reveal Animation Mode">
-            <option value="instant" selected>Instant (Off)</option>
-            <option value="ltr">Sweep Left → Right</option>
-            <option value="rtl">Sweep Right → Left</option>
-            <option value="ttb">Sweep Top → Bottom</option>
-            <option value="btt">Sweep Bottom → Top</option>
-            <option value="diag-tlbr">Diagonal TL → BR</option>
-            <option value="diag-brtl">Diagonal BR → TL</option>
-            <option value="radial-center">Radial from Center</option>
-            <option value="radial-origin">Radial from Origin</option>
-            <option value="sequential">Sequential Draw</option>
-            <option value="random">Random Scatter</option>
+          <select id="revealModeSelect" style="font-size: 8px" aria-label="{{ trans(key='typo_reveal_mode_aria') }}">
+            <option value="instant" selected>{{ trans(key="reveal_mode_instant") }}</option>
+            <option value="ltr">{{ trans(key="reveal_mode_ltr") }}</option>
+            <option value="rtl">{{ trans(key="reveal_mode_rtl") }}</option>
+            <option value="ttb">{{ trans(key="reveal_mode_ttb") }}</option>
+            <option value="btt">{{ trans(key="reveal_mode_btt") }}</option>
+            <option value="diag-tlbr">{{ trans(key="reveal_mode_diag_tlbr") }}</option>
+            <option value="diag-brtl">{{ trans(key="reveal_mode_diag_brtl") }}</option>
+            <option value="radial-center">{{ trans(key="reveal_mode_radial_center") }}</option>
+            <option value="radial-origin">{{ trans(key="reveal_mode_radial_origin") }}</option>
+            <option value="sequential">{{ trans(key="reveal_mode_sequential") }}</option>
+            <option value="random">{{ trans(key="reveal_mode_random") }}</option>
           </select>
         </div>
 
-        <label for="revealDurationRange">Duration: <span id="revealDurationVal" style="color: var(--accent-color)">3.0s</span></label>
-        <input type="range" id="revealDurationRange" min="0.5" max="10" step="0.5" value="3" class="nes-range" aria-label="Reveal Duration" />
+        <label for="revealDurationRange">{{ trans(key="reveal_duration") }} <span id="revealDurationVal" style="color: var(--accent-color)">3.0s</span></label>
+        <input
+          type="range"
+          id="revealDurationRange"
+          min="0.5"
+          max="10"
+          step="0.5"
+          value="3"
+          class="nes-range"
+          aria-label="{{ trans(key='typo_reveal_duration_aria') }}"
+        />
 
         <label style="margin: 8px 0 0"
-          ><input type="checkbox" class="nes-checkbox" id="revealStagedCheck" aria-label="Mono First Then Color" /><span>Mono first, color spreads</span></label
+          ><input type="checkbox" class="nes-checkbox" id="revealStagedCheck" aria-label="{{ trans(key='reveal_staged') }}" /><span
+            >{{ trans(key="reveal_mono_first") }}</span
+          ></label
         >
 
         <div
@@ -860,56 +924,87 @@
             gap: 4px;
           "
         >
-          <label for="revealColorStrategySelect" style="font-size: 8px; margin: 0">Color Spread</label>
+          <label for="revealColorStrategySelect" style="font-size: 8px; margin: 0">{{ trans(key="reveal_color_strategy") }}</label>
           <div class="nes-select" style="font-size: 8px; margin-bottom: 6px">
-            <select id="revealColorStrategySelect" aria-label="Color Spread Strategy" style="font-size: 8px; padding: 4px">
-              <option value="follow" selected>Follow shape reveal</option>
-              <option value="radial-center">Bloom from center</option>
-              <option value="radial-origin">Bloom from origin</option>
-              <option value="ltr">Left → Right</option>
-              <option value="rtl">Right → Left</option>
-              <option value="ttb">Top → Bottom</option>
-              <option value="btt">Bottom → Top</option>
-              <option value="random">Random bloom</option>
+            <select id="revealColorStrategySelect" aria-label="{{ trans(key='typo_reveal_strategy_aria') }}" style="font-size: 8px; padding: 4px">
+              <option value="follow" selected>{{ trans(key="typo_spread_follow") }}</option>
+              <option value="radial-center">{{ trans(key="typo_spread_center") }}</option>
+              <option value="radial-origin">{{ trans(key="typo_spread_origin") }}</option>
+              <option value="ltr">{{ trans(key="typo_spread_ltr") }}</option>
+              <option value="rtl">{{ trans(key="typo_spread_rtl") }}</option>
+              <option value="ttb">{{ trans(key="typo_spread_ttb") }}</option>
+              <option value="btt">{{ trans(key="typo_spread_btt") }}</option>
+              <option value="random">{{ trans(key="typo_spread_random") }}</option>
             </select>
           </div>
           <label for="revealColorLagRange" style="font-size: 8px; margin: 0"
-            >Color Lag: <span id="revealColorLagVal" style="color: var(--accent-color)">45%</span></label
+            >{{ trans(key="reveal_lag") }} <span id="revealColorLagVal" style="color: var(--accent-color)">45%</span></label
           >
-          <input type="range" id="revealColorLagRange" min="10" max="90" step="5" value="45" class="nes-range" aria-label="Color Lag" />
+          <input
+            type="range"
+            id="revealColorLagRange"
+            min="10"
+            max="90"
+            step="5"
+            value="45"
+            class="nes-range"
+            aria-label="{{ trans(key='typo_reveal_lag_aria') }}"
+          />
         </div>
 
-        <button class="nes-btn" id="replayBtn" type="button" style="width: 100%; font-size: 10px; margin-top: 10px" aria-label="Replay Reveal Animation">
-          REPLAY
+        <button
+          class="nes-btn"
+          id="replayBtn"
+          type="button"
+          style="width: 100%; font-size: 10px; margin-top: 10px"
+          aria-label="{{ trans(key='typo_reveal_replay_aria') }}"
+        >
+          {{ trans(key="reveal_replay") }}
         </button>
-        <div id="revealHint" style="font-size: 7px; margin-top: 6px; text-align: center; color: #999">ALT+CLICK canvas sets radial origin</div>
+        <div id="revealHint" style="font-size: 7px; margin-top: 6px; text-align: center; color: #999">{{ trans(key="reveal_alt_hint") }}</div>
       </div>
 
       <div class="nes-container with-title control-group" style="padding: 15px">
-        <p class="title" style="font-size: 10px">Export</p>
+        <p class="title" style="font-size: 10px">{{ trans(key="common_export") }}</p>
         <div class="nes-select" style="width: 100%; margin-bottom: 10px">
-          <select id="exportFormat" style="font-size: 8px" aria-label="Export Format">
-            <option value="png">PNG (Transparent OK)</option>
-            <option value="jpg">JPG (Solid background)</option>
-            <option value="json">JSON (AST Vector)</option>
+          <select id="exportFormat" style="font-size: 8px" aria-label="{{ trans(key='typo_export_format_aria') }}">
+            <option value="png">{{ trans(key="typo_exp_png") }}</option>
+            <option value="jpg">{{ trans(key="typo_exp_jpg") }}</option>
+            <option value="json">{{ trans(key="typo_exp_json") }}</option>
           </select>
         </div>
-        <button class="nes-btn is-success" id="downloadBtn" style="width: 100%; font-size: 10px" aria-label="Download File">DOWNLOAD</button>
-        <button type="button" class="nes-btn" id="copyBtn" style="width: 100%; font-size: 10px; margin-top: 8px;" aria-label="Copy to Clipboard">COPY</button>
+        <button class="nes-btn is-success" id="downloadBtn" style="width: 100%; font-size: 10px" aria-label="{{ trans(key='typo_download_aria') }}">
+          {{ trans(key="typo_download") }}
+        </button>
+        <button
+          type="button"
+          class="nes-btn"
+          id="copyBtn"
+          style="width: 100%; font-size: 10px; margin-top: 8px;"
+          aria-label="{{ trans(key='typo_copy_aria') }}"
+        >
+          {{ trans(key="typo_copy") }}
+        </button>
         <div style="margin-top: 12px; border-top: 1px solid var(--border-color, #aaa); padding-top: 10px;">
           <label
             class="nes-btn"
             style="width: 100%; text-align: center; cursor: pointer; font-size: 9px; display: block;"
-            title="Load a previously exported JSON to re-render with new settings"
+            title="{{ trans(key='typo_restore_json_title') }}"
           >
-            RESTORE FROM JSON
-            <input type="file" id="restoreJsonInput" accept=".json,application/json" style="display: none;" aria-label="Restore from JSON file" />
+            {{ trans(key="typo_restore_json") }}
+            <input
+              type="file"
+              id="restoreJsonInput"
+              accept=".json,application/json"
+              style="display: none;"
+              aria-label="{{ trans(key='typo_restore_json_aria') }}"
+            />
           </label>
         </div>
       </div>
 
       <div class="nes-container with-title control-group" id="partnerWidget" style="padding: 15px; text-align: center">
-        <p class="title" style="font-size: 10px">Font Resources</p>
+        <p class="title" style="font-size: 10px">{{ trans(key="typo_panel_resources") }}</p>
         <div
           style="
             display: flex;
@@ -929,7 +1024,7 @@
     <div class="viewport-wrapper">
       <div class="top-bar">
         <div style="flex-grow: 1; display: flex; align-items: center; gap: 10px">
-          <a href="/" style="color: inherit; text-decoration: none; font-size: 8px">← Home</a>
+          <a href="/" style="color: inherit; text-decoration: none; font-size: 8px">{{ trans(key="typo_back_home") }}</a>
           <a
             href="/image"
             style="
@@ -937,33 +1032,43 @@
               text-decoration: none;
               font-size: 7px;
             "
-            >Image Engine</a
+            >{{ trans(key="typo_image_engine") }}</a
           >
         </div>
         <div style="display: flex; gap: 10px">
-          <button class="nes-btn is-warning" id="helpBtn" style="font-size: 8px" aria-label="Help">?</button>
-          <button class="nes-btn is-error" id="clearAllBtn" style="font-size: 8px" aria-label="Clear All">Clear All</button>
-          <button class="nes-btn" id="themeToggleBtn" style="font-size: 8px" aria-label="Toggle Theme">Theme</button>
-          <button class="nes-btn" id="resetViewBtn" style="font-size: 8px" aria-label="Reset View">Reset View</button>
-          <button class="nes-btn is-error" id="resetSettingsBtn" style="font-size: 8px" aria-label="Reset Settings">Reset Config</button>
+          <button class="nes-btn is-warning" id="helpBtn" style="font-size: 8px" aria-label="{{ trans(key='common_help') }}">?</button>
+          <button class="nes-btn is-error" id="clearAllBtn" style="font-size: 8px" aria-label="{{ trans(key='typo_clear_all_aria') }}">
+            {{ trans(key="typo_clear_all") }}
+          </button>
+          <button class="nes-btn" id="themeToggleBtn" style="font-size: 8px" aria-label="{{ trans(key='common_toggle_theme') }}">
+            {{ trans(key="common_theme") }}
+          </button>
+          <button class="nes-btn" id="resetViewBtn" style="font-size: 8px" aria-label="{{ trans(key='typo_reset_view_aria') }}">
+            {{ trans(key="typo_reset_view") }}
+          </button>
+          <button class="nes-btn is-error" id="resetSettingsBtn" style="font-size: 8px" aria-label="{{ trans(key='typo_reset_config_aria') }}">
+            {{ trans(key="typo_reset_config") }}
+          </button>
         </div>
       </div>
 
       <div class="canvas-area" id="canvasArea">
-        <canvas id="mainCanvas" aria-label="Main Drawing Canvas"></canvas>
-        <div class="overlay-stats nes-container is-rounded" id="overlayStats" aria-live="polite">Waiting for input...</div>
+        <canvas id="mainCanvas" aria-label="{{ trans(key='typo_canvas_aria') }}"></canvas>
+        <div class="overlay-stats nes-container is-rounded" id="overlayStats" aria-live="polite">{{ trans(key="typo_waiting") }}</div>
 
-        <button class="nes-btn is-primary canvas-generate-btn" id="generateBtn" aria-label="Generate Image">GENERATE</button>
+        <button class="nes-btn is-primary canvas-generate-btn" id="generateBtn" aria-label="{{ trans(key='typo_generate_aria') }}">
+          {{ trans(key="typo_generate") }}
+        </button>
 
         <div class="canvas-controls">
-          <button class="nes-btn" id="btnZoomIn" title="Zoom In" aria-label="Zoom In">+</button>
-          <button class="nes-btn" id="btnZoomOut" title="Zoom Out" aria-label="Zoom Out">-</button>
-          <button class="nes-btn" id="btnResetViewObj" title="Fit Screen" aria-label="Fit Screen">▣</button>
-          <button class="nes-btn is-primary" id="btnFocus" title="Focus Mode" aria-label="Focus Mode">F</button>
+          <button class="nes-btn" id="btnZoomIn" title="{{ trans(key='typo_zoom_in') }}" aria-label="{{ trans(key='typo_zoom_in') }}">+</button>
+          <button class="nes-btn" id="btnZoomOut" title="{{ trans(key='typo_zoom_out') }}" aria-label="{{ trans(key='typo_zoom_out') }}">-</button>
+          <button class="nes-btn" id="btnResetViewObj" title="{{ trans(key='typo_fit_screen') }}" aria-label="{{ trans(key='typo_fit_screen') }}">▣</button>
+          <button class="nes-btn is-primary" id="btnFocus" title="{{ trans(key='typo_focus_mode') }}" aria-label="{{ trans(key='typo_focus_mode') }}">F</button>
         </div>
 
         <div id="progressContainer" class="progress-overlay hidden">
-          <p id="progressText" style="font-size: 8px; color: var(--accent-color)">COMPUTING...</p>
+          <p id="progressText" style="font-size: 8px; color: var(--accent-color)">{{ trans(key="typo_computing") }}</p>
           <progress class="nes-progress is-primary" value="0" max="100" id="progressBar" style="height: 15px"></progress>
         </div>
       </div>
@@ -972,40 +1077,44 @@
 
       <div id="loaderOverlay" class="loader-overlay">
         <div class="pixel-spinner"></div>
-        <p id="loaderText">Loading Engine...</p>
+        <p id="loaderText">{{ trans(key="typo_loading_engine") }}</p>
       </div>
     </div>
 
     <!-- DIALOGS -->
     <dialog class="nes-dialog" id="delete-dialog">
       <form method="dialog">
-        <p class="title">Confirm Delete</p>
-        <p style="font-size: 8px">Erase snapshot?</p>
+        <p class="title">{{ trans(key="typo_confirm_delete") }}</p>
+        <p style="font-size: 8px">{{ trans(key="typo_erase_snapshot") }}</p>
         <menu class="dialog-menu">
-          <button class="nes-btn" value="cancel">No</button><button class="nes-btn is-error" id="confirmDeleteBtn" value="confirm">Yes</button>
+          <button class="nes-btn" value="cancel">{{ trans(key="typo_no") }}</button
+          ><button class="nes-btn is-error" id="confirmDeleteBtn" value="confirm">{{ trans(key="typo_yes") }}</button>
         </menu>
       </form>
     </dialog>
     <dialog class="nes-dialog" id="clear-dialog">
       <form method="dialog">
-        <p class="title">Clear All</p>
-        <p style="font-size: 8px">Erase all?</p>
-        <menu class="dialog-menu"><button class="nes-btn" value="cancel">No</button><button class="nes-btn is-error" value="confirm">Yes</button></menu>
+        <p class="title">{{ trans(key="typo_clear_all") }}</p>
+        <p style="font-size: 8px">{{ trans(key="typo_erase_all") }}</p>
+        <menu class="dialog-menu">
+          <button class="nes-btn" value="cancel">{{ trans(key="typo_no") }}</button
+          ><button class="nes-btn is-error" value="confirm">{{ trans(key="typo_yes") }}</button>
+        </menu>
       </form>
     </dialog>
     <dialog class="nes-dialog" id="error-dialog">
       <form method="dialog">
-        <p class="title">ERROR</p>
+        <p class="title">{{ trans(key="typo_error_title") }}</p>
         <p id="error-message" style="font-size: 8px"></p>
         <menu class="dialog-menu">
-          <button class="nes-btn is-primary">OK</button>
+          <button class="nes-btn is-primary">{{ trans(key="common_ok") }}</button>
         </menu>
       </form>
     </dialog>
 
     <dialog class="nes-dialog" id="help-dialog" style="width: 90vw; max-width: 600px">
       <form method="dialog">
-        <p class="title" style="color: var(--accent-color); font-size: 10px">Typography Engine Guide</p>
+        <p class="title" style="color: var(--accent-color); font-size: 10px">{{ trans(key="typo_guide_title") }}</p>
         <div
           style="
             font-size: 8px;
@@ -1017,41 +1126,27 @@
           "
         >
           <p>
-            <strong>Font Sources:</strong><br />
-            - <b>System Fonts</b>: Chrome/Edge only. Instantly loads ALL fonts installed on your OS (including CJK).<br />
-            - <b>Upload Font</b>: Drag any .ttf/.otf file from your computer.<br />
-            - <b>Cloud Presets</b>: Curated small-size fonts fetched instantly from our CDN.<br />
-            - <b>IndexedDB Cache</b>: Your last font is remembered across sessions automatically.
+            <strong>{{ trans(key="typo_help_fonts_head") }}</strong><br />
+            {{ trans(key="typo_help_fonts_body") | safe }}
           </p>
 
           <p>
-            <strong>Algorithms:</strong><br />
-            - <b>Spline</b>: Precise Bezier curves per glyph contour.<br />
-            - <b>Fourier</b>: Continuous epicycle loops for each character path.<br />
-            - <b>Chaikin</b>: Smooth polyline corner-cutting per contour.
+            <strong>{{ trans(key="typo_help_algorithms") }}</strong><br />
+            {{ trans(key="typo_help_algo_body") | safe }}
           </p>
 
           <p>
-            <strong>Reveal (Delayed Rendering):</strong><br />
-            - <b>Sweeps</b>: Strokes appear along a direction (L→R, T→B, diagonal).<br />
-            - <b>Radial</b>: Expands from the center, or from a custom origin.<br />
-            - <b>Sequential / Random</b>: Stroke-by-stroke draw order, fixed or shuffled.<br />
-            - <b>Mono first</b>: Art appears in monochrome, then color spreads in with its own strategy and lag.<br />
-            - <b>ALT+CLICK</b> the canvas to set the radial origin.
+            <strong>{{ trans(key="typo_help_reveal_head") }}</strong><br />
+            {{ trans(key="typo_help_reveal_body") | safe }}
           </p>
 
           <p>
-            <strong>Tips:</strong><br />
-            - Use Shift + Enter to input a newline.<br />
-            - Some fonts may require a space at the start or end of the text to prevent missing shapes.<br />
-            - If 'Access System Fonts' fails, switch to Chrome/Edge, as Firefox/Safari block local resource access.<br />
-            - For CJK text, use "System Fonts" API (Chrome) or upload a Noto CJK font.<br />
-            - Large CJK fonts (10-30MB) are cached in IndexedDB after first load.<br />
-            - Use transparent background + PNG for best overlay results.
+            <strong>{{ trans(key="typo_help_tips_head") }}</strong><br />
+            {{ trans(key="typo_help_tips_body") | safe }}
           </p>
         </div>
         <menu class="dialog-menu" style="margin-top: 10px">
-          <button class="nes-btn is-primary">OK</button>
+          <button class="nes-btn is-primary">{{ trans(key="common_ok") }}</button>
         </menu>
       </form>
     </dialog>
@@ -1247,7 +1342,7 @@
             els.generateBtn.click();
           }
         } catch (e) {
-          els.statusText.innerText = "ERR: LOAD";
+          els.statusText.innerText = window.t8("ERR: LOAD", "错误：加载失败");
           console.error(e);
         }
       }
@@ -1489,7 +1584,7 @@
             els.targetSizeDisplay.innerText = "-";
           }
         } else {
-          els.targetSizeDisplay.innerText = "Waiting for render...";
+          els.targetSizeDisplay.innerText = window.t8("Waiting for render...", "等待渲染…");
         }
       }
 
@@ -1809,7 +1904,7 @@
             );
           }
           els.loaderOverlay.classList.remove("hidden");
-          els.loaderText.innerText = "Requesting Font Access...";
+          els.loaderText.innerText = window.t8("Requesting Font Access...", "正在请求字体访问权限…");
           localFontsList = await window.queryLocalFonts();
 
           els.localFontSelectWrapper.style.display = "block";
@@ -1847,7 +1942,8 @@
         } catch (err) {
           els.loaderOverlay.classList.add("hidden");
           showError(
-            err.message || "Failed to access system fonts. Permission denied?",
+            err.message ||
+              window.t8("Failed to access system fonts. Permission denied?", "无法访问系统字体。是否权限被拒？"),
           );
         }
       });
@@ -1878,7 +1974,7 @@
         if (!fontObj) return;
 
         els.loaderOverlay.classList.remove("hidden");
-        els.loaderText.innerText = `Extracting ${family}...`;
+        els.loaderText.innerText = window.t8(`Extracting ${family}...`, `正在提取 ${family}…`);
         try {
           const blob = await fontObj.blob();
           const b = await blob.arrayBuffer();
@@ -1894,7 +1990,7 @@
             new TextEncoder().encode(currentFontFilename).buffer,
           );
         } catch (err) {
-          showError("Could not extract font data.");
+          showError(window.t8("Could not extract font data.", "无法提取字体数据。"));
         }
         els.loaderOverlay.classList.add("hidden");
       });
@@ -1905,7 +2001,7 @@
 
         if (file.name.toLowerCase().endsWith(".zip")) {
           els.loaderOverlay.classList.remove("hidden");
-          els.loaderText.innerText = "Decompressing ZIP...";
+          els.loaderText.innerText = window.t8("Decompressing ZIP...", "正在解压 ZIP…");
           try {
             const arrayBuffer = await file.arrayBuffer();
             const zipBytes = new Uint8Array(arrayBuffer);
@@ -1977,7 +2073,7 @@
               els.zipFontDialog.showModal();
             }
           } catch (err) {
-            showError("Could not extract ZIP archive: " + (err.message || err));
+            showError(window.t8("Could not extract ZIP archive: ", "无法解压 ZIP 压缩包：") + (err.message || err));
             els.fontInput.value = "";
           } finally {
             els.loaderOverlay.classList.add("hidden");
@@ -1986,7 +2082,7 @@
           try {
             const b = await file.arrayBuffer();
             if (!isValidFontBuffer(b)) {
-              showError("Failed to load font: Invalid font file format.");
+              showError(window.t8("Failed to load font: Invalid font file format.", "字体加载失败：无效的字体文件格式。"));
               els.fontInput.value = "";
               return;
             }
@@ -2005,7 +2101,7 @@
               els.generateBtn.click();
             }
           } catch (err) {
-            showError("Could not read font file: " + (err.message || err));
+            showError(window.t8("Could not read font file: ", "无法读取字体文件：") + (err.message || err));
             els.fontInput.value = "";
           }
         }
@@ -2016,7 +2112,7 @@
         if (!inputValue) return;
 
         els.loaderOverlay.classList.remove("hidden");
-        els.loaderText.innerText = "Parsing font import...";
+        els.loaderText.innerText = window.t8("Parsing font import...", "正在解析字体导入…");
 
         try {
           let cssUrl = null;
@@ -2078,12 +2174,12 @@
 
           if (cssUrl) {
             // 4. Call fetch(cssUrl) to retrieve CSS stylesheet
-            els.loaderText.innerText = "Fetching stylesheet...";
+            els.loaderText.innerText = window.t8("Fetching stylesheet...", "正在获取样式表…");
             const response = await fetch(cssUrl);
             if (!response.ok) {
               const statusText = response.statusText || `HTTP ${response.status}`;
               throw new Error(
-                `Failed to fetch CSS stylesheet: ${statusText}`,
+                window.t8(`Failed to fetch CSS stylesheet: ${statusText}`, `获取 CSS 样式表失败：${statusText}`),
               );
             }
             const cssText = await response.text();
@@ -2184,23 +2280,26 @@
           }
 
           // 7. Download the font binary once as an ArrayBuffer
-          els.loaderText.innerText = "Downloading font binary...";
+          els.loaderText.innerText = window.t8("Downloading font binary...", "正在下载字体文件…");
           const fontResponse = await fetch(absoluteFontUrl);
           if (!fontResponse.ok) {
             throw new Error(
-              `Failed to fetch font binary: ${fontResponse.statusText}`,
+              window.t8(`Failed to fetch font binary: ${fontResponse.statusText}`, `获取字体文件失败：${fontResponse.statusText}`),
             );
           }
           const arrayBuffer = await fontResponse.arrayBuffer();
 
           if (!isValidFontBuffer(arrayBuffer)) {
             throw new Error(
-              "Invalid font binary format. Must be TTF/OTF/WOFF/WOFF2.",
+              window.t8(
+                "Invalid font binary format. Must be TTF/OTF/WOFF/WOFF2.",
+                "无效的字体文件格式。必须为 TTF/OTF/WOFF/WOFF2。",
+              ),
             );
           }
 
           // Register it using new FontFace in the document
-          els.loaderText.innerText = "Registering font...";
+          els.loaderText.innerText = window.t8("Registering font...", "正在注册字体…");
           const fontFace = new FontFace(cleanFamilyName, arrayBuffer);
           const loadedFace = await fontFace.load();
           document.fonts.add(loadedFace);
@@ -2249,9 +2348,14 @@
         } catch (err) {
           let msg = err.message || err.toString() || err;
           if (msg.includes("Failed to fetch")) {
-            msg += " (This is likely due to CORS restrictions on the font host. Please upload the font file directly instead.)";
+            msg +=
+              " " +
+              window.t8(
+                "(This is likely due to CORS restrictions on the font host. Please upload the font file directly instead.)",
+                "（这可能是由字体主机的 CORS 限制导致。请直接上传字体文件。）",
+              );
           }
-          showError("Font import failed: " + msg);
+          showError(window.t8("Font import failed: ", "字体导入失败：") + msg);
           els.fontImportUrl.value = "";
         } finally {
           els.loaderOverlay.classList.add("hidden");
@@ -2264,7 +2368,7 @@
           const filename = btn.dataset.filename + " (CDN)";
 
           els.loaderOverlay.classList.remove("hidden");
-          els.loaderText.innerText = `Fetching ${filename}...`;
+          els.loaderText.innerText = window.t8(`Fetching ${filename}...`, `正在获取 ${filename}…`);
           try {
             const r = await fetch(
               url + (url.includes("?") ? "&" : "?") + "v=2",
@@ -2287,9 +2391,9 @@
             );
           } catch (err) {
             if (err.message === "InvalidFontFormat") {
-              showError("Failed to load font: Invalid font file format.");
+              showError(window.t8("Failed to load font: Invalid font file format.", "字体加载失败：无效的字体文件格式。"));
             } else {
-              showError("Failed to fetch font.\nPlease check your network.");
+              showError(window.t8("Failed to fetch font.\nPlease check your network.", "获取字体失败。\n请检查网络连接。"));
             }
           }
           els.loaderOverlay.classList.add("hidden");
@@ -2303,9 +2407,9 @@
         if (!isWasmLoaded) return;
         if (!currentFontBytes)
           return showError(
-            "No Font Selected!\nUse System Fonts, Upload, or Cloud Presets.",
-          );
-        if (!els.textInput.value) return showError("No Text entered!");
+                window.t8("No Font Selected!\nUse System Fonts, Upload, or Cloud Presets.", "未选择字体！\n请使用系统字体、上传或云端预设。"),
+              );
+        if (!els.textInput.value) return showError(window.t8("No Text entered!", "未输入文字！"));
 
         els.progressContainer.classList.remove("hidden");
         let p = 0;
@@ -2359,7 +2463,7 @@
             );
           } catch (e) {
             console.error(e);
-            showError("Render failed: " + (e.message || e.toString() || e));
+            showError(window.t8("Render failed: ", "渲染失败：") + (e.message || e.toString() || e));
           }
           clearInterval(pInt);
           els.progressBar.value = 100;
@@ -2737,9 +2841,9 @@
 
       function updateStatsOverlay(result) {
         if (!result) return;
-        let stats = `RENDER STATS\nSIZE: ${result.width}x${result.height}\nTIME: ${result.computeTime}ms`;
+        let stats = `${window.t8("RENDER STATS", "渲染统计")}\n${window.t8("SIZE", "尺寸")}: ${result.width}x${result.height}\n${window.t8("TIME", "耗时")}: ${result.computeTime}ms`;
         if (result.ast.type === "Spline" || result.ast.type === "spline")
-          stats += `\nPATHS: ${result.ast.equations.length}`;
+          stats += `\n${window.t8("PATHS", "路径")}: ${result.ast.equations.length}`;
         els.overlayStats.innerText = stats;
       }
 
@@ -2769,7 +2873,7 @@
           updateStatsOverlay(res);
         } else {
           cachedViewportCanvas = null;
-          els.overlayStats.innerText = "Waiting for input...";
+          els.overlayStats.innerText = window.t8("Waiting for input...", "等待输入…");
         }
         updateLabels();
         resetViewport();
@@ -2804,7 +2908,7 @@
           // default Instant mode (otherwise ALT+click looks like a no-op).
           els.revealModeSelect.value = "radial-origin";
           saveSettings();
-          els.statusText.innerText = "REVEAL ORIGIN SET";
+          els.statusText.innerText = window.t8("REVEAL ORIGIN SET", "已设置渐显起点");
           recacheViewportCanvas();
           requestRender();
           return;
@@ -3302,7 +3406,7 @@
       };
 
       els.downloadBtn.addEventListener("click", () => {
-        if (!activePreviewId) return showError("No render selected!");
+        if (!activePreviewId) return showError(window.t8("No render selected!", "未选择渲染结果！"));
         const format = els.exportFormat.value;
         const res = previewDataStore.get(activePreviewId);
         const dims = getTargetDimensions(res.width, res.height);
@@ -3362,7 +3466,7 @@
       // ── COPY to clipboard ─────────────────────────────────────────────────
       if (els.copyBtn) {
         els.copyBtn.addEventListener("click", async () => {
-          if (!activePreviewId) return showError("No render selected!");
+          if (!activePreviewId) return showError(window.t8("No render selected!", "未选择渲染结果！"));
           const res = previewDataStore.get(activePreviewId);
           const dims = getTargetDimensions(res.width, res.height);
           const offscreen = document.createElement("canvas");
@@ -3384,11 +3488,11 @@
             offscreen.toBlob(async (blob) => {
               await navigator.clipboard.write([new ClipboardItem({ "image/png": blob })]);
               const orig = els.copyBtn.innerText;
-              els.copyBtn.innerText = "COPIED!";
+              els.copyBtn.innerText = window.t8("COPIED!", "已复制！");
               setTimeout(() => { els.copyBtn.innerText = orig; }, 1500);
             }, "image/png");
           } catch (e) {
-            showError("Copy failed: " + e.message);
+            showError(window.t8("Copy failed: ", "复制失败：") + e.message);
           }
         });
       }
@@ -3401,7 +3505,7 @@
           try {
             const text = await file.text();
             const ast = JSON.parse(text);
-            if (!ast || !ast.type) return showError("Invalid JSON: missing AST type.");
+            if (!ast || !ast.type) return showError(window.t8("Invalid JSON: missing AST type.", "无效 JSON：缺少 AST 类型。"));
             const id = "restored_" + Date.now();
             const bb = ast.bounding_box;
             const w = bb ? Math.round(Math.abs(bb[2] - bb[0])) || 800 : 800;
@@ -3420,7 +3524,7 @@
             addGalleryItem(id, thumb.toDataURL(), file.name.replace(/\.json$/i, ""));
             setActivePreview(id);
           } catch (err) {
-            showError("Failed to load JSON: " + err.message);
+            showError(window.t8("Failed to load JSON: ", "JSON 加载失败：") + err.message);
           }
           e.target.value = "";
         });
@@ -3663,16 +3767,16 @@
 
     <dialog class="nes-dialog" id="zipFontDialog" style="width: 90vw; max-width: 450px">
       <form method="dialog">
-        <p class="title" style="font-size: 10px; color: var(--accent-color)">Select Font</p>
-        <p style="font-size: 8px">Multiple fonts found in ZIP. Please choose one:</p>
+        <p class="title" style="font-size: 10px; color: var(--accent-color)">{{ trans(key="typo_zip_title") }}</p>
+        <p style="font-size: 8px">{{ trans(key="typo_zip_prompt") }}</p>
         <div class="nes-select" style="margin-bottom: 12px">
-          <select id="zipFontSelect" style="font-size: 8px; padding: 4px" aria-label="Select Font from ZIP">
+          <select id="zipFontSelect" style="font-size: 8px; padding: 4px" aria-label="{{ trans(key='typo_zip_select_aria') }}">
             <!-- Dynamically populated -->
           </select>
         </div>
         <menu class="dialog-menu" style="display: flex; justify-content: flex-end; gap: 8px">
-          <button class="nes-btn" value="cancel" style="font-size: 8px">Cancel</button>
-          <button class="nes-btn is-primary" value="confirm" style="font-size: 8px">Load</button>
+          <button class="nes-btn" value="cancel" style="font-size: 8px">{{ trans(key="common_cancel") }}</button>
+          <button class="nes-btn is-primary" value="confirm" style="font-size: 8px">{{ trans(key="typo_zip_load") }}</button>
         </menu>
       </form>
     </dialog>
@@ -3681,13 +3785,13 @@
     <dialog
       class="nes-dialog is-rounded"
       id="custom-alert-dialog"
-      style="z-index: 10000; font-family: 'Press Start 2P', cursive; font-size: 10px; max-width: 450px; text-align: left;"
+      style="z-index: 10000; font-family: 'Press Start 2P', 'Fusion Pixel', cursive; font-size: 10px; max-width: 450px; text-align: left;"
     >
       <form method="dialog">
-        <p class="title" style="font-size: 10px; margin-bottom: 15px; color: var(--text-color);">NOTIFICATION</p>
+        <p class="title" style="font-size: 10px; margin-bottom: 15px; color: var(--text-color);">{{ trans(key="typo_notification") }}</p>
         <p id="custom-alert-message" style="font-size: 8px; line-height: 1.6; margin-bottom: 25px; word-break: break-word;"></p>
         <menu class="dialog-menu" style="display: flex; justify-content: flex-end; padding: 0; margin: 0;">
-          <button class="nes-btn is-primary" style="font-size: 8px; padding: 4px 12px;">OK</button>
+          <button class="nes-btn is-primary" style="font-size: 8px; padding: 4px 12px;">{{ trans(key="common_ok") }}</button>
         </menu>
       </form>
     </dialog>

@@ -1,9 +1,9 @@
 <!doctype html>
-<html lang="en">
+<html lang="{% if lang == 'zh' %}zh-CN{% else %}en{% endif %}">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Vectomancy Pro - Retro Lab</title>
+    <title>{{ trans(key="app_title") }}</title>
 
     <!-- Performance Optimization: Preload -->
     <!-- Note: no font/logo preload here — this WASM-heavy page consumes the font
@@ -17,6 +17,8 @@
     <link rel="icon" type="image/png" sizes="16x16" href="/favicons/favicon-16x16.png" />
     <link rel="shortcut icon" href="/favicons/favicon.ico" />
     <link href="/css/nes.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="/css/fonts.css" />
+    <script src="/js/i18n.js" defer></script>
     <style>
       @font-face {
         font-family: "Press Start 2P";
@@ -78,7 +80,7 @@
       body {
         margin: 0;
         padding: 0;
-        font-family: "Press Start 2P", cursive;
+        font-family: "Press Start 2P", "Fusion Pixel", cursive;
         background-color: var(--bg-color);
         color: var(--text-color);
         display: flex;
@@ -155,7 +157,7 @@
         left: 15px;
         z-index: 60;
         box-shadow: 0 4px 0 rgba(0, 0, 0, 0.2);
-        font-family: "Press Start 2P", cursive;
+        font-family: "Press Start 2P", "Fusion Pixel", cursive;
         font-size: 11px;
         padding: 6px 12px;
       }
@@ -377,7 +379,7 @@
       }
 
       dialog {
-        font-family: "Press Start 2P", cursive;
+        font-family: "Press Start 2P", "Fusion Pixel", cursive;
         border: 4px solid var(--text-color);
         background: var(--container-bg);
         color: var(--text-color);
@@ -457,16 +459,44 @@
           }
       })();
     </script>
+
+    <!-- Language Switcher -->
+    <div
+      id="lang-switcher"
+      role="group"
+      aria-label="{{ trans(key='nav_change_language') }}"
+      style="position: fixed; top: 46px; right: 15px; z-index: 1001; display: flex; gap: 4px;"
+    >
+      <a
+        href="{{ current_path | replace(from='/zh', to='') }}"
+        data-lang-switch="en"
+        id="lang-switch-en"
+        class="nes-btn {% if lang == 'en' %}is-disabled{% endif %}"
+        aria-current="{% if lang == 'en' %}true{% else %}false{% endif %}"
+        style="font-size: 8px; padding: 4px 8px;"
+        >EN</a
+      >
+      <a
+        href="/zh{{ current_path | replace(from='/zh', to='') }}"
+        data-lang-switch="zh"
+        id="lang-switch-zh"
+        class="nes-btn {% if lang == 'zh' %}is-disabled{% endif %}"
+        aria-current="{% if lang == 'zh' %}true{% else %}false{% endif %}"
+        style="font-size: 8px; padding: 4px 8px;"
+        >中文</a
+      >
+    </div>
+
     <div class="sidebar">
       <div class="nes-container with-title is-centered control-group" style="padding: 15px 10px">
         <a href="/" style="text-decoration: none; color: inherit">
           <p class="title" style="font-size: 12px; background: var(--container-bg)">VECTOMANCY</p>
         </a>
-        <p style="font-size: 8px; margin: 0; color: #888">Pixel Math Engine</p>
+        <p style="font-size: 8px; margin: 0; color: #888">{{ trans(key="app_tagline") }}</p>
       </div>
 
       <div class="nes-container with-title control-group" style="padding: 15px">
-        <p class="title" style="font-size: 10px">I/O</p>
+        <p class="title" style="font-size: 10px">{{ trans(key="app_panel_io") }}</p>
         <div
           style="
             display: flex;
@@ -476,10 +506,10 @@
             justify-content: center;
           "
         >
-          <label><input type="radio" class="nes-radio" name="inputType" value="local" checked /><span>Local</span></label>
-          <label><input type="radio" class="nes-radio" name="inputType" value="url" /><span>URL</span></label>
+          <label><input type="radio" class="nes-radio" name="inputType" value="local" checked /><span>{{ trans(key="app_input_local") }}</span></label>
+          <label><input type="radio" class="nes-radio" name="inputType" value="url" /><span>{{ trans(key="app_input_url") }}</span></label>
 
-          <label><input type="radio" class="nes-radio" name="inputType" value="text" /><span>Text</span></label>
+          <label><input type="radio" class="nes-radio" name="inputType" value="text" /><span>{{ trans(key="app_input_text") }}</span></label>
         </div>
 
         <div id="localInputWrapper">
@@ -492,19 +522,26 @@
               padding: 6px;
             "
           >
-            <span style="font-size: 8px">Upload Image</span>
-            <input type="file" id="fileInput" accept="image/*,.svg" style="display: none" aria-label="Upload Image" />
+            <span style="font-size: 8px">{{ trans(key="app_upload_image") }}</span>
+            <input type="file" id="fileInput" accept="image/*,.svg" style="display: none" aria-label="{{ trans(key='app_upload_image') }}" />
           </label>
         </div>
         <div id="urlInputWrapper" class="hidden">
           <div style="display: flex; gap: 8px">
-            <input type="text" id="urlInput" class="nes-input" style="font-size: 8px" placeholder="https://..." aria-label="Image URL" />
-            <button id="fetchUrlBtn" class="nes-btn is-primary" style="font-size: 8px" aria-label="Fetch URL">GO</button>
+            <input type="text" id="urlInput" class="nes-input" style="font-size: 8px" placeholder="https://..." aria-label="{{ trans(key='app_url_aria') }}" />
+            <button id="fetchUrlBtn" class="nes-btn is-primary" style="font-size: 8px" aria-label="{{ trans(key='app_fetch_aria') }}">
+              {{ trans(key="app_fetch_go") }}
+            </button>
           </div>
         </div>
 
         <div id="textInputWrapper" class="hidden">
-          <textarea id="textInput" class="nes-textarea" style="font-size: 8px; margin-bottom: 5px" placeholder="Enter text..."></textarea>
+          <textarea
+            id="textInput"
+            class="nes-textarea"
+            style="font-size: 8px; margin-bottom: 5px"
+            placeholder="{{ trans(key='app_enter_text_ph') }}"
+          ></textarea>
 
           <button
             class="nes-btn is-primary"
@@ -516,7 +553,7 @@
               padding: 6px;
             "
           >
-            Access System Fonts
+            {{ trans(key="app_access_fonts") }}
           </button>
           <div class="nes-select" id="localFontSelectWrapper" style="display: none; margin-bottom: 5px">
             <select id="localFontSelect" style="font-size: 8px; padding: 4px"></select>
@@ -532,11 +569,11 @@
               margin-top: 5px;
             "
           >
-            <span style="font-size: 8px">Upload Custom Font (.ttf)</span>
+            <span style="font-size: 8px">{{ trans(key="app_upload_font") }}</span>
             <input type="file" id="fontInput" accept=".ttf,.otf,.woff,.woff2" style="display: none" />
           </label>
 
-          <p style="font-size: 8px; margin-top: 10px; margin-bottom: 5px">Cloud Presets:</p>
+          <p style="font-size: 8px; margin-top: 10px; margin-bottom: 5px">{{ trans(key="app_cloud_presets") }}</p>
           <div
             style="
               display: flex;
@@ -567,7 +604,7 @@
               data-filename="Pacifico"
               style="font-size: 11px; padding: 4px 6px; min-width: max-content"
             >
-              Brush
+              {{ trans(key="app_preset_brush") }}
             </button>
           </div>
         </div>
@@ -579,18 +616,18 @@
             padding-top: 10px;
           "
         >
-          <span id="filename-display" class="truncate-text" style="font-size: 8px; color: #aaa">No file selected</span>
+          <span id="filename-display" class="truncate-text" style="font-size: 8px; color: #aaa">{{ trans(key="app_no_file") }}</span>
         </div>
       </div>
 
       <div class="nes-container with-title control-group" style="padding: 15px; flex-grow: 1">
-        <p class="title" style="font-size: 10px">Settings</p>
-        <label for="modeSelect">Mode</label>
+        <p class="title" style="font-size: 10px">{{ trans(key="common_settings") }}</p>
+        <label for="modeSelect">{{ trans(key="app_mode_label") }}</label>
         <div class="nes-select" style="margin-bottom: 10px">
-          <select id="modeSelect" style="font-size: 8px; padding: 6px" aria-label="Mode Select">
-            <option value="spline" selected>Spline (Bezier)</option>
-            <option value="fourier">Fourier (Epicycle)</option>
-            <option value="chaikin">Chaikin (Polyline)</option>
+          <select id="modeSelect" style="font-size: 8px; padding: 6px" aria-label="{{ trans(key='app_mode_select_aria') }}">
+            <option value="spline" selected>{{ trans(key="app_mode_spline") }}</option>
+            <option value="fourier">{{ trans(key="app_mode_fourier") }}</option>
+            <option value="chaikin">{{ trans(key="app_mode_chaikin") }}</option>
           </select>
         </div>
 
@@ -602,9 +639,15 @@
             margin-bottom: 10px;
           "
         >
-          <label style="margin: 0"><input type="checkbox" class="nes-checkbox" id="colorCheck" checked aria-label="Enable Colors" /><span>Colors</span></label>
           <label style="margin: 0"
-            ><input type="checkbox" class="nes-checkbox" id="simplifyCheck" checked aria-label="Simplify Math" /><span>Simplify</span></label
+            ><input type="checkbox" class="nes-checkbox" id="colorCheck" checked aria-label="{{ trans(key='app_colors_aria') }}" /><span
+              >{{ trans(key="app_colors") }}</span
+            ></label
+          >
+          <label style="margin: 0"
+            ><input type="checkbox" class="nes-checkbox" id="simplifyCheck" checked aria-label="{{ trans(key='app_simplify_aria') }}" /><span
+              >{{ trans(key="app_simplify") }}</span
+            ></label
           >
 
           <!-- Color options, toggled by Colors checkbox -->
@@ -620,80 +663,97 @@
             "
           >
             <div style="display: flex; flex-direction: column; gap: 4px">
-              <label for="colorDepthSelect" style="font-size: 8px; margin: 0">Bit Depth</label>
+              <label for="colorDepthSelect" style="font-size: 8px; margin: 0">{{ trans(key="app_bit_depth") }}</label>
               <div class="nes-select" style="font-size: 8px">
-                <select id="colorDepthSelect" aria-label="Color Bit Depth" style="font-size: 8px; padding: 4px">
-                  <option value="24" selected>24-bit (True Color)</option>
-                  <option value="16">16-bit (High Color)</option>
-                  <option value="8">8-bit (256 Colors)</option>
-                  <option value="4">4-bit (16 Colors Retro)</option>
-                  <option value="1">1-bit (Monochrome)</option>
+                <select id="colorDepthSelect" aria-label="{{ trans(key='app_bit_depth_aria') }}" style="font-size: 8px; padding: 4px">
+                  <option value="24" selected>{{ trans(key="app_depth_24") }}</option>
+                  <option value="16">{{ trans(key="app_depth_16") }}</option>
+                  <option value="8">{{ trans(key="app_depth_8") }}</option>
+                  <option value="4">{{ trans(key="app_depth_4") }}</option>
+                  <option value="1">{{ trans(key="app_depth_1") }}</option>
                 </select>
               </div>
             </div>
             <div style="display: flex; flex-direction: column; gap: 4px">
-              <label for="colorSpaceSelect" style="font-size: 8px; margin: 0">Color Space</label>
+              <label for="colorSpaceSelect" style="font-size: 8px; margin: 0">{{ trans(key="app_color_space") }}</label>
               <div class="nes-select" style="font-size: 8px">
-                <select id="colorSpaceSelect" aria-label="Color Space" style="font-size: 8px; padding: 4px">
-                  <option value="srgb" selected>sRGB (Standard)</option>
-                  <option value="grayscale">Grayscale (Mono)</option>
+                <select id="colorSpaceSelect" aria-label="{{ trans(key='app_color_space') }}" style="font-size: 8px; padding: 4px">
+                  <option value="srgb" selected>{{ trans(key="app_space_srgb") }}</option>
+                  <option value="grayscale">{{ trans(key="app_space_gray") }}</option>
                 </select>
               </div>
             </div>
           </div>
 
-          <label style="margin: 0"><input type="checkbox" class="nes-checkbox" id="gridCheck" aria-label="Show Grid" /><span>Show Grid</span></label>
           <label style="margin: 0"
-            ><input type="checkbox" class="nes-checkbox" id="bgTransparentCheck" aria-label="Transparent Background" /><span>Transparent</span></label
+            ><input type="checkbox" class="nes-checkbox" id="gridCheck" aria-label="{{ trans(key='app_show_grid') }}" /><span
+              >{{ trans(key="app_show_grid") }}</span
+            ></label
+          >
+          <label style="margin: 0"
+            ><input type="checkbox" class="nes-checkbox" id="bgTransparentCheck" aria-label="{{ trans(key='app_transparent_aria') }}" /><span
+              >{{ trans(key="app_transparent") }}</span
+            ></label
           >
         </div>
 
-        <label for="detailRange">Detail Level: <span id="detailVal" style="color: var(--accent-color)">50</span></label>
-        <input type="range" id="detailRange" min="10" max="100" value="50" class="nes-range" aria-label="Detail Level" />
+        <label for="detailRange">{{ trans(key="app_detail_label") }} <span id="detailVal" style="color: var(--accent-color)">50</span></label>
+        <input type="range" id="detailRange" min="10" max="100" value="50" class="nes-range" aria-label="{{ trans(key='app_detail_aria') }}" />
 
-        <label for="minPathRange">Min Path Len: <span id="minPathVal" style="color: var(--accent-color)">10</span></label>
-        <input type="range" id="minPathRange" min="1" max="50" value="10" class="nes-range" aria-label="Minimum Path Length" />
+        <label for="minPathRange">{{ trans(key="app_min_path_label") }} <span id="minPathVal" style="color: var(--accent-color)">10</span></label>
+        <input type="range" id="minPathRange" min="1" max="50" value="10" class="nes-range" aria-label="{{ trans(key='app_min_path_aria') }}" />
 
         <div id="fourier-controls" class="hidden">
-          <label for="termsRange">Terms: <span id="termsVal" style="color: var(--accent-color)">50</span></label>
-          <input type="range" id="termsRange" min="5" max="200" value="50" class="nes-range" aria-label="Fourier Terms" />
+          <label for="termsRange">{{ trans(key="app_terms_label") }} <span id="termsVal" style="color: var(--accent-color)">50</span></label>
+          <input type="range" id="termsRange" min="5" max="200" value="50" class="nes-range" aria-label="{{ trans(key='app_terms_aria') }}" />
         </div>
         <div id="chaikin-controls" class="hidden">
-          <label for="chaikinRange">Iters: <span id="chaikinVal" style="color: var(--accent-color)">1</span></label>
-          <input type="range" id="chaikinRange" min="0" max="5" value="1" class="nes-range" aria-label="Chaikin Iterations" />
+          <label for="chaikinRange">{{ trans(key="app_iters_label") }} <span id="chaikinVal" style="color: var(--accent-color)">1</span></label>
+          <input type="range" id="chaikinRange" min="0" max="5" value="1" class="nes-range" aria-label="{{ trans(key='app_iters_aria') }}" />
         </div>
 
         <!-- Generate Button removed from here (moved to canvas area) -->
-        <div id="status-text" style="font-size: 8px; margin-top: 8px; text-align: center">READY</div>
+        <div id="status-text" style="font-size: 8px; margin-top: 8px; text-align: center">{{ trans(key="common_status_ready") }}</div>
       </div>
 
       <div class="nes-container with-title control-group" style="padding: 15px">
-        <p class="title" style="font-size: 10px">Reveal</p>
-        <div style="font-size: 7px; line-height: 1.5; color: #999; margin-bottom: 8px">
-          Animate how your art appears: sweeps, radial bloom or stroke order — optionally monochrome first, then color spreads back in.
-        </div>
-        <label for="revealModeSelect">Animation</label>
+        <p class="title" style="font-size: 10px">{{ trans(key="common_reveal") }}</p>
+        <div style="font-size: 7px; line-height: 1.5; color: #999; margin-bottom: 8px">{{ trans(key="app_reveal_desc") }}</div>
+        <label for="revealModeSelect">{{ trans(key="app_anim_label") }}</label>
         <div class="nes-select" style="width: 100%; margin-bottom: 10px">
-          <select id="revealModeSelect" style="font-size: 8px" aria-label="Reveal Animation Mode">
-            <option value="instant" selected>Instant (Off)</option>
-            <option value="ltr">Sweep Left → Right</option>
-            <option value="rtl">Sweep Right → Left</option>
-            <option value="ttb">Sweep Top → Bottom</option>
-            <option value="btt">Sweep Bottom → Top</option>
-            <option value="diag-tlbr">Diagonal TL → BR</option>
-            <option value="diag-brtl">Diagonal BR → TL</option>
-            <option value="radial-center">Radial from Center</option>
-            <option value="radial-origin">Radial from Origin</option>
-            <option value="sequential">Sequential Draw</option>
-            <option value="random">Random Scatter</option>
+          <select id="revealModeSelect" style="font-size: 8px" aria-label="{{ trans(key='app_reveal_mode_aria') }}">
+            <option value="instant" selected>{{ trans(key="app_rev_instant") }}</option>
+            <option value="ltr">{{ trans(key="app_rev_ltr") }}</option>
+            <option value="rtl">{{ trans(key="app_rev_rtl") }}</option>
+            <option value="ttb">{{ trans(key="app_rev_ttb") }}</option>
+            <option value="btt">{{ trans(key="app_rev_btt") }}</option>
+            <option value="diag-tlbr">{{ trans(key="app_rev_diag_tlbr") }}</option>
+            <option value="diag-brtl">{{ trans(key="app_rev_diag_brtl") }}</option>
+            <option value="radial-center">{{ trans(key="app_rev_radial_center") }}</option>
+            <option value="radial-origin">{{ trans(key="app_rev_radial_origin") }}</option>
+            <option value="sequential">{{ trans(key="app_rev_sequential") }}</option>
+            <option value="random">{{ trans(key="app_rev_random") }}</option>
           </select>
         </div>
 
-        <label for="revealDurationRange">Duration: <span id="revealDurationVal" style="color: var(--accent-color)">3.0s</span></label>
-        <input type="range" id="revealDurationRange" min="0.5" max="10" step="0.5" value="3" class="nes-range" aria-label="Reveal Duration" />
+        <label for="revealDurationRange"
+          >{{ trans(key="app_duration_label") }} <span id="revealDurationVal" style="color: var(--accent-color)">3.0s</span></label
+        >
+        <input
+          type="range"
+          id="revealDurationRange"
+          min="0.5"
+          max="10"
+          step="0.5"
+          value="3"
+          class="nes-range"
+          aria-label="{{ trans(key='app_duration_aria') }}"
+        />
 
         <label style="margin: 8px 0 0"
-          ><input type="checkbox" class="nes-checkbox" id="revealStagedCheck" aria-label="Mono First Then Color" /><span>Mono first, color spreads</span></label
+          ><input type="checkbox" class="nes-checkbox" id="revealStagedCheck" aria-label="{{ trans(key='app_mono_first_aria') }}" /><span
+            >{{ trans(key="app_mono_first") }}</span
+          ></label
         >
 
         <div
@@ -708,54 +768,71 @@
             gap: 4px;
           "
         >
-          <label for="revealColorStrategySelect" style="font-size: 8px; margin: 0">Color Spread</label>
+          <label for="revealColorStrategySelect" style="font-size: 8px; margin: 0">{{ trans(key="app_color_spread") }}</label>
           <div class="nes-select" style="font-size: 8px; margin-bottom: 6px">
-            <select id="revealColorStrategySelect" aria-label="Color Spread Strategy" style="font-size: 8px; padding: 4px">
-              <option value="follow" selected>Follow shape reveal</option>
-              <option value="radial-center">Bloom from center</option>
-              <option value="radial-origin">Bloom from origin</option>
-              <option value="ltr">Left → Right</option>
-              <option value="rtl">Right → Left</option>
-              <option value="ttb">Top → Bottom</option>
-              <option value="btt">Bottom → Top</option>
-              <option value="random">Random bloom</option>
+            <select id="revealColorStrategySelect" aria-label="{{ trans(key='app_spread_strategy_aria') }}" style="font-size: 8px; padding: 4px">
+              <option value="follow" selected>{{ trans(key="app_spread_follow") }}</option>
+              <option value="radial-center">{{ trans(key="app_spread_center") }}</option>
+              <option value="radial-origin">{{ trans(key="app_spread_origin") }}</option>
+              <option value="ltr">{{ trans(key="app_spread_ltr") }}</option>
+              <option value="rtl">{{ trans(key="app_spread_rtl") }}</option>
+              <option value="ttb">{{ trans(key="app_spread_ttb") }}</option>
+              <option value="btt">{{ trans(key="app_spread_btt") }}</option>
+              <option value="random">{{ trans(key="app_spread_random") }}</option>
             </select>
           </div>
           <label for="revealColorLagRange" style="font-size: 8px; margin: 0"
-            >Color Lag: <span id="revealColorLagVal" style="color: var(--accent-color)">45%</span></label
+            >{{ trans(key="app_color_lag_label") }} <span id="revealColorLagVal" style="color: var(--accent-color)">45%</span></label
           >
-          <input type="range" id="revealColorLagRange" min="10" max="90" step="5" value="45" class="nes-range" aria-label="Color Lag" />
+          <input
+            type="range"
+            id="revealColorLagRange"
+            min="10"
+            max="90"
+            step="5"
+            value="45"
+            class="nes-range"
+            aria-label="{{ trans(key='app_color_lag_aria') }}"
+          />
         </div>
 
-        <button class="nes-btn" id="replayBtn" type="button" style="width: 100%; font-size: 10px; margin-top: 10px" aria-label="Replay Reveal Animation">
-          REPLAY
+        <button
+          class="nes-btn"
+          id="replayBtn"
+          type="button"
+          style="width: 100%; font-size: 10px; margin-top: 10px"
+          aria-label="{{ trans(key='app_replay_aria') }}"
+        >
+          {{ trans(key="app_replay") }}
         </button>
-        <div id="revealHint" style="font-size: 7px; margin-top: 6px; text-align: center; color: #999">ALT+CLICK canvas sets radial origin</div>
+        <div id="revealHint" style="font-size: 7px; margin-top: 6px; text-align: center; color: #999">{{ trans(key="app_alt_hint") }}</div>
       </div>
 
       <div class="nes-container with-title control-group" style="padding: 15px">
-        <p class="title" style="font-size: 10px">Export</p>
-        <label for="exportFormat" class="sr-only" style="display: none">Format</label>
+        <p class="title" style="font-size: 10px">{{ trans(key="common_export") }}</p>
+        <label for="exportFormat" class="sr-only" style="display: none">{{ trans(key="app_format_label") }}</label>
         <div class="nes-select" style="width: 100%; margin-bottom: 10px">
-          <select id="exportFormat" style="font-size: 8px" aria-label="Export Format">
-            <option value="png">PNG (Transparent OK)</option>
-            <option value="jpg">JPG (Solid background)</option>
-            <option value="json">JSON (AST Vector)</option>
+          <select id="exportFormat" style="font-size: 8px" aria-label="{{ trans(key='app_export_aria') }}">
+            <option value="png">{{ trans(key="app_exp_png") }}</option>
+            <option value="jpg">{{ trans(key="app_exp_jpg") }}</option>
+            <option value="json">{{ trans(key="app_exp_json") }}</option>
           </select>
         </div>
-        <button class="nes-btn is-success" id="downloadBtn" style="width: 100%; font-size: 10px" aria-label="Download File">DOWNLOAD</button>
+        <button class="nes-btn is-success" id="downloadBtn" style="width: 100%; font-size: 10px" aria-label="{{ trans(key='app_download_aria') }}">
+          {{ trans(key="app_download") }}
+        </button>
         <button
           class="nes-btn is-warning"
           id="shareBtn"
           style="width: 100%; font-size: 10px; margin-top: 10px; display: none !important;"
-          aria-label="Share to Gallery"
+          aria-label="{{ trans(key='app_share_title') }}"
         >
-          SHARE TO GALLERY
+          {{ trans(key="app_share_caps") }}
         </button>
       </div>
 
       <div class="nes-container with-title control-group" id="partnerWidget" style="padding: 15px; text-align: center">
-        <p class="title" style="font-size: 11px">Resources</p>
+        <p class="title" style="font-size: 11px">{{ trans(key="app_resources") }}</p>
         <div id="partnerContent" style="font-size: 10px; line-height: 1.5">
           <!-- Dynamically Populated -->
         </div>
@@ -765,34 +842,49 @@
     <div class="viewport-wrapper">
       <div class="top-bar">
         <div style="flex-grow: 1; display: flex; align-items: center">
-          <a href="https://github.com/Xuepoo/vectomancy" target="_blank" style="color: inherit; text-decoration: none" aria-label="GitHub Repository">
+          <a
+            href="https://github.com/Xuepoo/vectomancy"
+            target="_blank"
+            style="color: inherit; text-decoration: none"
+            aria-label="{{ trans(key='app_github_aria') }}"
+          >
             <i class="nes-icon github"></i>
           </a>
         </div>
         <div style="display: flex; gap: 10px">
-          <button class="nes-btn is-warning" id="helpBtn" style="font-size: 8px" aria-label="Help">?</button>
-          <button class="nes-btn is-error" id="clearAllBtn" style="font-size: 8px" aria-label="Clear All">Clear All</button>
-          <button class="nes-btn" id="themeToggleBtn" style="font-size: 8px" aria-label="Toggle Theme">Theme</button>
-          <button class="nes-btn" id="resetViewBtn" style="font-size: 8px" aria-label="Reset View">Reset View</button>
-          <button class="nes-btn is-error" id="resetSettingsBtn" style="font-size: 8px" aria-label="Reset Settings">Reset Config</button>
+          <button class="nes-btn is-warning" id="helpBtn" style="font-size: 8px" aria-label="{{ trans(key='common_help') }}">?</button>
+          <button class="nes-btn is-error" id="clearAllBtn" style="font-size: 8px" aria-label="{{ trans(key='app_clear_all') }}">
+            {{ trans(key="app_clear_all") }}
+          </button>
+          <button class="nes-btn" id="themeToggleBtn" style="font-size: 8px" aria-label="{{ trans(key='app_theme_aria') }}">
+            {{ trans(key="app_theme") }}
+          </button>
+          <button class="nes-btn" id="resetViewBtn" style="font-size: 8px" aria-label="{{ trans(key='app_reset_view') }}">
+            {{ trans(key="app_reset_view") }}
+          </button>
+          <button class="nes-btn is-error" id="resetSettingsBtn" style="font-size: 8px" aria-label="{{ trans(key='app_reset_config_aria') }}">
+            {{ trans(key="app_reset_config") }}
+          </button>
         </div>
       </div>
 
       <div class="canvas-area" id="canvasArea">
-        <canvas id="mainCanvas" aria-label="Main Drawing Canvas"></canvas>
-        <div class="overlay-stats nes-container is-rounded" id="overlayStats" aria-live="polite">Waiting for input...</div>
+        <canvas id="mainCanvas" aria-label="{{ trans(key='app_canvas_aria') }}"></canvas>
+        <div class="overlay-stats nes-container is-rounded" id="overlayStats" aria-live="polite">{{ trans(key="app_waiting") }}</div>
 
-        <button class="nes-btn is-primary canvas-generate-btn" id="generateBtn" aria-label="Generate Image">GENERATE</button>
+        <button class="nes-btn is-primary canvas-generate-btn" id="generateBtn" aria-label="{{ trans(key='app_generate_aria') }}">
+          {{ trans(key="app_generate") }}
+        </button>
 
         <div class="canvas-controls">
-          <button class="nes-btn" id="btnZoomIn" title="Zoom In" aria-label="Zoom In">+</button>
-          <button class="nes-btn" id="btnZoomOut" title="Zoom Out" aria-label="Zoom Out">-</button>
-          <button class="nes-btn" id="btnResetViewObj" title="Fit Screen" aria-label="Fit Screen">▣</button>
-          <button class="nes-btn is-primary" id="btnFocus" title="Focus Mode" aria-label="Focus Mode">F</button>
+          <button class="nes-btn" id="btnZoomIn" title="{{ trans(key='app_zoom_in') }}" aria-label="{{ trans(key='app_zoom_in') }}">+</button>
+          <button class="nes-btn" id="btnZoomOut" title="{{ trans(key='app_zoom_out') }}" aria-label="{{ trans(key='app_zoom_out') }}">-</button>
+          <button class="nes-btn" id="btnResetViewObj" title="{{ trans(key='app_fit_screen') }}" aria-label="{{ trans(key='app_fit_screen') }}">▣</button>
+          <button class="nes-btn is-primary" id="btnFocus" title="{{ trans(key='app_focus_mode') }}" aria-label="{{ trans(key='app_focus_mode') }}">F</button>
         </div>
 
         <div id="progressContainer" class="progress-overlay hidden">
-          <p id="progressText" style="font-size: 8px; color: var(--accent-color)">COMPUTING...</p>
+          <p id="progressText" style="font-size: 8px; color: var(--accent-color)">{{ trans(key="common_status_rendering") }}</p>
           <progress class="nes-progress is-primary" value="0" max="100" id="progressBar" style="height: 15px"></progress>
         </div>
       </div>
@@ -801,40 +893,44 @@
 
       <div id="loaderOverlay" class="loader-overlay">
         <div class="pixel-spinner"></div>
-        <p id="loaderText">Loading Engine...</p>
+        <p id="loaderText">{{ trans(key="app_loading_engine") }}</p>
       </div>
     </div>
 
     <!-- DIALOGS -->
     <dialog class="nes-dialog" id="delete-dialog">
       <form method="dialog">
-        <p class="title">Confirm Delete</p>
-        <p style="font-size: 8px">Erase snapshot?</p>
+        <p class="title">{{ trans(key="app_confirm_delete") }}</p>
+        <p style="font-size: 8px">{{ trans(key="app_erase_snapshot") }}</p>
         <menu class="dialog-menu">
-          <button class="nes-btn" value="cancel">No</button><button class="nes-btn is-error" id="confirmDeleteBtn" value="confirm">Yes</button>
+          <button class="nes-btn" value="cancel">{{ trans(key="app_no") }}</button
+          ><button class="nes-btn is-error" id="confirmDeleteBtn" value="confirm">{{ trans(key="app_yes") }}</button>
         </menu>
       </form>
     </dialog>
     <dialog class="nes-dialog" id="clear-dialog">
       <form method="dialog">
-        <p class="title">Clear All</p>
-        <p style="font-size: 8px">Erase all?</p>
-        <menu class="dialog-menu"><button class="nes-btn" value="cancel">No</button><button class="nes-btn is-error" value="confirm">Yes</button></menu>
+        <p class="title">{{ trans(key="app_clear_all") }}</p>
+        <p style="font-size: 8px">{{ trans(key="app_erase_all") }}</p>
+        <menu class="dialog-menu">
+          <button class="nes-btn" value="cancel">{{ trans(key="app_no") }}</button
+          ><button class="nes-btn is-error" value="confirm">{{ trans(key="app_yes") }}</button>
+        </menu>
       </form>
     </dialog>
     <dialog class="nes-dialog" id="error-dialog">
       <form method="dialog">
-        <p class="title">ERROR</p>
+        <p class="title">{{ trans(key="app_error_title") }}</p>
         <p id="error-message" style="font-size: 8px"></p>
         <menu class="dialog-menu">
-          <button class="nes-btn is-primary">OK</button>
+          <button class="nes-btn is-primary">{{ trans(key="common_ok") }}</button>
         </menu>
       </form>
     </dialog>
 
     <dialog class="nes-dialog" id="help-dialog" style="width: 90vw; max-width: 600px">
       <form method="dialog">
-        <p class="title" style="color: var(--accent-color); font-size: 10px">Vectomancy Pro Guide</p>
+        <p class="title" style="color: var(--accent-color); font-size: 10px">{{ trans(key="app_guide_title") }}</p>
         <div
           style="
             font-size: 8px;
@@ -846,59 +942,48 @@
           "
         >
           <p>
-            <strong>Algorithms:</strong><br />
-            - <b>Spline</b>: Precise Bezier curves. Best for lineart and logos.<br />
-            - <b>Fourier</b>: Continuous epicycle loops. Chaotic single-wire aesthetic.<br />
-            - <b>Chaikin</b>: Smooth polylines using corner-cutting. Organic "hand-drawn" look.
+            <strong>{{ trans(key="app_help_algorithms") }}</strong><br />
+            {{ trans(key="app_help_algo_body") | safe }}
           </p>
 
           <p>
-            <strong>Parameters:</strong><br />
-            - <b>Detail</b>: 10-100. Lower = abstract/fast, Higher = precise/heavy.<br />
-            - <b>Min Path</b>: Filters out noise and artifacts. Clean = 5, Noisy = 15+.<br />
-            - <b>Terms/Iters</b>: Controls complexity of Fourier/Chaikin modes.
+            <strong>{{ trans(key="app_help_parameters") }}</strong><br />
+            {{ trans(key="app_help_params_body") | safe }}
           </p>
 
           <p>
-            <strong>Reveal (Delayed Rendering):</strong><br />
-            - <b>Sweeps</b>: Strokes appear along a direction (L→R, T→B, diagonal).<br />
-            - <b>Radial</b>: Expands from the center, or from a custom origin.<br />
-            - <b>Sequential / Random</b>: Stroke-by-stroke draw order, fixed or shuffled.<br />
-            - <b>Mono first</b>: Art appears in monochrome, then color spreads in with its own strategy and lag.<br />
-            - <b>ALT+CLICK</b> the canvas to set the radial origin.
+            <strong>{{ trans(key="app_help_reveal_head") }}</strong><br />
+            {{ trans(key="app_help_reveal_body") | safe }}
           </p>
 
           <p>
-            <strong>Pro Tips:</strong><br />
-            - <b>Clipboard</b>: You can paste (Ctrl+V) images directly anywhere!<br />
-            - <b>Focus Mode (F)</b>: Hides UI for pure viewing.<br />
-            - <b>Transparent</b>: Toggle in settings. Disables JPG export.<br />
-            - <b>Hotkeys</b>: Use mouse wheel to zoom, drag to pan.
+            <strong>{{ trans(key="app_help_tips_head") }}</strong><br />
+            {{ trans(key="app_help_tips_body") | safe }}
           </p>
         </div>
         <menu class="dialog-menu" style="margin-top: 10px">
-          <button class="nes-btn is-primary">OK</button>
+          <button class="nes-btn is-primary">{{ trans(key="common_ok") }}</button>
         </menu>
       </form>
     </dialog>
     <dialog class="nes-dialog" id="shareDialog">
       <form method="dialog">
-        <p class="title" style="font-size: 10px">Share to Gallery</p>
+        <p class="title" style="font-size: 10px">{{ trans(key="app_share_title") }}</p>
         <div class="nes-field" style="margin-bottom: 10px">
-          <label for="share_title" style="font-size: 8px">Artwork Title *</label>
+          <label for="share_title" style="font-size: 8px">{{ trans(key="app_share_field_title") }}</label>
           <input type="text" id="share_title" class="nes-input" maxlength="50" required style="font-size: 8px" />
         </div>
         <div class="nes-field" style="margin-bottom: 10px">
-          <label for="share_author" style="font-size: 8px">Author Name *</label>
+          <label for="share_author" style="font-size: 8px">{{ trans(key="app_share_field_author") }}</label>
           <input type="text" id="share_author" class="nes-input" maxlength="30" required style="font-size: 8px" />
         </div>
         <div class="nes-field" style="margin-bottom: 15px">
-          <label for="share_source" style="font-size: 8px">Original Image Link (Optional)</label>
+          <label for="share_source" style="font-size: 8px">{{ trans(key="app_share_field_source") }}</label>
           <input type="url" id="share_source" class="nes-input" placeholder="https://..." style="font-size: 8px" />
         </div>
         <menu class="dialog-menu" style="display: flex; justify-content: space-between; padding: 0; margin: 0">
-          <button class="nes-btn" type="button" onclick="document.getElementById('shareDialog').close()">Cancel</button>
-          <button class="nes-btn is-success" id="confirmShareBtn" type="button">Submit</button>
+          <button class="nes-btn" type="button" onclick="document.getElementById('shareDialog').close()">{{ trans(key="common_cancel") }}</button>
+          <button class="nes-btn is-success" id="confirmShareBtn" type="button">{{ trans(key="app_submit") }}</button>
         </menu>
       </form>
     </dialog>
@@ -1028,7 +1113,7 @@
 
           await restoreCachedFont();
         } catch (e) {
-          els.statusText.innerText = "ERR: LOAD";
+          els.statusText.innerText = window.t8("ERR: LOAD", "错误：加载失败");
           console.error(e);
         }
       }
@@ -1155,7 +1240,7 @@
       const partnerContent = document.getElementById("partnerContent");
       if (pluginMode === "text") {
         partnerContent.innerHTML = `
-                <p style="margin-bottom: 8px; color: var(--accent-color); font-size: 9px;">Font Resources</p>
+                <p style="margin-bottom: 8px; color: var(--accent-color); font-size: 9px;">${window.t8("Font Resources", "字体资源")}</p>
                 <div style="display: flex; flex-direction: column; gap: 8px;">
                     <a href="https://fonts.google.com" target="_blank" class="nes-btn" style="font-size: 9px; padding: 4px 8px;">Google Fonts</a>
                     <a href="https://fontdasu.com" target="_blank" class="nes-btn" style="font-size: 9px; padding: 4px 8px;">FontDasu (JP)</a>
@@ -1168,7 +1253,7 @@
       } else {
         // Image mode
         partnerContent.innerHTML = `
-                <p style="margin-bottom: 8px; color: var(--accent-color); font-size: 9px;">Image Tools</p>
+                <p style="margin-bottom: 8px; color: var(--accent-color); font-size: 9px;">${window.t8("Image Tools", "图片工具")}</p>
                 <div style="display: flex; flex-direction: column; gap: 8px;">
                     <a href="https://www.waifu2x.net/" target="_blank" class="nes-btn is-primary" style="font-size: 9px; padding: 4px 8px;">Waifu2x</a>
                 </div>
@@ -1185,7 +1270,10 @@
         const ext = filename.split(".").pop().toLowerCase();
         if (filename.includes(".") && !SUPPORTED_EXTS.includes(ext)) {
           return showError(
-            `Unsupported file: .${ext}\nPlease use PNG, JPG, WebP or SVG.`,
+            window.t8(
+              `Unsupported file: .${ext}\nPlease use PNG, JPG, WebP or SVG.`,
+              `不支持的文件：.${ext}\n请使用 PNG、JPG、WebP 或 SVG。`,
+            ),
           );
         }
 
@@ -1195,7 +1283,10 @@
         const tempImg = new Image();
         tempImg.onerror = () => {
           showError(
-            "Invalid Image Data!\nThe file could not be parsed as an image.",
+            window.t8(
+              "Invalid Image Data!\nThe file could not be parsed as an image.",
+              "无效的图片数据！\n无法将该文件解析为图片。",
+            ),
           );
           els.loaderOverlay.classList.add("hidden");
         };
@@ -1206,7 +1297,7 @@
           originalImageObj = tempImg;
           const old = document.getElementById("gallery-original");
           if (old) old.remove();
-          addGalleryItem("original", blobUrl, "ORIGINAL");
+          addGalleryItem("original", blobUrl, window.t8("ORIGINAL", "原图"));
           setActivePreview("original");
           els.loaderOverlay.classList.add("hidden");
         };
@@ -1308,17 +1399,22 @@
         try {
           if (!("queryLocalFonts" in window)) {
             throw new Error(
-              "Local Font Access API is not supported in your browser (try Chrome/Edge desktop).",
+              window.t8(
+                "Local Font Access API is not supported in your browser (try Chrome/Edge desktop).",
+                "你的浏览器不支持本地字体访问 API（请尝试桌面版 Chrome/Edge）。",
+              ),
             );
           }
           els.loaderOverlay.classList.remove("hidden");
-          els.loaderText.innerText = "Requesting Font Access...";
+          els.loaderText.innerText = window.t8("Requesting Font Access...", "正在请求字体访问权限…");
           localFontsList = await window.queryLocalFonts();
 
           els.localFontSelectWrapper.style.display = "block";
           els.btnAccessLocalFonts.style.display = "none";
           els.localFontSelect.innerHTML =
-            '<option value="" disabled selected>Select system font...</option>';
+            '<option value="" disabled selected>' +
+            window.t8("Select system font...", "选择系统字体…") +
+            "</option>";
 
           const familyMap = new Map();
           for (const f of localFontsList) {
@@ -1347,7 +1443,7 @@
         } catch (err) {
           els.loaderOverlay.classList.add("hidden");
           showError(
-            err.message || "Failed to access system fonts. Permission denied?",
+            err.message || window.t8("Failed to access system fonts. Permission denied?", "无法访问系统字体。是否权限被拒？"),
           );
         }
       });
@@ -1359,7 +1455,7 @@
         if (!fontObj) return;
 
         els.loaderOverlay.classList.remove("hidden");
-        els.loaderText.innerText = `Extracting ${family}...`;
+        els.loaderText.innerText = window.t8(`Extracting ${family}...`, `正在提取 ${family}…`);
         try {
           const blob = await fontObj.blob();
           const b = await blob.arrayBuffer();
@@ -1376,7 +1472,7 @@
             new TextEncoder().encode(currentFontFilename).buffer,
           );
         } catch (err) {
-          showError("Could not extract font data.");
+          showError(window.t8("Could not extract font data.", "无法提取字体数据。"));
         }
         els.loaderOverlay.classList.add("hidden");
       });
@@ -1406,7 +1502,7 @@
           const filename = btn.dataset.filename + " (Cloud)";
 
           els.loaderOverlay.classList.remove("hidden");
-          els.loaderText.innerText = `Fetching ${filename}...`;
+          els.loaderText.innerText = window.t8(`Fetching ${filename}...`, `正在获取 ${filename}…`);
           try {
             const r = await fetch(
               url + (url.includes("?") ? "&" : "?") + "v=2",
@@ -1431,10 +1527,13 @@
             );
           } catch (err) {
             if (err.message === "InvalidFontFormat") {
-              showError("Failed to load font: Invalid font file format.");
+              showError(window.t8("Failed to load font: Invalid font file format.", "字体加载失败：无效的字体文件格式。"));
             } else {
               showError(
-                "Failed to fetch cloud font.\nPlease check your network.",
+                window.t8(
+                  "Failed to fetch cloud font.\nPlease check your network.",
+                  "云端字体获取失败。\n请检查网络。",
+                ),
               );
             }
           }
@@ -1446,7 +1545,7 @@
         const url = els.urlInput.value;
         if (!url) return;
         els.loaderOverlay.classList.remove("hidden");
-        els.loaderText.innerText = "Fetching URL...";
+        els.loaderText.innerText = window.t8("Fetching URL...", "正在获取 URL…");
         try {
           const proxyBase =
             window.location.hostname === "localhost" ||
@@ -1462,7 +1561,12 @@
             url.split("/").pop().split("?")[0] || "remote_image.png",
           );
         } catch (e) {
-          showError("Fetch Failed!\nCheck the URL or CORS proxy status.");
+          showError(
+            window.t8(
+              "Fetch Failed!\nCheck the URL or CORS proxy status.",
+              "获取失败！\n请检查 URL 或 CORS 代理状态。",
+            ),
+          );
           els.loaderOverlay.classList.add("hidden");
         }
       });
@@ -1473,7 +1577,7 @@
         for (const item of items) {
           if (item.type.indexOf("image") !== -1) {
             els.loaderOverlay.classList.remove("hidden");
-            els.loaderText.innerText = "Pasting Image...";
+            els.loaderText.innerText = window.t8("Pasting Image...", "正在粘贴图片…");
             const blob = item.getAsFile();
             const buffer = await blob.arrayBuffer();
             handleImageBytes(buffer, `pasted_img_${Date.now()}.png`);
@@ -1488,10 +1592,10 @@
         if (!isWasmLoaded) return;
         const isTextMode = els.radioText.checked;
         if (isTextMode) {
-          if (!currentFontBytes) return showError("No Font Selected!");
-          if (!els.textInput.value) return showError("No Text entered!");
+          if (!currentFontBytes) return showError(window.t8("No Font Selected!", "未选择字体！"));
+          if (!els.textInput.value) return showError(window.t8("No Text entered!", "未输入文字！"));
         } else {
-          if (!currentImageBytes) return showError("No Image!");
+          if (!currentImageBytes) return showError(window.t8("No Image!", "没有图片！"));
         }
 
         els.progressContainer.classList.remove("hidden");
@@ -1684,13 +1788,17 @@
         if (!activePreviewId || activePreviewId === "original") return;
         const res = previewDataStore.get(activePreviewId);
         if (!res) return;
-        let stats = `RENDER STATS\nSIZE: ${res.width}x${res.height}\nCONVERT: ${res.computeTime}ms\nRENDER: ${res.renderTime || 0}ms`;
+        let stats =
+          `${window.t8("RENDER STATS", "渲染统计")}\n` +
+          `${window.t8("SIZE", "尺寸")}: ${res.width}x${res.height}\n` +
+          `${window.t8("CONVERT", "转换")}: ${res.computeTime}ms\n` +
+          `${window.t8("RENDER", "渲染")}: ${res.renderTime || 0}ms`;
         if (res.ast.type === "Spline" || res.ast.type === "spline")
-          stats += `\nPATHS: ${res.ast.equations.length}`;
+          stats += `\n${window.t8("PATHS", "路径")}: ${res.ast.equations.length}`;
         else if (res.ast.type === "Fourier" || res.ast.type === "fourier")
-          stats += `\nSTROKES: ${res.ast.strokes.length}`;
+          stats += `\n${window.t8("STROKES", "笔画")}: ${res.ast.strokes.length}`;
         else if (res.ast.type === "Polyline" || res.ast.type === "polyline")
-          stats += `\nPATHS: ${res.ast.paths.length}`;
+          stats += `\n${window.t8("PATHS", "路径")}: ${res.ast.paths.length}`;
         els.overlayStats.innerText = stats;
       }
 
@@ -1711,9 +1819,9 @@
         } else {
           cachedViewportCanvas = null;
           if (originalImageObj) {
-            els.overlayStats.innerText = `ORIGINAL IMAGE\nSIZE: ${originalImageObj.width}x${originalImageObj.height}`;
+            els.overlayStats.innerText = `${window.t8("ORIGINAL IMAGE", "原始图像")}\n${window.t8("SIZE", "尺寸")}: ${originalImageObj.width}x${originalImageObj.height}`;
           } else {
-            els.overlayStats.innerText = "Waiting for input...";
+            els.overlayStats.innerText = window.t8("Waiting for input...", "等待输入…");
           }
         }
         resetViewport();
@@ -1747,7 +1855,7 @@
           // default Instant mode (otherwise ALT+click looks like a no-op).
           els.revealModeSelect.value = "radial-origin";
           saveSettings();
-          els.statusText.innerText = "REVEAL ORIGIN SET";
+          els.statusText.innerText = window.t8("REVEAL ORIGIN SET", "已设置渐显起点");
           recacheViewportCanvas();
           requestRender();
           e.preventDefault();
@@ -1888,7 +1996,7 @@
       };
 
       els.downloadBtn.addEventListener("click", () => {
-        if (!activePreviewId) return showError("No Image Selected!");
+        if (!activePreviewId) return showError(window.t8("No Image Selected!", "未选择图片！"));
         const format = els.exportFormat.value;
         const isOriginal = activePreviewId === "original";
         const res = isOriginal
@@ -1930,7 +2038,7 @@
         }
 
         if (format === "json") {
-          if (isOriginal) return showError("No JSON for original!");
+          if (isOriginal) return showError(window.t8("No JSON for original!", "原图没有可导出的 JSON！"));
           const dataStr =
             "data:text/json;charset=utf-8," +
             encodeURIComponent(JSON.stringify(res.ast));
@@ -1945,7 +2053,7 @@
 
       els.shareBtn.addEventListener("click", () => {
         if (!activePreviewId || activePreviewId === "original") {
-          return showError("Select a rendered mathematical preview to share!");
+          return showError(window.t8("Select a rendered mathematical preview to share!", "请先选择一个已渲染的数学预览再分享！"));
         }
         els.shareDialog.showModal();
       });
@@ -1956,13 +2064,13 @@
         const source = document.getElementById("share_source").value.trim();
 
         if (!title || !author) {
-          return showError("Title and Author Name are required!");
+          return showError(window.t8("Title and Author Name are required!", "标题和作者名为必填项！"));
         }
 
         const res = previewDataStore.get(activePreviewId);
         if (!res || !res.ast) return;
 
-        els.confirmShareBtn.innerText = "UPLOADING...";
+        els.confirmShareBtn.innerText = window.t8("UPLOADING...", "上传中…");
         els.confirmShareBtn.disabled = true;
 
         try {
@@ -2003,18 +2111,18 @@
 
           if (!postRes.ok) {
             const error = await postRes.json();
-            throw new Error(error.error || "Submission failed");
+            throw new Error(error.error || window.t8("Submission failed", "提交失败"));
           }
 
-          alert("Artwork shared successfully! It will appear in the gallery after review.");
+          alert(window.t8("Artwork shared successfully! It will appear in the gallery after review.", "分享成功！作品将在审核通过后出现在画廊。"));
           els.shareDialog.close();
           document.getElementById("share_title").value = "";
           document.getElementById("share_author").value = "";
           document.getElementById("share_source").value = "";
         } catch(err) {
-          showError("Error sharing: " + err.message);
+          showError(window.t8("Error sharing: ", "分享出错：") + err.message);
         } finally {
-          els.confirmShareBtn.innerText = "Submit";
+          els.confirmShareBtn.innerText = window.t8("Submit", "提交");
           els.confirmShareBtn.disabled = false;
         }
       });
@@ -2185,13 +2293,13 @@
     <dialog
       class="nes-dialog is-rounded"
       id="custom-alert-dialog"
-      style="z-index: 10000; font-family: 'Press Start 2P', cursive; font-size: 10px; max-width: 450px; text-align: left;"
+      style="z-index: 10000; font-family: 'Press Start 2P', 'Fusion Pixel', cursive; font-size: 10px; max-width: 450px; text-align: left;"
     >
       <form method="dialog">
-        <p class="title" style="font-size: 10px; margin-bottom: 15px; color: var(--text-color);">NOTIFICATION</p>
+        <p class="title" style="font-size: 10px; margin-bottom: 15px; color: var(--text-color);">{{ trans(key="app_notification") }}</p>
         <p id="custom-alert-message" style="font-size: 8px; line-height: 1.6; margin-bottom: 25px; word-break: break-word;"></p>
         <menu class="dialog-menu" style="display: flex; justify-content: flex-end; padding: 0; margin: 0;">
-          <button class="nes-btn is-primary" style="font-size: 8px; padding: 4px 12px;">OK</button>
+          <button class="nes-btn is-primary" style="font-size: 8px; padding: 4px 12px;">{{ trans(key="common_ok") }}</button>
         </menu>
       </form>
     </dialog>
