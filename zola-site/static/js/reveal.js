@@ -553,7 +553,15 @@ export class RevealAnimator {
       if (hooks.onFrame) hooks.onFrame();
       if (t >= 1 && this.shapePass.complete && (!this.colorPass || this.colorPass.complete)) {
         this.running = false;
-        if (staged) dirty = "full";
+        if (staged) {
+          // The staged resting frame IS the final accumulated animation frame:
+          // callers keep it as-is (no clean repaint), so there is nothing to
+          // dissolve and no brightness step at completion.
+          dirty = "full";
+          composite();
+          if (hooks.onDone) hooks.onDone();
+          return;
+        }
         composite();
         this._startCompletionFade(ctx, hooks);
         return;
@@ -563,11 +571,11 @@ export class RevealAnimator {
     this._rafId = requestAnimationFrame(tick);
   }
 
-  // The last incremental frame can differ from the caller's clean repaint by a
-  // few AA pixels (residual mono alpha under color-stroke edges). Instead of
-  // letting those pixels pop, dissolve the pre-done frame into the freshly
-  // repainted one over ~240ms. The final fade frame IS the clean repaint, so
-  // nothing is left behind. No-op when both frames already match.
+  // Non-staged reveals end with a caller clean repaint whose per-pixel alpha
+  // accumulation can differ slightly from the incremental frame. Dissolve the
+  // pre-done frame into the freshly repainted one over ~400ms; the final fade
+  // frame IS the clean repaint, so nothing is left behind. Staged reveals skip
+  // this entirely (their resting frame is the last animation frame).
   _startCompletionFade(ctx, hooks) {
     const width = ctx.canvas.width;
     const height = ctx.canvas.height;
@@ -581,7 +589,7 @@ export class RevealAnimator {
     const before = snap();
     if (hooks.onDone) hooks.onDone();
     const after = snap();
-    const FADE_MS = 240;
+    const FADE_MS = 400;
     const t0 = performance.now();
     const step = (now) => {
       const k = clamp01((now - t0) / FADE_MS);
