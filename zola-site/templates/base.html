@@ -1,163 +1,216 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}Vectomancy - Image to Parametric Equation Converter{% endblock title %}</title>
+<!doctype html>
+<html lang="{% if lang == 'zh' %}zh-CN{% else %}en{% endif %}">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{% block title %}{{ trans(key="meta_home_title") }}{% endblock title %}</title>
 
     <!-- Performance Optimization -->
-    <link rel="dns-prefetch" href="https://cdn.xuepoo.xyz">
-    <link rel="preload" href="/fonts/pressstart2p.woff2" as="font" type="font/woff2" crossorigin>
-    <link rel="preload" href="/css/nes.min.css" as="style">
+    <link rel="dns-prefetch" href="https://cdn.xuepoo.xyz" />
+    <link rel="preload" href="/fonts/pressstart2p.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href="/css/nes.min.css" as="style" />
 
     <!-- SEO Meta Tags -->
-    <meta name="description" content="A blazing fast Rust and WebAssembly tool to convert raster images into mathematical parametric equations, Fourier series vectors, and Zhang-Suen thinned SVGs.">
-    <meta name="keywords" content="Image to parametric equation converter online, Fourier series vector animation generator, Online Zhang-Suen thinning tool, Raster to SVG math art, Vectomancy, WebAssembly, Rust">
+    <meta name="description" content="{{ trans(key='meta_description') }}" />
+    <meta
+      name="keywords"
+      content="Image to parametric equation converter online, Fourier series vector animation generator, Online Zhang-Suen thinning tool, Raster to SVG math art, Vectomancy, WebAssembly, Rust"
+    />
 
     <!-- Open Graph / Social -->
-    <meta property="og:type" content="website">
-    <meta property="og:url" content="{{ config.base_url }}/">
-    <meta property="og:title" content="Vectomancy - Math Art Generator">
-    <meta property="og:description" content="Convert raster images into mathematical vectors using Fourier series and Zhang-Suen thinning. Fully open-source and powered by Rust.">
-    <meta property="og:image" content="{{ config.base_url }}/examples/fuji.png">
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="{{ config.base_url }}/" />
+    <meta property="og:title" content="{{ trans(key='meta_social_title') }}" />
+    <meta property="og:description" content="{{ trans(key='meta_social_desc_full') }}" />
+    <meta property="og:image" content="{{ config.base_url }}/examples/fuji.png" />
 
     <!-- Twitter -->
-    <meta property="twitter:card" content="summary_large_image">
-    <meta property="twitter:url" content="{{ config.base_url }}/">
-    <meta property="twitter:title" content="Vectomancy - Math Art Generator">
-    <meta property="twitter:description" content="Convert raster images into mathematical vectors using Fourier series and Zhang-Suen thinning.">
-    <meta property="twitter:image" content="{{ config.base_url }}/examples/fuji.png">
+    <meta property="twitter:card" content="summary_large_image" />
+    <meta property="twitter:url" content="{{ config.base_url }}/" />
+    <meta property="twitter:title" content="{{ trans(key='meta_social_title') }}" />
+    <meta property="twitter:description" content="{{ trans(key='meta_social_desc_short') }}" />
+    <meta property="twitter:image" content="{{ config.base_url }}/examples/fuji.png" />
 
     <!-- Fonts & CSS -->
-    <link rel="apple-touch-icon" sizes="180x180" href="/favicons/apple-touch-icon.png">
-    <link rel="icon" type="image/png" sizes="32x32" href="/favicons/favicon-32x32.png">
-    <link rel="icon" type="image/png" sizes="16x16" href="/favicons/favicon-16x16.png">
-    <link rel="shortcut icon" href="/favicons/favicon.ico">
+    <link rel="apple-touch-icon" sizes="180x180" href="/favicons/apple-touch-icon.png" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicons/favicon-32x32.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicons/favicon-16x16.png" />
+    <link rel="shortcut icon" href="/favicons/favicon.ico" />
     <link href="/css/nes.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="/css/fonts.css" />
     <style>
-        @font-face {
-            font-family: 'Press Start 2P';
-            font-style: normal;
-            font-weight: 400;
-            font-display: swap;
-            src: url('/fonts/pressstart2p.woff2') format('woff2');
-            unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
-        }
+      @font-face {
+          font-family: 'Press Start 2P';
+          font-style: normal;
+          font-weight: 400;
+          font-display: swap;
+          src: url('/fonts/pressstart2p.woff2') format('woff2');
+          unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+      }
 
-        :root {
-            --bg-color: #f7f7f7;
-            --text-color: #212529;
-            --container-bg: #fff;
-            --footer-text: #555;
-        }
-        body.dark-theme {
-            --bg-color: #1a1a1a;
-            --text-color: #d3d3d3;
-            --container-bg: #212529;
-            --footer-text: #999;
-        }
-        body {
-            font-family: 'Press Start 2P', cursive;
-            background-color: var(--bg-color);
-            color: var(--text-color);
-            margin: 0;
-            padding: 0;
-        }
-        .container {
-            max-width: 980px;
-            margin: 0 auto;
-            padding: 20px;
-        }
-        header {
-            margin-top: 50px;
-            margin-bottom: 50px;
-            text-align: center;
-        }
-        .logo-img {
-            width: 64px;
-            height: 64px;
-            image-rendering: pixelated;
-            margin-bottom: 20px;
-        }
-        footer {
-            margin-top: 80px;
-            text-align: center;
-            font-size: 10px;
-            color: var(--footer-text);
-        }
-        a {
-            color: #209cee;
-            text-decoration: none;
-        }
-        a:hover {
-            text-decoration: underline;
-        }
+      :root {
+          --bg-color: #f7f7f7;
+          --text-color: #212529;
+          --container-bg: #fff;
+          --footer-text: #555;
+      }
+      body.dark-theme {
+          --bg-color: #1a1a1a;
+          --text-color: #d3d3d3;
+          --container-bg: #212529;
+          --footer-text: #999;
+      }
+      body {
+          font-family: 'Press Start 2P', cursive;
+          background-color: var(--bg-color);
+          color: var(--text-color);
+          margin: 0;
+          padding: 0;
+      }
+      .container {
+          max-width: 980px;
+          margin: 0 auto;
+          padding: 20px;
+      }
+      header {
+          margin-top: 50px;
+          margin-bottom: 50px;
+          text-align: center;
+      }
+      .logo-img {
+          width: 64px;
+          height: 64px;
+          image-rendering: pixelated;
+          margin-bottom: 20px;
+      }
+      footer {
+          margin-top: 80px;
+          text-align: center;
+          font-size: 10px;
+          color: var(--footer-text);
+      }
+      a {
+          color: #209cee;
+          text-decoration: none;
+      }
+      a:hover {
+          text-decoration: underline;
+      }
     </style>
     {% block extra_head %}{% endblock extra_head %}
-</head>
-<body>
+  </head>
+  <body>
     <script>
-        (function() {
-            const sharedTheme = localStorage.getItem('vectomancy_theme');
-            let useDark = false;
-            if (sharedTheme) {
-                useDark = (sharedTheme === 'dark');
-            } else {
-                const stored = localStorage.getItem('vectomancy_user_settings');
-                if (stored) {
-                    try {
-                        const settings = JSON.parse(stored);
-                        useDark = (settings.theme === 'dark');
-                    } catch(e) {}
-                } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-                    useDark = true;
-                }
-            }
-            if (useDark) {
-                document.body.classList.add('dark-theme');
-            }
-        })();
+      (function() {
+          const sharedTheme = localStorage.getItem('vectomancy_theme');
+          let useDark = false;
+          if (sharedTheme) {
+              useDark = (sharedTheme === 'dark');
+          } else {
+              const stored = localStorage.getItem('vectomancy_user_settings');
+              if (stored) {
+                  try {
+                      const settings = JSON.parse(stored);
+                      useDark = (settings.theme === 'dark');
+                  } catch(e) {}
+              } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+                  useDark = true;
+              }
+          }
+          if (useDark) {
+              document.body.classList.add('dark-theme');
+          }
+      })();
     </script>
-    {% block content %}
-    {% endblock content %}
+
+    <!-- Language Switcher -->
+    <div
+      id="lang-switcher"
+      role="group"
+      aria-label="{{ trans(key='nav_change_language') }}"
+      style="position: fixed; bottom: 80px; right: 30px; z-index: 1001; display: flex; gap: 4px;"
+    >
+      <a
+        href="{{ current_path | replace(from='/zh', to='') }}"
+        data-lang-switch="en"
+        id="lang-switch-en"
+        class="nes-btn {% if lang == 'en' %}is-disabled{% endif %}"
+        aria-current="{% if lang == 'en' %}true{% else %}false{% endif %}"
+        style="font-size: 8px; padding: 4px 8px;"
+        >EN</a
+      >
+      <a
+        href="/zh{{ current_path | replace(from='/zh', to='') }}"
+        data-lang-switch="zh"
+        id="lang-switch-zh"
+        class="nes-btn {% if lang == 'zh' %}is-disabled{% endif %}"
+        aria-current="{% if lang == 'zh' %}true{% else %}false{% endif %}"
+        style="font-size: 8px; padding: 4px 8px;"
+        >中文</a
+      >
+    </div>
+
+    {% block content %} {% endblock content %}
 
     <!-- Retro Feedback UI -->
-    <button type="button" class="nes-btn is-primary" id="btn-open-feedback" style="position: fixed; bottom: 30px; right: 30px; z-index: 1000; box-shadow: 0 4px 10px rgba(0,0,0,0.3);">
-        <i class="nes-icon is-small heart"></i> Feedback
+    <button
+      type="button"
+      class="nes-btn is-primary"
+      id="btn-open-feedback"
+      style="position: fixed; bottom: 30px; right: 30px; z-index: 1000; box-shadow: 0 4px 10px rgba(0,0,0,0.3);"
+    >
+      <i class="nes-icon is-small heart"></i> {{ trans(key='base_feedback') }}
     </button>
 
     <dialog class="nes-dialog" id="dialog-feedback">
       <form method="dialog">
-        <p class="title">Send Feedback</p>
+        <p class="title">{{ trans(key='base_feedback_title') }}</p>
         <div class="nes-field">
-          <textarea id="feedback_textarea" class="nes-textarea" placeholder="Found a bug or have an idea?" style="min-height: 120px; font-family: inherit; font-size: 12px;"></textarea>
+          <textarea
+            id="feedback_textarea"
+            class="nes-textarea"
+            placeholder="{{ trans(key='base_feedback_placeholder') }}"
+            style="min-height: 120px; font-family: inherit; font-size: 12px;"
+          ></textarea>
         </div>
         <menu class="dialog-menu" style="margin-top: 20px; display: flex; justify-content: space-between;">
-          <button class="nes-btn">Cancel</button>
+          <button class="nes-btn">{{ trans(key='common_cancel') }}</button>
           <button class="nes-btn is-success" id="btn-submit-feedback" type="button">Submit</button>
         </menu>
       </form>
     </dialog>
 
     <!-- Custom Styled Alert Dialog -->
-    <dialog class="nes-dialog is-rounded" id="custom-alert-dialog" style="z-index: 10000; font-family: 'Press Start 2P', cursive; font-size: 10px; max-width: 450px; text-align: left;">
+    <dialog
+      class="nes-dialog is-rounded"
+      id="custom-alert-dialog"
+      style="z-index: 10000; font-family: 'Press Start 2P', cursive; font-size: 10px; max-width: 450px; text-align: left;"
+    >
       <form method="dialog">
-        <p class="title" style="font-size: 10px; margin-bottom: 15px; color: var(--text-color);">NOTIFICATION</p>
+        <p class="title" style="font-size: 10px; margin-bottom: 15px; color: var(--text-color);">{{ trans(key='base_notification') }}</p>
         <p id="custom-alert-message" style="font-size: 8px; line-height: 1.6; margin-bottom: 25px; word-break: break-word;"></p>
         <menu class="dialog-menu" style="display: flex; justify-content: flex-end; padding: 0; margin: 0;">
-          <button class="nes-btn is-primary" style="font-size: 8px; padding: 4px 12px;">OK</button>
+          <button class="nes-btn is-primary" style="font-size: 8px; padding: 4px 12px;">{{ trans(key='common_ok') }}</button>
         </menu>
       </form>
     </dialog>
 
     <!-- Custom Styled Confirm Dialog -->
-    <dialog class="nes-dialog is-rounded" id="custom-confirm-dialog" style="z-index: 10000; font-family: 'Press Start 2P', cursive; font-size: 10px; max-width: 450px; text-align: left;">
+    <dialog
+      class="nes-dialog is-rounded"
+      id="custom-confirm-dialog"
+      style="z-index: 10000; font-family: 'Press Start 2P', cursive; font-size: 10px; max-width: 450px; text-align: left;"
+    >
       <form method="dialog">
-        <p class="title" style="font-size: 10px; margin-bottom: 15px; color: var(--text-color);">CONFIRM</p>
+        <p class="title" style="font-size: 10px; margin-bottom: 15px; color: var(--text-color);">{{ trans(key='base_confirm') }}</p>
         <p id="custom-confirm-message" style="font-size: 8px; line-height: 1.6; margin-bottom: 25px; word-break: break-word;"></p>
         <menu class="dialog-menu" style="display: flex; justify-content: space-between; padding: 0; margin: 0;">
-          <button class="nes-btn" id="custom-confirm-cancel" type="button" style="font-size: 8px; padding: 4px 12px;">CANCEL</button>
-          <button class="nes-btn is-success" id="custom-confirm-ok" type="button" style="font-size: 8px; padding: 4px 12px;">OK</button>
+          <button class="nes-btn" id="custom-confirm-cancel" type="button" style="font-size: 8px; padding: 4px 12px;">
+            {{ trans(key='base_cancel_caps') }}
+          </button>
+          <button class="nes-btn is-success" id="custom-confirm-ok" type="button" style="font-size: 8px; padding: 4px 12px;">
+            {{ trans(key='common_ok') }}
+          </button>
         </menu>
       </form>
     </dialog>
@@ -230,7 +283,7 @@
           if (!text) return;
 
           const btn = this;
-          btn.innerText = "Sending...";
+          btn.innerText = window.t8("Sending...", "发送中…");
           btn.classList.add('is-disabled');
 
           try {
@@ -242,17 +295,18 @@
               if (res.ok) {
                   textarea.value = '';
                   document.getElementById('dialog-feedback').close();
-                  alert("Thanks for your feedback! The developer will check it soon.");
+                  alert(window.t8("Thanks for your feedback! The developer will check it soon.", "感谢反馈！开发者会尽快查看。"));
               } else {
-                  alert("Failed to send feedback.");
+                  alert(window.t8("Failed to send feedback.", "反馈发送失败。"));
               }
           } catch (e) {
-              alert("Network error.");
+              alert(window.t8("Network error.", "网络错误。"));
           } finally {
-              btn.innerText = "Submit";
+              btn.innerText = window.t8("Submit", "提交");
               btn.classList.remove('is-disabled');
           }
       });
     </script>
-</body>
+    <script src="/js/i18n.js" defer></script>
+  </body>
 </html>
