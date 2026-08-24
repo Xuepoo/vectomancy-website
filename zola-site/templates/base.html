@@ -39,6 +39,11 @@
     <link href="{{ get_url(path='/css/nes.min.css', cachebust=true) }}" rel="stylesheet" />
     <link rel="stylesheet" href="{{ get_url(path='/css/fonts.css', cachebust=true) }}" />
     <style>
+        /* Links inside rich-text update entries need an underline to stand out from body text */
+        .nes-container .updates-body a,
+        .nes-container div[style*="line-height"] a {
+          text-decoration: underline;
+        }
       @font-face {
           font-family: 'Press Start 2P';
           font-style: normal;
