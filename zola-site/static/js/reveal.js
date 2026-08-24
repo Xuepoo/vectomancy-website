@@ -327,16 +327,59 @@ class RevealPass {
       return { s0, s1: s0 + wf };
     });
     this.drawn = keys.map(() => 0);
+    // Strokes that have not yet been fully drawn. Drained either by natural
+    // timeline progress or by finishChunk() slices after t reaches 1, so a
+    // backlog never forces one giant synchronous redraw (the historic
+    // "canvas frozen right after the reveal finishes" defect).
+    this.remaining = n;
+    const watch = (i, v) => {
+      if (this.drawn[i] < 1 && v >= 1) this.remaining--;
+      return v;
+    };
+    this._watch = watch;
     this.complete = false;
   }
 
+  get incomplete() {
+    return this.remaining > 0;
+  }
+
+  // Fully draw up to `budget` not-yet-finished strokes. Returns how many
+  // remain. Used after the timeline has elapsed to drain leftovers across
+  // several frames instead of blocking the main thread once.
+  finishChunk(ctxFn, budget) {
+    if (!this.incomplete) return 0;
+    for (let i = 0; i < this.strokes.length && budget > 0; i++) {
+      if (this.drawn[i] >= 1) continue;
+      if (this.drawn[i] === 0 && this.onStrokeStart) this.onStrokeStart(i);
+      const ctx = ctxFn();
+      if (this.batch) {
+        const P = new Path2D();
+        this.strokes[i].draw(ctx, this.drawn[i], 1, P);
+        ctx.strokeStyle = this.styleFor(this.strokes[0]);
+        ctx.stroke(P);
+      } else {
+        ctx.strokeStyle = this.styleFor(this.strokes[i]);
+        this.strokes[i].draw(ctx, this.drawn[i], 1);
+      }
+      this._watch(i, 1);
+      this.drawn[i] = 1;
+      budget--;
+      if (this.onAdvance) this.onAdvance(this.strokes[i]);
+    }
+    return this.remaining;
+  }
+
   // Draw everything between previous global progress and current one.
+  // ctxFn resolves the target context lazily at every use: staged reveals
+  // create their offscreen layers mid-animation (first color stroke-start),
+  // so a context captured at call time could still be null.
   // Returns true when any stroke advanced (i.e. new pixels were emitted).
-  drawRange(ctx, fromT, toT) {
+  drawRange(ctxFn, fromT, toT) {
     if (this.complete) return false;
     let advanced = false;
     const P = this.batch ? new Path2D() : null;
-    if (P) ctx.strokeStyle = this.styleFor(this.strokes[0]);
+    if (P) ctxFn().strokeStyle = this.styleFor(this.strokes[0]);
     for (let i = 0; i < this.strokes.length; i++) {
       const { s0, s1 } = this.windows[i];
       if (s0 >= toT) continue;
@@ -344,36 +387,19 @@ class RevealPass {
       const curP = clamp01((toT - s0) / (s1 - s0));
       if (curP <= prevP || curP <= this.drawn[i]) continue;
       if (this.drawn[i] === 0 && this.onStrokeStart) this.onStrokeStart(i);
+      const ctx = ctxFn();
       const from = Math.max(prevP, this.drawn[i]);
       if (P) this.strokes[i].draw(ctx, from, curP, P);
       else {
         ctx.strokeStyle = this.styleFor(this.strokes[i]);
         this.strokes[i].draw(ctx, from, curP);
       }
-      this.drawn[i] = curP;
+      this.drawn[i] = this._watch(i, curP);
       advanced = true;
       if (this.onAdvance) this.onAdvance(this.strokes[i]);
     }
-    if (P && advanced) ctx.stroke(P);
-    if (toT >= 1) {
-      // Force-complete any rounding leftovers.
-      const PF = this.batch ? new Path2D() : null;
-      let forced = false;
-      for (let i = 0; i < this.strokes.length; i++) {
-        if (this.drawn[i] < 1) {
-          if (this.drawn[i] === 0 && this.onStrokeStart) this.onStrokeStart(i);
-          if (PF) this.strokes[i].draw(ctx, this.drawn[i], 1, PF);
-          else {
-            ctx.strokeStyle = this.styleFor(this.strokes[i]);
-            this.strokes[i].draw(ctx, this.drawn[i], 1);
-          }
-          this.drawn[i] = 1;
-          forced = true;
-          advanced = true;
-          if (this.onAdvance) this.onAdvance(this.strokes[i]);
-        }
-      }
-      if (PF && forced) ctx.stroke(PF);
+    if (P && advanced) ctxFn().stroke(P);
+    if (toT >= 1 && !this.incomplete) {
       this.complete = true;
     }
     return advanced;
@@ -401,23 +427,46 @@ export class RevealAnimator {
     this.cancel();
     const o = this.opts;
 
-    // Staged color composites two separate layers (mono + color) so a color
-    // stroke is never blended on top of its monochrome underlayer — stacking
-    // them darkens AA edges and stroke crossings. Each mono stroke is retired
-    // with an exact-footprint destination-out erase (same path, same width):
-    // a wider erase would punch a white halo around every colorized stroke and
-    // make the whole frame look washed out until the final repaint.
+    // Staged color strategy ("mono first, color spreads") keeps monochrome and
+    // colored strokes on separate surfaces so a color stroke is never blended
+    // on top of its own monochrome underlayer (stacking darkens AA edges and
+    // crossings). Architecture, tuned so per-frame cost stays proportional to
+    // newly revealed geometry even on huge canvases:
+    //   - Shape phase: mono strokes are drawn DIRECTLY onto the caller's
+    //     canvas (it starts blank — callers reset it via canvas.width). No
+    //     offscreen layers, no compositing, for the whole mono stage.
+    //   - First color stroke-start: snapshot the mono state offscreen; from
+    //     then on mono retirement (exact-footprint destination-out erase, so
+    //     no white halo) and color advances hit their own layers, composited
+    //     back onto the caller's canvas clipped to the dirty rect. Erases
+    //     accumulate across the frame and flush as ONE Path2D stroke — with a
+    //     high color lag hundreds of strokes start per frame and per-stroke
+    //     erase round-trips were the dominant jank.
+    // The blend math is identical to a permanent two-layer setup, so the final
+    // accumulated frame equals a clean single-pass repaint.
     const staged = o.colorMode === "staged" && o.extractColor !== false;
     const width = ctx.canvas.width;
     const height = ctx.canvas.height;
     const baseTransform = ctx.getTransform();
-    let monoCanvas = null;
+
+    ctx.lineJoin = "round";
+    ctx.lineCap = "round";
+    ctx.lineWidth = o.lineWidth;
+
     let monoCtx = null;
-    let colorCanvas = null;
     let colorCtx = null;
     if (staged) {
-      monoCanvas = document.createElement("canvas");
-      colorCanvas = document.createElement("canvas");
+      // Start from a guaranteed-blank surface regardless of caller state.
+      ctx.save();
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.clearRect(0, 0, width, height);
+      ctx.restore();
+    }
+    // Created lazily when the color stage begins; null until then.
+    const ensureLayers = () => {
+      if (monoCtx) return;
+      const monoCanvas = document.createElement("canvas");
+      const colorCanvas = document.createElement("canvas");
       monoCanvas.width = colorCanvas.width = width;
       monoCanvas.height = colorCanvas.height = height;
       monoCtx = monoCanvas.getContext("2d");
@@ -428,18 +477,12 @@ export class RevealAnimator {
         c.lineCap = "round";
         c.lineWidth = o.lineWidth;
       }
-    }
-    const shapeCtx = staged ? monoCtx : ctx;
-    const colorTargetCtx = staged ? colorCtx : ctx;
-    if (!staged) {
-      // Non-staged draws straight onto the caller's canvas, which carries
-      // whatever lineWidth its last paint left behind (usually the default).
-      // Animated strokes must honor the requested width or the final repaint
-      // reads as a sudden thickening.
-      ctx.lineJoin = "round";
-      ctx.lineCap = "round";
-      ctx.lineWidth = o.lineWidth;
-    }
+      // Preserve everything the mono stage already painted (device space).
+      monoCtx.save();
+      monoCtx.setTransform(1, 0, 0, 1, 0, 0);
+      monoCtx.drawImage(ctx.canvas, 0, 0);
+      monoCtx.restore();
+    };
 
     const bbox = validBBox(this.ast.bounding_box);
 
@@ -448,11 +491,22 @@ export class RevealAnimator {
       colorSpace: o.colorSpace,
       extractColor: o.extractColor,
     };
-    const coloredStyle = (stroke) =>
-      resolveStrokeStyle(ctx, stroke.colorStyle, bbox, {
-        ...styleOpts,
-        defCol: o.monoColor,
-      });
+    // Resolved colors never change mid-animation, but with many paths the
+    // color stage re-styles hundreds of strokes per frame — resolve each
+    // stroke's style once and reuse it (gradient objects would otherwise be
+    // rebuilt every frame).
+    const styleCache = new Map();
+    const coloredStyle = (stroke) => {
+      let s = styleCache.get(stroke);
+      if (s === undefined) {
+        s = resolveStrokeStyle(ctx, stroke.colorStyle, bbox, {
+          ...styleOpts,
+          defCol: o.monoColor,
+        });
+        styleCache.set(stroke, s);
+      }
+      return s;
+    };
     const monoStyle = () => o.monoColor;
 
     const rng = mulberry32(o.seed);
@@ -461,9 +515,15 @@ export class RevealAnimator {
       this.strokes,
       shapeKeys,
       o.colorMode === "staged" ? monoStyle : coloredStyle,
-      staged ? { onAdvance: markDirty, batch: true } : {},
+      // Staged: once layers exist, late mono advances must dirty the region
+      // they painted or the next composite would skip them. Before the
+      // snapshot markDirty is a no-op (direct-draw phase).
+      staged ? { batch: true, onAdvance: markDirty } : {},
     );
 
+    // Mono strokes retired this frame, flushed as a single destination-out
+    // stroke before compositing (see architecture note above).
+    let pendingErases = [];
     this.colorPass = null;
     if (staged) {
       const cMode = o.colorStrategy === "follow" ? o.mode : o.colorStrategy;
@@ -473,24 +533,21 @@ export class RevealAnimator {
       const shifted = colorKeys.map((k) => lag + k * (1 - lag));
       this.colorPass = new RevealPass(this.strokes, shifted, coloredStyle, {
         onStrokeStart: (i) => {
-          monoCtx.save();
-          monoCtx.globalCompositeOperation = "destination-out";
-          monoCtx.strokeStyle = "#000";
-          monoCtx.lineWidth = o.lineWidth;
-          this.strokes[i].draw(monoCtx, 0, 1);
-          monoCtx.restore();
+          ensureLayers();
+          pendingErases.push(this.strokes[i]);
         },
         onAdvance: markDirty,
       });
     }
 
-    // Dirty-rect tracking: compositing two full-size layers every frame is
-    // the dominant cost on large canvases and the reason staged reveals felt
-    // janky with many paths. Instead, remember which strokes advanced this
-    // frame and refresh only their (padded) screen-space bounding rect.
+    // Dirty-rect tracking: once layers exist, refreshing only the region that
+    // changed this frame keeps the per-frame composite proportional to new
+    // geometry; past a coverage threshold a full blit is cheaper than clip
+    // bookkeeping, so large unions collapse to "full".
     let dirty = null; // [x0, y0, x1, y1] device pixels, or "full"
     const PAD = 4;
     function markDirty(stroke) {
+      if (!monoCtx) return; // direct-draw phase: nothing to composite
       if (dirty === "full" || !stroke.bbox || !baseTransform) {
         dirty = "full";
         return;
@@ -521,29 +578,58 @@ export class RevealAnimator {
         dirty[2] = Math.max(dirty[2], r[2]);
         dirty[3] = Math.max(dirty[3], r[3]);
       }
+      const fullArea = width * height;
+      if ((dirty[2] - dirty[0]) * (dirty[3] - dirty[1]) > 0.4 * fullArea) {
+        dirty = "full";
+      }
     }
+    const flushErases = () => {
+      if (!pendingErases.length || !monoCtx) {
+        pendingErases = [];
+        return;
+      }
+      // Flush in bounded chunks: one stroke() call with tens of thousands of
+      // subpaths turns into a single long main-task (visible as a hitch at
+      // high color lags). Erases left over simply retire one frame later,
+      // which is imperceptible — the colour layer covers them either way.
+      const CHUNK = 400;
+      monoCtx.save();
+      monoCtx.globalCompositeOperation = "destination-out";
+      monoCtx.strokeStyle = "#000";
+      monoCtx.lineWidth = o.lineWidth;
+      for (let i = 0; i < pendingErases.length; i += CHUNK) {
+        const P = new Path2D();
+        for (const s of pendingErases.slice(i, i + CHUNK)) s.draw(monoCtx, 0, 1, P);
+        monoCtx.stroke(P);
+      }
+      monoCtx.restore();
+      pendingErases = [];
+    };
     const composite = () => {
-      if (!staged || !dirty) return;
+      if (!staged || !monoCtx || !dirty) return;
       ctx.save();
       ctx.setTransform(1, 0, 0, 1, 0, 0);
-      if (dirty === "full") {
-        ctx.clearRect(0, 0, width, height);
-        ctx.drawImage(monoCanvas, 0, 0);
-        ctx.drawImage(colorCanvas, 0, 0);
-      } else {
+      if (dirty !== "full") {
         const x = Math.max(0, Math.floor(dirty[0]));
         const y = Math.max(0, Math.floor(dirty[1]));
         const w = Math.min(width, Math.ceil(dirty[2])) - x;
         const h = Math.min(height, Math.ceil(dirty[3])) - y;
-        if (w > 0 && h > 0) {
-          ctx.clearRect(x, y, w, h);
-          ctx.beginPath();
-          ctx.rect(x, y, w, h);
-          ctx.clip();
-          ctx.drawImage(monoCanvas, 0, 0);
-          ctx.drawImage(colorCanvas, 0, 0);
+        if (w <= 0 || h <= 0) {
+          ctx.restore();
+          dirty = null;
+          return;
         }
+        ctx.beginPath();
+        ctx.rect(x, y, w, h);
+        ctx.clip();
       }
+      // "copy" replaces the destination wholesale (including transparent
+      // pixels), so no separate clearRect pass is needed before blitting the
+      // two layers; the optional clip bounds both passes to the dirty rect.
+      ctx.globalCompositeOperation = "copy";
+      ctx.drawImage(monoCtx.canvas, 0, 0);
+      ctx.globalCompositeOperation = "source-over";
+      ctx.drawImage(colorCtx.canvas, 0, 0);
       ctx.restore();
       dirty = null;
     };
@@ -551,16 +637,34 @@ export class RevealAnimator {
     this.running = true;
     this._start = performance.now();
     this._prevT = 0;
+    // Drain budget for post-timeline leftovers (frames lost to jank or a
+    // backgrounded tab). Sliced across frames; adaptive so slow machines
+    // take smaller bites and never stall a frame for long.
+    let drainBudget = 400;
     const tick = (now) => {
       if (!this.running) return;
       const duration = Math.max(this.opts.durationMs, 1);
       const t = clamp01((now - this._start) / duration);
-      this.shapePass.drawRange(shapeCtx, this._prevT, t);
-      if (this.colorPass) this.colorPass.drawRange(colorTargetCtx, this._prevT, t);
+      const t0 = performance.now();
+      // The mono stage draws straight onto the caller's canvas; after the
+      // snapshot it continues onto the mono layer instead.
+      this.shapePass.drawRange(() => monoCtx || ctx, this._prevT, t);
+      if (this.colorPass) this.colorPass.drawRange(() => colorCtx, this._prevT, t);
+      if (t >= 1 && this.shapePass.incomplete) {
+        drainBudget = this.shapePass.finishChunk(() => monoCtx || ctx, drainBudget);
+      }
+      if (t >= 1 && this.colorPass && this.colorPass.incomplete) {
+        drainBudget = this.colorPass.finishChunk(() => colorCtx, drainBudget);
+      }
+      flushErases();
       composite();
       this._prevT = t;
       if (hooks.onFrame) hooks.onFrame();
-      if (t >= 1 && this.shapePass.complete && (!this.colorPass || this.colorPass.complete)) {
+      // Keep the per-frame bite small even under backlog pressure.
+      if (performance.now() - t0 > 12 && drainBudget > 40)
+        drainBudget = Math.floor(drainBudget / 2);
+      else if (performance.now() - t0 < 6 && drainBudget < 1600) drainBudget *= 2;
+      if (t >= 1 && !this.shapePass.incomplete && (!this.colorPass || !this.colorPass.incomplete)) {
         this.running = false;
         if (staged) {
           // The staged resting frame IS the final accumulated animation frame:
