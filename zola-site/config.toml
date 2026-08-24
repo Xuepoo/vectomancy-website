@@ -82,7 +82,9 @@ changelog_20260824_body = '''
               </li><li style="margin-bottom: 5px;">
                 <strong>Reveal feels right:</strong> animations now honor your <code>Stroke Weight</code> from start to finish, staged
                 <code>Mono first, color spreads</code> ends exactly on its final frame (no more sudden color shift at completion), and heavy
-                10,000+-path artwork plays smoothly thanks to a new dirty-rect compositor and batched stroke rendering.
+                10,000+-path artwork plays smoothly thanks to a new dirty-rect compositor and batched stroke rendering. Huge artworks no
+                longer freeze panning after the animation completes, and Reveal is now on by default — a gentle 3s bloom from the center,
+                with <code>Mono first</code> still opt-in.
               </li><li><strong>Always fresh:</strong> assets are content-hashed, so updates reach your browser without manual hard refreshes.</li></ul>'''
 changelog_20260823_title = "[2026-08-23] - Progressive Reveal comes to Vectomancy Pro"
 changelog_20260823_body = '''
@@ -662,10 +664,12 @@ changelog_20260824_body = '''
 <ul style="margin: 0; padding-left: 20px; list-style-type: square;"><li style="margin-bottom: 5px;">
                 <strong>简体中文上线：</strong>全站双语。中国大陆访客自动进入 <code>/zh/</code> 版本，每页均有 <code>EN | 中文</code> 切换器，
                 中文以 CDN 下发的 12px 像素字体清晰呈现。
-              </li><li style="margin-bottom: 5px;">
+              </li>              <li style="margin-bottom: 5px;">
                 <strong>Reveal 手感修复：</strong>动画全程遵循你的<strong>笔画粗细</strong>设置；
                 <code>先黑白，后上色</code>结束后画面精确定格在最终帧，不再突然变色；
                 上万路径的大图也因全新脏矩形合成器与批量描边而流畅播放。
+                超大作品在动画结束后不会再出现约一秒无法拖动画布的卡顿，
+                并且 Reveal 现已默认开启——自中心 3 秒温柔绽放，<code>先黑白</code>仍可手动开启。
               </li><li><strong>始终最新：</strong>静态资源带内容哈希，更新无需手动强刷即可生效。</li></ul>'''
 changelog_20260823_title = "[2026-08-23] - 渐进显现登陆 Vectomancy Pro"
 changelog_20260823_body = '''
